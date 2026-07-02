@@ -31,6 +31,13 @@ Here is Discord Name To Know
    
 
 ---
+## ⚡ Key Core Features (TEAM PROVIDENCE VISION)
+
+1. **Automated Disaster Protocol:** Automatically force-enables smartphone Bluetooth/Wi-Fi Direct via background BLE scanning when an emergency trigger is sent from Weather/Defense HQ.
+2. **Infrastructure-Less P2P Mesh:** Routes critical SOS data packets hopping from one local device to another, completely bypassing destroyed cellular towers.
+3. **Opportunistic One-Bar Burst:** Constantly scans for weak signals and instantly floods the Rescue Dashboard with survivor alerts the split-second a 1-bar cell reception flickers online.
+4. **End-to-End Encrypted Hops:** Uses cryptographic layers to secure private survivor data so intermediate bridging nodes cannot read the message payload.
+   
 
 ## 🏆 Our Mission
 
