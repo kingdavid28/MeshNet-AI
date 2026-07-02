@@ -27,6 +27,8 @@ Here is Discord Name To Know
 4. **Pranjali Sathe** (India)
 5. **Archhii** (Philippines)
 6. **MerceROd** (Peru)
+7. **Nnamdin** (NIgeria)
+   
 
 ---
 
