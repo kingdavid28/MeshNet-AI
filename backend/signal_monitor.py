@@ -225,7 +225,7 @@ class SignalMonitor:
         )
 
         log.warning(
-            "FLICKER DETECTED — node=%s signal=%d→%d scenario=%s",
+            "FLICKER DETECTED - node=%s signal=%d->%d scenario=%s",
             node_id, prev, signal, scenario,
         )
 
@@ -319,7 +319,7 @@ class BurstDispatcher:
             The flicker event that triggered this burst.
         """
         log.warning(
-            "HIGH-PRIORITY BURST — node=%s signal=%d→%d scenario=%s",
+            "HIGH-PRIORITY BURST - node=%s signal=%d->%d scenario=%s",
             evt.node_id, evt.prev_signal, evt.curr_signal, evt.scenario,
         )
 

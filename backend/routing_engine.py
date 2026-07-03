@@ -206,6 +206,14 @@ class RoutingEngine:
         generated automatically via ``generate_session_key()``.
     rescue_node_id : int | str
         ID of the rescue camp target node (default: 100).
+    packet_loss_rate : float
+        Per-hop probability of a single transmission attempt being dropped
+        (default: from config.py).
+    max_retries : int
+        Number of retransmission attempts per hop before giving up (default: 1).
+        BLE mesh protocols automatically retry failed hops; setting this to 3
+        models the real-world ARQ (Automatic Repeat reQuest) behaviour where
+        the effective per-hop drop rate drops to loss_rate^max_retries.
     """
 
     def __init__(
@@ -214,11 +222,13 @@ class RoutingEngine:
         session_key: Optional[bytes] = None,
         rescue_node_id: Any = _RESCUE_NODE_ID,
         packet_loss_rate: float = PACKET_LOSS_RATE,
+        max_retries: int = 1,
     ) -> None:
         self._graph = mesh_graph
         self._session_key = session_key or generate_session_key()
         self._rescue_node_id = rescue_node_id
         self._packet_loss_rate = packet_loss_rate
+        self._max_retries = max_retries
 
     # ── Class helpers ─────────────────────────────────────────────────────────
 
@@ -324,27 +334,36 @@ class RoutingEngine:
         except nx.NodeNotFound as exc:
             return {"status": "Failed", "message": str(exc)}
 
-        # ── Per-hop packet-loss simulation ────────────────────────────────────
+        # ── Per-hop packet-loss simulation with retransmission (ARQ) ─────────
         # Each relay hop has an independent chance of dropping the packet
-        # (modelling real BLE/Wi-Fi interference).  If dropped, the engine
-        # reports the drop so the caller can retry or choose an alternate path.
+        # (modelling real BLE/Wi-Fi interference).  The engine simulates
+        # BLE Automatic Repeat reQuest: each hop is attempted up to
+        # max_retries times before the packet is declared lost.
+        # Effective per-hop drop = loss_rate ^ max_retries.
         hops_count = len(optimal_path) - 1
         for hop_idx in range(hops_count):
-            if random.random() < self._packet_loss_rate:
+            hop_delivered = False
+            for attempt in range(self._max_retries):
+                if random.random() >= self._packet_loss_rate:
+                    hop_delivered = True
+                    break
+            if not hop_delivered:
                 log.warning(
-                    "Simulated packet drop at hop %d/%d (loss_rate=%.0f%%)",
-                    hop_idx + 1, hops_count, self._packet_loss_rate * 100,
+                    "Simulated packet drop at hop %d/%d after %d attempts (loss_rate=%.0f%%)",
+                    hop_idx + 1, hops_count, self._max_retries,
+                    self._packet_loss_rate * 100,
                 )
                 return {
                     "status":   "Dropped",
                     "message":  (
                         f"Packet dropped at hop {hop_idx + 1}/{hops_count} "
+                        f"after {self._max_retries} attempt(s) "
                         f"(simulated {self._packet_loss_rate * 100:.0f}% per-hop loss rate). "
                         "Caller should retry or reroute."
                     ),
-                    "path_taken":  optimal_path,
-                    "drop_hop":    hop_idx + 1,
-                    "total_hops":  hops_count,
+                    "path_taken":   optimal_path,
+                    "drop_hop":     hop_idx + 1,
+                    "total_hops":   hops_count,
                     "total_weight": round(total_weight, 4),
                 }
 
