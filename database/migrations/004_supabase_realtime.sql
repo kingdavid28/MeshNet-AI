@@ -1,4 +1,5 @@
 -- Migration 004 — Supabase / PostgreSQL Realtime schema
+-- SUPABASE_ONLY
 -- MeshNet AI — Layer 4: Data Storage Layer
 --
 -- This migration targets PostgreSQL (Supabase) and adds:

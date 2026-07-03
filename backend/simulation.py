@@ -583,8 +583,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--range",
         type=float,
-        default=100.0,
-        help="Max BLE/Wi-Fi communication range in metres (default: 100)",
+        default=300.0,
+        help="Max BLE/Wi-Fi communication range in metres (default: 300 — earthquake scenario)",
     )
     parser.add_argument(
         "--db",

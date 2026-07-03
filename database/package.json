@@ -6,7 +6,8 @@
   "scripts": {
     "migrate":       "ts-node migrations/run.ts",
     "seed":          "ts-node seeds/run.ts",
-    "seed:mesh":     "ts-node seeds/seed_mesh_nodes.ts"
+    "seed:mesh":     "ts-node seeds/seed_mesh_nodes.ts",
+    "setup":         "ts-node migrations/run.ts && ts-node seeds/run.ts && ts-node seeds/seed_mesh_nodes.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1"
