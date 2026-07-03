@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import DashboardLayout from "./components/DashboardLayout";
+import NodeMapCanvas from "./components/NodeMapCanvas";
+import { useCloudantNodes } from "./hooks/useCloudantNodes";
 import {
   AlertTriangle,
   Heart,
@@ -673,148 +675,19 @@ function AlertTab() {
 }
 
 function MapTab() {
-  const [selected, setSelected] = useState<Node | null>(null);
+  const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2
-            className="text-lg font-bold text-[#E8EEF7] uppercase tracking-widest"
-            style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-          >
-            Mesh Network
-          </h2>
-          <p className="text-xs text-[#7B9CC4]">6 nodes · real-time topology</p>
-        </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#22C55E]/15 border border-[#22C55E]/25">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-          <span className="text-[10px] font-mono text-[#22C55E] uppercase tracking-wider">Live</span>
-        </div>
-      </div>
-
-      {/* Map canvas */}
-      <div className="rounded-2xl bg-[#0A1526] border border-[rgba(91,141,217,0.2)] overflow-hidden" style={{ height: 290 }}>
-        <MeshCanvas />
-      </div>
-
-      {/* Legend */}
-      <div className="rounded-xl bg-[#0A1526] border border-[rgba(91,141,217,0.15)] p-3 grid grid-cols-2 gap-2">
-        <div className="col-span-2 text-[9px] uppercase tracking-widest text-[#7B9CC4] font-mono mb-0.5">Legend</div>
-        {/* Device types */}
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-[#F97316]/20 border border-[#F97316] flex items-center justify-center">
-            <div className="w-2 h-3 rounded-sm bg-[#F97316]" />
-          </div>
-          <span className="text-xs text-[#7B9CC4]">Your phone</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-[#22C55E]/15 border border-[#22C55E]/50 flex items-center justify-center">
-            <div className="w-2 h-3 rounded-sm bg-[#22C55E]/40 border border-[#22C55E]" />
-          </div>
-          <span className="text-xs text-[#7B9CC4]">Peer phone</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-4 rounded-sm bg-[#22C55E]/15 border border-[#22C55E]/50" />
-          <span className="text-xs text-[#7B9CC4]">Laptop relay</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-4 rounded-sm bg-[#5B8DD9]/15 border border-[#5B8DD9]/50" />
-          <span className="text-xs text-[#7B9CC4]">Laptop peer</span>
-        </div>
-        {/* Connection types */}
-        <div className="flex items-center gap-2">
-          <div className="w-6 border-t-2" style={{ borderColor: "#38BDF8" }} />
-          <span className="text-xs text-[#38BDF8]">Wi-Fi link</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 border-t-2 border-dashed" style={{ borderColor: "#A855F7" }} />
-          <span className="text-xs text-[#A855F7]">Bluetooth</span>
-        </div>
-      </div>
-
-      {/* Node list */}
-      <div className="flex flex-col gap-2">
-        {NODES.filter((n) => n.id !== "self").map((node) => {
-          // Find which edges connect to this node and their protocols
-          const nodeEdges = EDGES.filter((e) => e.a === node.id || e.b === node.id);
-          const protocols = [...new Set(nodeEdges.map((e) => e.protocol))];
-          const nodeColor = node.role === "relay" ? "#22C55E" : "#5B8DD9";
-
-          return (
-            <div
-              key={node.id}
-              onClick={() => setSelected(selected?.id === node.id ? null : node)}
-              className={`rounded-xl border p-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
-                selected?.id === node.id
-                  ? "border-[rgba(91,141,217,0.5)] bg-[#1A3870]"
-                  : "border-[rgba(91,141,217,0.15)] bg-[#132B5A]"
-              }`}
-            >
-              {/* Device icon */}
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
-                style={{ background: `${nodeColor}18`, border: `1px solid ${nodeColor}40` }}
-              >
-                {node.device === "laptop" ? (
-                  <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
-                    <rect x="1" y="0.5" width="20" height="13" rx="2" fill={`${nodeColor}25`} stroke={nodeColor} strokeWidth="1.2"/>
-                    <rect x="3" y="2.5" width="16" height="9" rx="1" fill={`${nodeColor}20`}/>
-                    <rect x="0" y="14" width="22" height="3" rx="1.5" fill={`${nodeColor}25`} stroke={nodeColor} strokeWidth="1.2"/>
-                  </svg>
-                ) : (
-                  <svg width="14" height="22" viewBox="0 0 14 22" fill="none">
-                    <rect x="0.6" y="0.6" width="12.8" height="20.8" rx="2.5" fill={`${nodeColor}25`} stroke={nodeColor} strokeWidth="1.2"/>
-                    <rect x="2" y="2.5" width="10" height="14" rx="1" fill={`${nodeColor}20`}/>
-                    <circle cx="7" cy="19" r="1.2" fill={nodeColor}/>
-                  </svg>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-[#E8EEF7]">{node.label}</span>
-                  <span
-                    className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                    style={{ background: `${nodeColor}18`, color: nodeColor }}
-                  >
-                    {node.role}
-                  </span>
-                </div>
-                <div className="text-[10px] text-[#7B9CC4] mt-0.5">{node.name} · {node.os}</div>
-                <div className="flex items-center gap-3 mt-1.5">
-                  <div className="flex-1 h-1 rounded-full bg-[#0B1D3A] overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${node.signal}%`,
-                        background: node.signal > 80 ? "#22C55E" : node.signal > 55 ? "#F97316" : "#EF4444",
-                      }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-mono text-[#7B9CC4] shrink-0">{node.signal}%</span>
-                </div>
-                {/* Protocol badges */}
-                <div className="flex gap-1.5 mt-1.5">
-                  {protocols.includes("wifi") && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{ background: "#38BDF820", color: "#38BDF8", border: "1px solid #38BDF830" }}>
-                      Wi-Fi
-                    </span>
-                  )}
-                  {protocols.includes("bluetooth") && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-mono" style={{ background: "#A855F720", color: "#A855F7", border: "1px solid #A855F730" }}>
-                      Bluetooth
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-right shrink-0">
-                <div className="text-[10px] font-mono text-[#7B9CC4]">{node.lastSeen}</div>
-              </div>
-            </div>
-          );
-        })}
+    <div className="flex flex-col p-4" style={{ height: "100%" }}>
+      {/* NodeMapCanvas fills available height — overflow:visible so Leaflet panes aren't clipped */}
+      <div style={{ flex: 1, minHeight: 400, overflow: "visible" }}>
+        <NodeMapCanvas
+          nodes={nodes}
+          loading={loading}
+          error={error}
+          source={source}
+          onRefresh={refresh}
+        />
       </div>
     </div>
   );
@@ -1009,8 +882,17 @@ export default function App() {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+        {/* Content — map tab needs overflow:visible so Leaflet panes aren't clipped */}
+        <div
+          className="flex-1"
+          style={{
+            overflowY: tab === "map" ? "visible" : "auto",
+            overflowX: "hidden",
+            scrollbarWidth: "none",
+            // Give the map tab a real height so Leaflet has pixels to measure
+            ...(tab === "map" ? { display: "flex", flexDirection: "column" } : {}),
+          }}
+        >
           {tab === "home" && <HomeTab />}
           {tab === "alert" && <AlertTab />}
           {tab === "map" && <MapTab />}
