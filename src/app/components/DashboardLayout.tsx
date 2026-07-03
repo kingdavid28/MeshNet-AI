@@ -345,10 +345,13 @@ export default function DashboardLayout() {
               </div>
             )}
 
-            {/* Map panel */}
+            {/* Map panel — overflow-hidden removed; Leaflet tile panes are
+                absolutely positioned and get clipped by overflow:hidden.
+                height:0 flex trick replaced with an explicit min-height so
+                Leaflet always gets a measurable pixel box. */}
             <div
-              className="flex-1 overflow-hidden p-4"
-              style={{ minHeight: 0 }}
+              className="flex-1 p-4"
+              style={{ minHeight: 340, overflow: "visible" }}
             >
               <NodeMapCanvas
                 nodes={nodes}
