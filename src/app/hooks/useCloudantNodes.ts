@@ -214,11 +214,18 @@ export function useCloudantNodes(
   const cloudantDb  = (import.meta.env.VITE_CLOUDANT_DB as string | undefined) ?? "mesh_nodes_db";
   const apiBase     = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000";
 
+  // Guard against un-replaced .env.local placeholders — a URL containing
+  // angle brackets or the literal string "your-instance" is not a real URL.
+  const cloudantUrlValid =
+    !!cloudantUrl &&
+    !cloudantUrl.includes("<") &&
+    !cloudantUrl.includes("your-instance");
+
   const load = useCallback(async () => {
     try {
-      // Priority 1 — IBM Cloudant (when credentials are present)
-      if (cloudantUrl && cloudantKey) {
-        const data = await fetchFromCloudant(cloudantUrl, cloudantKey, cloudantDb);
+      // Priority 1 — IBM Cloudant (when real credentials are present)
+      if (cloudantUrlValid && cloudantKey && !cloudantKey.includes("<")) {
+        const data = await fetchFromCloudant(cloudantUrl!, cloudantKey, cloudantDb);
         setNodes(data);
         setSource("cloudant");
         setError(null);
@@ -243,7 +250,7 @@ export function useCloudantNodes(
       setLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cloudantUrl, cloudantKey, cloudantDb, apiBase]);
+  }, [cloudantUrlValid, cloudantKey, cloudantDb, apiBase]);
 
   useEffect(() => {
     load();
