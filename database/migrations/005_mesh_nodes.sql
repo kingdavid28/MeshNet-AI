@@ -1,4 +1,5 @@
--- Migration 005 — mesh_nodes virtual environment table
+-- Migration 005 — mesh_nodes virtual environment table (Supabase/PostgreSQL)
+-- SUPABASE_ONLY
 -- MeshNet AI — Layer 4: Virtual Environment (100 simulated disaster-zone citizens)
 --
 -- Spec: Section 2 — "Create the virtual environment profiles"
