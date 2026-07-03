@@ -108,16 +108,18 @@ export default function LeafletMap({
     if (!divRef.current || mapRef.current) return;
 
     const map = L.map(divRef.current, {
-      zoomControl:      true,
+      zoomControl:        true,
       attributionControl: true,
-      center:           [14.5995, 120.9842],  // Manila fallback
-      zoom:             15,
+      center:             [14.5995, 120.9842],  // Manila fallback
+      zoom:               15,
+      maxZoom:            17,
     });
 
     // ── Tile layer: local offline bundle → OSM CDN fallback ───────────────────
     const localTile = L.tileLayer("/tiles/{z}/{x}/{y}.png", {
       minZoom:     12,
-      maxZoom:     18,
+      maxZoom:     17,   // z17 = building-level (core area pre-downloaded)
+      maxNativeZoom: 17,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       errorTileUrl: "",   // suppress 404 icons while we check
     });
@@ -126,7 +128,7 @@ export default function LeafletMap({
       "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
         minZoom:     12,
-        maxZoom:     18,
+        maxZoom:     19,   // OSM CDN supports up to z19
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
     );
