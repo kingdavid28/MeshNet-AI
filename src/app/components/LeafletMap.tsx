@@ -28,11 +28,9 @@ import L from "leaflet";
 import type { CloudantNode } from "../hooks/useCloudantNodes";
 
 // ── Fix Leaflet's default icon paths broken by Vite bundling ─────────────────
-// Leaflet tries to load marker icons from a path Vite doesn't expose.
-// We override with inline SVG so no external image files are needed.
 delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
 
-// ── Colour palette (mirrors NodeMapCanvas constants) ─────────────────────────
+// ── Colour palette ────────────────────────────────────────────────────────────
 const C_ON    = "#22C55E";
 const C_OFF   = "#4B5563";
 const C_RELAY = "#5B8DD9";
@@ -62,7 +60,7 @@ function makeIcon(ble: boolean, isRelay: boolean, isSelected: boolean): L.DivIco
 
   return L.divIcon({
     html: svg,
-    className: "",           // prevent Leaflet's default white box
+    className: "",
     iconSize:    [size, size],
     iconAnchor:  [cx, cx],
     popupAnchor: [0, -(r + 6)],
@@ -88,9 +86,6 @@ export default function LeafletMap({
   onNodeClick,
   selectedNodeId,
 }: Props): ReactNode {
-  // divRef attached directly to the DOM div — no callback ref needed.
-  // Leaflet requires the element to exist before L.map() is called;
-  // useRef + useEffect guarantees that ordering.
   const divRef       = useRef<HTMLDivElement>(null);
   const mapRef       = useRef<L.Map | null>(null);
   const markersRef   = useRef<Map<string, L.Marker>>(new Map());
@@ -106,56 +101,67 @@ export default function LeafletMap({
     [nodes, broadcastActive],
   );
 
-  // ── Initialise map once — runs after first paint when div has real size ──────
+  // ── Initialise map — deferred via ResizeObserver so we wait for real size ───
+  // The old approach (useEffect + clientHeight guard) fired at 0px and never
+  // retried. Now we watch the container and init as soon as it has pixels.
   useEffect(() => {
-    if (!divRef.current || mapRef.current) return;
-    // Safety: Leaflet will throw if the container has 0×0 px.
-    // The parent NodeMapCanvas wrapper sets an explicit minHeight so this
-    // should always be nonzero, but guard anyway.
-    if (divRef.current.clientHeight === 0) return;
+    const el = divRef.current;
+    if (!el) return;
 
-    const map = L.map(divRef.current, {
-      zoomControl:        true,
-      attributionControl: true,
-      center:             [14.5995, 120.9842],  // Manila fallback
-      zoom:               15,
-      maxZoom:            17,
-    });
+    function tryInit() {
+      if (mapRef.current) return;           // already initialised
+      if (!divRef.current) return;
+      if (divRef.current.clientHeight < 10) return;  // still no size
 
-    // ── Tile layer: local offline bundle → OSM CDN fallback ───────────────────
-    const localTile = L.tileLayer("/tiles/{z}/{x}/{y}.png", {
-      minZoom:     12,
-      maxZoom:     17,   // z17 = building-level (core area pre-downloaded)
-      maxNativeZoom: 17,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      errorTileUrl: "",   // suppress 404 icons while we check
-    });
+      const map = L.map(divRef.current, {
+        zoomControl:        true,
+        attributionControl: true,
+        center:             [14.5995, 120.9842],  // Manila
+        zoom:               13,
+        maxZoom:            17,
+      });
 
-    const osmTile = L.tileLayer(
-      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        minZoom:     12,
-        maxZoom:     19,   // OSM CDN supports up to z19
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      },
-    );
+      // Tile layer: local offline → OSM CDN fallback
+      const localTile = L.tileLayer("/tiles/{z}/{x}/{y}.png", {
+        minZoom:       12,
+        maxZoom:       17,
+        maxNativeZoom: 17,
+        attribution:   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        errorTileUrl:  "",
+      });
 
-    // Try loading one local tile — if it 404s, switch to OSM CDN.
-    // Tile coords for Manila centre (14.5995°N, 120.9842°E) at z=15:
-    //   x = 27394,  y = 15037   (verified against public/tiles/ contents)
-    const probe = new Image();
-    probe.onload  = () => { localTile.addTo(map); };
-    probe.onerror = () => { osmTile.addTo(map); };
-    probe.src     = "/tiles/15/27394/15037.png";  // Manila centre z=15 tile
+      const osmTile = L.tileLayer(
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          minZoom:     1,
+          maxZoom:     19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        },
+      );
 
-    mapRef.current = map;
+      // Probe local tile — use OSM CDN if local bundle is absent
+      const probe = new Image();
+      probe.onload  = () => { localTile.addTo(map); };
+      probe.onerror = () => { osmTile.addTo(map); };
+      probe.src     = "/tiles/15/27394/15037.png";
+
+      mapRef.current = map;
+      ro.disconnect();  // stop observing once map is live
+    }
+
+    // Watch for the first time the container has real dimensions
+    const ro = new ResizeObserver(tryInit);
+    ro.observe(el);
+    tryInit();  // also try immediately in case size is already available
+
     return () => {
+      ro.disconnect();
       cancelAnimationFrame(packetRafRef.current);
-      map.remove();
+      mapRef.current?.remove();
       mapRef.current = null;
       fittedRef.current = false;
     };
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Update markers whenever nodes/selection changes ─────────────────────────
   useEffect(() => {
@@ -182,20 +188,17 @@ export default function LeafletMap({
              Battery ${node.battery_percentage}% · Signal ${node.signal}%`,
             { direction: "top", offset: [0, -4], className: "meshnet-tip" },
           );
-        // capture node in closure for click handler
         const captured = node;
         marker.on("click", () => onNodeClick?.(captured));
         markersRef.current.set(node.node_id, marker);
       } else {
         marker.setLatLng(latlng);
         marker.setIcon(icon);
-        // Update tooltip
         marker.setTooltipContent(
           `<b>${node.label}</b><br/>
            ${node.role} · ${ble ? "BLE ON" : "BLE OFF"}<br/>
            Battery ${node.battery_percentage}% · Signal ${node.signal}%`,
         );
-        // Re-bind click with fresh node data
         marker.off("click");
         const captured = node;
         marker.on("click", () => onNodeClick?.(captured));
@@ -223,31 +226,29 @@ export default function LeafletMap({
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove old edges
     edgesRef.current.forEach((p) => p.remove());
     edgesRef.current = [];
 
-    // Build edges: connect nodes within ~600 m (0.006° ≈ 660 m)
     const MAX_DEG = 0.006;
     for (let i = 0; i < effective.length; i++) {
       for (let j = i + 1; j < effective.length; j++) {
         const a = effective[i];
         const b = effective[j];
-        const dLat = Math.abs(a.latitude  - b.latitude);
-        const dLng = Math.abs(a.longitude - b.longitude);
-        if (dLat > MAX_DEG || dLng > MAX_DEG) continue;
+        if (Math.abs(a.latitude  - b.latitude)  > MAX_DEG) continue;
+        if (Math.abs(a.longitude - b.longitude) > MAX_DEG) continue;
 
         const bothBle = a.bluetooth_status && b.bluetooth_status;
-        const line = L.polyline(
-          [L.latLng(a.latitude, a.longitude), L.latLng(b.latitude, b.longitude)],
-          {
-            color:     bothBle ? C_ON : C_OFF,
-            weight:    bothBle ? 2 : 1,
-            opacity:   bothBle ? 0.55 : 0.2,
-            dashArray: bothBle ? "8, 5" : "4, 7",
-          },
-        ).addTo(map);
-        edgesRef.current.push(line);
+        edgesRef.current.push(
+          L.polyline(
+            [L.latLng(a.latitude, a.longitude), L.latLng(b.latitude, b.longitude)],
+            {
+              color:     bothBle ? C_ON : C_OFF,
+              weight:    bothBle ? 2 : 1,
+              opacity:   bothBle ? 0.55 : 0.2,
+              dashArray: bothBle ? "8, 5" : "4, 7",
+            },
+          ).addTo(map),
+        );
       }
     }
   }, [effective]);
@@ -257,11 +258,8 @@ export default function LeafletMap({
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove old route + packet
-    routeRef.current?.remove();
-    routeRef.current = null;
-    packetRef.current?.remove();
-    packetRef.current = null;
+    routeRef.current?.remove();   routeRef.current = null;
+    packetRef.current?.remove();  packetRef.current = null;
     cancelAnimationFrame(packetRafRef.current);
 
     if (activeRoutePath.length < 2) return;
@@ -275,35 +273,28 @@ export default function LeafletMap({
     if (routeLatLngs.length < 2) return;
 
     routeRef.current = L.polyline(routeLatLngs, {
-      color:   C_ROUTE,
-      weight:  4,
-      opacity: 0.9,
+      color: C_ROUTE, weight: 4, opacity: 0.9,
     }).addTo(map);
 
-    // Packet dot travelling along the route
     packetRef.current = L.circleMarker(routeLatLngs[0], {
-      radius:      6,
-      color:       "#FFFFFF",
-      fillColor:   "#FFFFFF",
-      fillOpacity: 0.95,
-      weight:      2,
+      radius: 6, color: "#FFFFFF", fillColor: "#FFFFFF", fillOpacity: 0.95, weight: 2,
     }).addTo(map);
 
-    // Animate packet
     let t = 0;
     const totalSegs = routeLatLngs.length - 1;
     const SPEED = 0.008;
 
     function tick() {
       t = (t + SPEED) % 1;
-      const globalT  = t * totalSegs;
-      const segIdx   = Math.floor(globalT) % totalSegs;
-      const localT   = globalT - Math.floor(globalT);
-      const a        = routeLatLngs[segIdx];
-      const b        = routeLatLngs[segIdx + 1];
-      const lat      = a.lat + (b.lat - a.lat) * localT;
-      const lng      = a.lng + (b.lng - a.lng) * localT;
-      packetRef.current?.setLatLng([lat, lng]);
+      const globalT = t * totalSegs;
+      const segIdx  = Math.floor(globalT) % totalSegs;
+      const localT  = globalT - Math.floor(globalT);
+      const a = routeLatLngs[segIdx];
+      const b = routeLatLngs[segIdx + 1];
+      packetRef.current?.setLatLng([
+        a.lat + (b.lat - a.lat) * localT,
+        a.lng + (b.lng - a.lng) * localT,
+      ]);
       packetRafRef.current = requestAnimationFrame(tick);
     }
     packetRafRef.current = requestAnimationFrame(tick);
@@ -311,14 +302,13 @@ export default function LeafletMap({
     return () => { cancelAnimationFrame(packetRafRef.current); };
   }, [activeRoutePath, effective]);
 
-  // ── Tooltip + Leaflet z-index fix (injected once into <head>) ────────────────
+  // ── Tooltip styles + Leaflet z-index fix ─────────────────────────────────────
   useEffect(() => {
     const id = "meshnet-tip-style";
     if (document.getElementById(id)) return;
     const style = document.createElement("style");
     style.id = id;
     style.textContent = `
-      /* Dark tooltip */
       .meshnet-tip {
         background: #0F2040 !important;
         border: 1px solid rgba(91,141,217,0.35) !important;
@@ -332,8 +322,6 @@ export default function LeafletMap({
       }
       .meshnet-tip::before { display: none !important; }
       .leaflet-attribution-flag { display: none !important; }
-
-      /* Ensure Leaflet panes sit above any Tailwind resets */
       .leaflet-pane         { z-index: 400 !important; }
       .leaflet-tile-pane    { z-index: 200 !important; }
       .leaflet-overlay-pane { z-index: 400 !important; }
@@ -345,7 +333,7 @@ export default function LeafletMap({
     document.head.appendChild(style);
   }, []);
 
-  // ── Invalidate map size when ResizeObserver detects container change ──────────
+  // ── Invalidate map size on container resize ───────────────────────────────────
   useEffect(() => {
     const el = divRef.current;
     if (!el) return;
@@ -357,12 +345,14 @@ export default function LeafletMap({
   }, []);
 
   return (
-    // position:relative is required by Leaflet for its absolutely-positioned
-    // panes. height:100% fills the NodeMapCanvas wrapper; minHeight ensures
-    // Leaflet always has at least one pixel to measure.
     <div
       ref={divRef}
-      style={{ position: "relative", width: "100%", height: "100%", minHeight: 300 }}
+      style={{
+        position: "relative",
+        width:    "100%",
+        height:   "100%",
+        minHeight: 320,
+      }}
     />
   );
 }
