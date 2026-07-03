@@ -22,7 +22,7 @@
  * Attribution: © OpenStreetMap contributors  (required by tile licence)
  */
 
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import type { ReactNode } from "react";
 import L from "leaflet";
 import type { CloudantNode } from "../hooks/useCloudantNodes";
@@ -88,14 +88,17 @@ export default function LeafletMap({
   onNodeClick,
   selectedNodeId,
 }: Props): ReactNode {
-  const divRef      = useRef<HTMLDivElement>(null);
-  const mapRef      = useRef<L.Map | null>(null);
-  const markersRef  = useRef<Map<string, L.Marker>>(new Map());
-  const edgesRef    = useRef<L.Polyline[]>([]);
-  const routeRef    = useRef<L.Polyline | null>(null);
-  const packetRef   = useRef<L.CircleMarker | null>(null);
+  // divRef attached directly to the DOM div — no callback ref needed.
+  // Leaflet requires the element to exist before L.map() is called;
+  // useRef + useEffect guarantees that ordering.
+  const divRef       = useRef<HTMLDivElement>(null);
+  const mapRef       = useRef<L.Map | null>(null);
+  const markersRef   = useRef<Map<string, L.Marker>>(new Map());
+  const edgesRef     = useRef<L.Polyline[]>([]);
+  const routeRef     = useRef<L.Polyline | null>(null);
+  const packetRef    = useRef<L.CircleMarker | null>(null);
   const packetRafRef = useRef<number>(0);
-  const fittedRef   = useRef(false);
+  const fittedRef    = useRef(false);
 
   // Effective nodes: broadcast forces all BLE on
   const effective = useMemo(
@@ -103,9 +106,13 @@ export default function LeafletMap({
     [nodes, broadcastActive],
   );
 
-  // ── Initialise map once ─────────────────────────────────────────────────────
+  // ── Initialise map once — runs after first paint when div has real size ──────
   useEffect(() => {
     if (!divRef.current || mapRef.current) return;
+    // Safety: Leaflet will throw if the container has 0×0 px.
+    // The parent NodeMapCanvas wrapper sets an explicit minHeight so this
+    // should always be nonzero, but guard anyway.
+    if (divRef.current.clientHeight === 0) return;
 
     const map = L.map(divRef.current, {
       zoomControl:        true,
@@ -304,13 +311,14 @@ export default function LeafletMap({
     return () => { cancelAnimationFrame(packetRafRef.current); };
   }, [activeRoutePath, effective]);
 
-  // ── Tooltip style injected once ──────────────────────────────────────────────
+  // ── Tooltip + Leaflet z-index fix (injected once into <head>) ────────────────
   useEffect(() => {
     const id = "meshnet-tip-style";
     if (document.getElementById(id)) return;
     const style = document.createElement("style");
     style.id = id;
     style.textContent = `
+      /* Dark tooltip */
       .meshnet-tip {
         background: #0F2040 !important;
         border: 1px solid rgba(91,141,217,0.35) !important;
@@ -324,22 +332,37 @@ export default function LeafletMap({
       }
       .meshnet-tip::before { display: none !important; }
       .leaflet-attribution-flag { display: none !important; }
+
+      /* Ensure Leaflet panes sit above any Tailwind resets */
+      .leaflet-pane         { z-index: 400 !important; }
+      .leaflet-tile-pane    { z-index: 200 !important; }
+      .leaflet-overlay-pane { z-index: 400 !important; }
+      .leaflet-marker-pane  { z-index: 600 !important; }
+      .leaflet-tooltip-pane { z-index: 650 !important; }
+      .leaflet-popup-pane   { z-index: 700 !important; }
+      .leaflet-control      { z-index: 800 !important; }
     `;
     document.head.appendChild(style);
   }, []);
 
-  // Invalidate map size whenever the container resizes
-  const containerRef = useCallback((el: HTMLDivElement | null) => {
-    (divRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-    if (el && mapRef.current) {
-      setTimeout(() => mapRef.current?.invalidateSize(), 0);
-    }
+  // ── Invalidate map size when ResizeObserver detects container change ──────────
+  useEffect(() => {
+    const el = divRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      mapRef.current?.invalidateSize();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   return (
+    // position:relative is required by Leaflet for its absolutely-positioned
+    // panes. height:100% fills the NodeMapCanvas wrapper; minHeight ensures
+    // Leaflet always has at least one pixel to measure.
     <div
-      ref={containerRef}
-      style={{ width: "100%", height: "100%", minHeight: 220 }}
+      ref={divRef}
+      style={{ position: "relative", width: "100%", height: "100%", minHeight: 300 }}
     />
   );
 }

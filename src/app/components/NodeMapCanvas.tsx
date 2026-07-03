@@ -128,9 +128,11 @@ export default function NodeMapCanvas({
       </div>
 
       {/* ── Leaflet map canvas ───────────────────────────────────────────────── */}
+      {/* overflow-hidden removed — it clips Leaflet's absolutely-positioned tile panes.
+          height is set explicitly so Leaflet always has a non-zero px measurement. */}
       <div
-        className="flex-1 rounded-2xl overflow-hidden border border-[rgba(91,141,217,0.2)] relative"
-        style={{ minHeight: 280 }}
+        className="rounded-2xl border border-[rgba(91,141,217,0.2)] relative"
+        style={{ height: 380, minHeight: 300 }}
       >
         <LeafletMap
           nodes={effectiveNodes}
