@@ -217,19 +217,25 @@ export default function NodeMapCanvas({
 
   // ── Zoom ──────────────────────────────────────────────────────────────────
 
-  const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    const rect = svgRef.current!.getBoundingClientRect();
-    const mx   = e.clientX - rect.left;
-    const my   = e.clientY - rect.top;
-    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-    setXform((prev) => {
-      const newScale = clampScale(prev.scale * factor);
-      // Zoom toward mouse pointer
-      const tx = mx - (mx - prev.tx) * (newScale / prev.scale);
-      const ty = my - (my - prev.ty) * (newScale / prev.scale);
-      return { tx, ty, scale: newScale };
-    });
+  // Wheel zoom — must be a native non-passive listener so preventDefault works
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const mx   = e.clientX - rect.left;
+      const my   = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      setXform((prev) => {
+        const newScale = clampScale(prev.scale * factor);
+        const tx = mx - (mx - prev.tx) * (newScale / prev.scale);
+        const ty = my - (my - prev.ty) * (newScale / prev.scale);
+        return { tx, ty, scale: newScale };
+      });
+    };
+    svg.addEventListener("wheel", handler, { passive: false });
+    return () => svg.removeEventListener("wheel", handler);
   }, []);
 
   const onMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -404,7 +410,6 @@ export default function NodeMapCanvas({
           width={svgSize.w}
           height={svgSize.h}
           className="w-full h-full cursor-grab active:cursor-grabbing"
-          onWheel={onWheel}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
