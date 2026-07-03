@@ -288,7 +288,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* ── Main grid ────────────────────────────────────────────────────── */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1" style={{ overflow: "visible" }}>
 
           {/* LEFT — SOS Input Portal + Disaster Control Panel */}
           <aside
@@ -321,7 +321,7 @@ export default function DashboardLayout() {
           </aside>
 
           {/* RIGHT — Map + Route result + Activity log */}
-          <main className="flex-1 flex flex-col gap-0 overflow-hidden">
+          <main className="flex-1 flex flex-col gap-0" style={{ overflow: "visible" }}>
 
             {/* Selected node hint */}
             {selectedNodeId && (
