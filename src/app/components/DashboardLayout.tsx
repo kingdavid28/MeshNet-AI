@@ -33,10 +33,12 @@ interface LogEntry {
   message: string;
 }
 
-let _logId = 0;
 function makeEntry(type: string, message: string): LogEntry {
+  const id = (typeof crypto !== "undefined" && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return {
-    id: String(++_logId),
+    id,
     time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
     type,
     message,

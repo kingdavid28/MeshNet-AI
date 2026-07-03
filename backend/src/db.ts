@@ -166,9 +166,9 @@ export const edgeStmts = {
 export const alertStmts = {
   insert: db.prepare(`
     INSERT INTO alerts
-      (id, type, severity, from_node_id, from_label, message, lat, lng, ttl, created_at)
+      (id, type, severity, from_node_id, from_label, message, lat, lng, ttl, acknowledged, created_at)
     VALUES
-      (@id, @type, @severity, @from_node_id, @from_label, @message, @lat, @lng, @ttl, @created_at)
+      (@id, @type, @severity, @from_node_id, @from_label, @message, @lat, @lng, @ttl, @acknowledged, @created_at)
   `),
 
   getAll: db.prepare<[], AlertRow>(
