@@ -118,20 +118,20 @@ class TestEncryptDecrypt:
 class TestRoutingEngine:
     def test_success_path_found(self):
         graph  = _build_chain(n=5)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1)
         assert result["status"] == "Success"
         assert result["path_taken"][-1] == 100
 
     def test_path_starts_at_source(self):
         graph  = _build_chain(n=5)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1)
         assert result["path_taken"][0] == 1
 
     def test_total_hops_matches_path(self):
         graph  = _build_chain(n=5)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1)
         assert result["total_hops"] == len(result["path_taken"]) - 1
 
@@ -167,14 +167,14 @@ class TestRoutingEngine:
 
     def test_total_weight_positive(self):
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1)
         assert result["total_weight"] > 0
 
     def test_session_key_returned(self):
         key    = generate_session_key()
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, session_key=key, rescue_node_id=100)
+        engine = RoutingEngine(graph, session_key=key, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1)
         assert result["session_key"] == key
 
@@ -184,7 +184,7 @@ class TestRoutingEngine:
 class TestHopEncryption:
     def test_one_packet_per_hop_node(self):
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(
             source_node_id=1, message="SOS: flood in Sector 7"
         )
@@ -195,14 +195,14 @@ class TestHopEncryption:
 
     def test_hop_packets_are_hop_packet_instances(self):
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1, message="SOS")
         for hop in result["encrypted_hops"]:
             assert isinstance(hop, HopPacket)
 
     def test_hop_node_ids_match_path(self):
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1, message="SOS")
         path   = result["path_taken"]
         hops   = result["encrypted_hops"]
@@ -215,7 +215,7 @@ class TestHopEncryption:
         msg    = "SOS: 3 injured at Barangay 892"
         key    = generate_session_key()
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, session_key=key, rescue_node_id=100)
+        engine = RoutingEngine(graph, session_key=key, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1, message=msg)
         last_hop = result["encrypted_hops"][-1]
         assert decrypt_emergency_payload(last_hop.encrypted_payload, key) == msg
@@ -225,7 +225,7 @@ class TestHopEncryption:
         msg    = "Emergency payload"
         key    = generate_session_key()
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, session_key=key, rescue_node_id=100)
+        engine = RoutingEngine(graph, session_key=key, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1, message=msg)
         for hop in result["encrypted_hops"]:
             assert decrypt_emergency_payload(hop.encrypted_payload, key) == msg
@@ -233,16 +233,16 @@ class TestHopEncryption:
     def test_hop_payloads_are_unique(self):
         """Each hop re-encrypts with a fresh nonce — ciphertexts differ."""
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1, message="SOS")
         payloads = [hop.encrypted_payload for hop in result["encrypted_hops"]]
         # All ciphertexts should be distinct (fresh nonces)
         assert len(set(payloads)) == len(payloads)
 
     def test_no_hops_when_message_empty(self):
-        """Empty message → no HopPackets generated."""
+        """Empty message -> no HopPackets generated."""
         graph  = _build_chain(n=4)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1, message="")
         assert result["encrypted_hops"] == []
 
@@ -270,7 +270,7 @@ class TestBatteryPriorityRouting:
                      battery=100, is_rescue_team=True)
 
         graph  = build_offline_mesh([n1, n2, n3, n100], max_range_meters=60)
-        engine = RoutingEngine(graph, rescue_node_id=100)
+        engine = RoutingEngine(graph, rescue_node_id=100, packet_loss_rate=0.0)
         result = engine.calculate_ai_routing_path(source_node_id=1)
 
         assert result["status"] == "Success"
