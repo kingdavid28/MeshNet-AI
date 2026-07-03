@@ -1,18 +1,22 @@
 import path from "path";
 import dotenv from "dotenv";
-dotenv.config({ path: path.resolve(__dirname, "../../config/.env") });
+
+// Resolve config/.env relative to the project root (works in both
+// ts-node-dev dev mode and compiled dist/ production mode).
+const envPath = path.resolve(process.cwd(), "config/.env");
+dotenv.config({ path: envPath });
 
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { meshRouter } from "./routes/mesh";
-import { alertsRouter } from "./routes/alerts";
+import { meshRouter }    from "./routes/mesh";
+import { alertsRouter }  from "./routes/alerts";
 import { messagesRouter } from "./routes/messages";
-import { healthRouter } from "./routes/health";
-import { routeRouter } from "./routes/route";
-import { signalRouter } from "./routes/signal";
+import { healthRouter }  from "./routes/health";
+import { routeRouter }   from "./routes/route";
+import { signalRouter }  from "./routes/signal";
 import { requestLogger } from "./middleware/logger";
-import { rateLimiter } from "./middleware/rateLimit";
+import { rateLimiter }   from "./middleware/rateLimit";
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;

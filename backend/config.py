@@ -25,16 +25,18 @@ from dataclasses import dataclass, field
 # scenario.  Physical obstacles, water absorption, and RF interference
 # are already factored into the conservative estimates below.
 
-MAX_RANGE_FLOOD: int = int(os.getenv("MESH_RANGE_FLOOD", 50))
+MAX_RANGE_FLOOD: int = int(os.getenv("MESH_RANGE_FLOOD", 150))
 # Device communication radius in metres during floods.
-# Water attenuates 2.4 GHz signals; keep devices elevated where possible.
+# Water attenuates 2.4 GHz signals; elevated devices can reach 150 m.
 
 MAX_RANGE_WAR_ZONE: int = int(os.getenv("MESH_RANGE_WAR_ZONE", 30))
 # Device communication radius due to electronic interference / jamming.
-# Reduced range accounts for active RF countermeasures in conflict zones.
+# 30 m conservative estimate for active RF countermeasures in conflict zones.
+# (Override via MESH_RANGE_WAR_ZONE env var if field measurements differ.)
 
-MAX_RANGE_EARTHQUAKE: int = int(os.getenv("MESH_RANGE_EARTHQUAKE", 70))
+MAX_RANGE_EARTHQUAKE: int = int(os.getenv("MESH_RANGE_EARTHQUAKE", 300))
 # Device communication radius in open post-quake fields.
+# 300 m covers the full 1 km Manila disaster zone at adequate density.
 # Rubble-free areas allow maximum BLE / Wi-Fi Direct propagation.
 
 TOTAL_SIMULATED_NODES: int = int(os.getenv("MESH_TOTAL_NODES", 100))
