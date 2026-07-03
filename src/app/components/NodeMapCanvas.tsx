@@ -70,7 +70,10 @@ export default function NodeMapCanvas({
   }
 
   return (
-    <div className="flex flex-col gap-3 h-full">
+    /* h-full so the map fills 100% of the dashboard panel height.
+       If the parent has no explicit height (mobile tab), the fixed
+       minHeight on the Leaflet wrapper below acts as the floor. */
+    <div className="flex flex-col gap-3" style={{ height: "100%" }}>
 
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -128,11 +131,12 @@ export default function NodeMapCanvas({
       </div>
 
       {/* ── Leaflet map canvas ───────────────────────────────────────────────── */}
-      {/* overflow-hidden removed — it clips Leaflet's absolutely-positioned tile panes.
-          height is set explicitly so Leaflet always has a non-zero px measurement. */}
+      {/* flex-1 so the map grows to fill available height in the dashboard.
+          minHeight 300 ensures the map is always visible on narrow screens.
+          overflow:visible is required — overflow:hidden clips Leaflet panes. */}
       <div
         className="rounded-2xl border border-[rgba(91,141,217,0.2)] relative"
-        style={{ height: 380, minHeight: 300 }}
+        style={{ flex: 1, minHeight: 300, overflow: "visible" }}
       >
         <LeafletMap
           nodes={effectiveNodes}
