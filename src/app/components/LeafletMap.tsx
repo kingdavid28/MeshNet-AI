@@ -133,11 +133,13 @@ export default function LeafletMap({
       },
     );
 
-    // Try loading one local tile — if it 404s, switch to OSM CDN
+    // Try loading one local tile — if it 404s, switch to OSM CDN.
+    // Tile coords for Manila centre (14.5995°N, 120.9842°E) at z=15:
+    //   x = 27394,  y = 15037   (verified against public/tiles/ contents)
     const probe = new Image();
     probe.onload  = () => { localTile.addTo(map); };
     probe.onerror = () => { osmTile.addTo(map); };
-    probe.src     = "/tiles/15/26452/14330.png";  // centre Manila z=15 tile
+    probe.src     = "/tiles/15/27394/15037.png";  // Manila centre z=15 tile
 
     mapRef.current = map;
     return () => {
