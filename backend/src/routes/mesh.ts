@@ -1,13 +1,24 @@
 import { Router, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import type { MeshNode, MeshEdge, MeshTopology } from "../models/node";
+import type { MeshNode, MeshEdge, MeshTopology, ProtocolActive } from "../models/node";
 import { db, nodeStmts, edgeStmts, type NodeRow, type EdgeRow } from "../db";
 
 export const meshRouter = Router();
 
+// ─── Helper: derive protocolActive from boolean flags ─────────────────────────
+
+function deriveProtocol(ble: boolean, wifi: boolean): ProtocolActive {
+  if (ble && wifi) return "both";
+  if (ble)         return "bluetooth";
+  if (wifi)        return "wifi";
+  return "none";
+}
+
 // ─── Helper: NodeRow → MeshNode ───────────────────────────────────────────────
 
 function rowToNode(r: NodeRow): MeshNode {
+  const ble  = Boolean(r.bluetooth_status);
+  const wifi = Boolean(r.wifi_status);
   return {
     id:                r.id,
     label:             r.label,
@@ -16,7 +27,9 @@ function rowToNode(r: NodeRow): MeshNode {
     role:              r.role,
     signal:            r.signal,
     batteryPercentage: r.battery_percentage,
-    bluetoothStatus:   Boolean(r.bluetooth_status),
+    bluetoothStatus:   ble,
+    wifiStatus:        wifi,
+    protocolActive:    deriveProtocol(ble, wifi),
     lastSeen:          r.last_seen,
     os:                r.os ?? undefined,
     lat:               r.lat ?? undefined,
@@ -31,8 +44,8 @@ function rowToEdge(r: EdgeRow): MeshEdge {
 // ─── GET /api/mesh/topology ───────────────────────────────────────────────────
 
 meshRouter.get("/topology", (_req: Request, res: Response) => {
-  const nodes  = (nodeStmts.getAll.all() as NodeRow[]).map(rowToNode);
-  const edges  = (edgeStmts.getAll.all() as EdgeRow[]).map(rowToEdge);
+  const nodes    = (nodeStmts.getAll.all() as NodeRow[]).map(rowToNode);
+  const edges    = (edgeStmts.getAll.all() as EdgeRow[]).map(rowToEdge);
   const topology: MeshTopology = { nodes, edges, updatedAt: new Date().toISOString() };
   res.json(topology);
 });
@@ -42,7 +55,7 @@ meshRouter.get("/topology", (_req: Request, res: Response) => {
 meshRouter.post("/register", (req: Request, res: Response) => {
   const {
     id, label, name, device, role,
-    signal, batteryPercentage, bluetoothStatus,
+    signal, batteryPercentage, bluetoothStatus, wifiStatus,
     os, lat, lng,
   } = req.body as Partial<MeshNode>;
 
@@ -60,6 +73,7 @@ meshRouter.post("/register", (req: Request, res: Response) => {
     signal:             signal ?? 80,
     battery_percentage: batteryPercentage ?? 100,
     bluetooth_status:   bluetoothStatus ? 1 : 0,
+    wifi_status:        wifiStatus       ? 1 : 0,
     os:                 os ?? null,
     lat:                lat ?? null,
     lng:                lng ?? null,
@@ -77,13 +91,19 @@ meshRouter.patch("/nodes/:id/heartbeat", (req: Request, res: Response) => {
   const existing = nodeStmts.getById.get(req.params.id) as NodeRow | undefined;
   if (!existing) { res.status(404).json({ error: "Node not found" }); return; }
 
-  const { signal, batteryPercentage, bluetoothStatus, lat, lng } = req.body as Partial<MeshNode>;
+  const { signal, batteryPercentage, bluetoothStatus, wifiStatus, lat, lng } =
+    req.body as Partial<MeshNode>;
 
   nodeStmts.heartbeat.run({
     id:                existing.id,
     signal:            signal            ?? existing.signal,
     battery_percentage: batteryPercentage ?? existing.battery_percentage,
-    bluetooth_status:  bluetoothStatus !== undefined ? (bluetoothStatus ? 1 : 0) : existing.bluetooth_status,
+    bluetooth_status:  bluetoothStatus !== undefined
+                         ? (bluetoothStatus ? 1 : 0)
+                         : existing.bluetooth_status,
+    wifi_status:       wifiStatus !== undefined
+                         ? (wifiStatus ? 1 : 0)
+                         : existing.wifi_status,
     lat:               lat ?? null,
     lng:               lng ?? null,
     last_seen:         new Date().toISOString(),

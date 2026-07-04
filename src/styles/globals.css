@@ -1,0 +1,35 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * globals.css
+ * App-wide overrides that cannot live inside component stylesheets.
+ * Imported by src/styles/index.css.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Leaflet tooltip theme (meshnet-tip class) ──────────────────────────────── */
+
+.meshnet-tip {
+  background: #0F2040 !important;
+  border: 1px solid rgba(91, 141, 217, 0.35) !important;
+  color: #E8EEF7 !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px !important;
+  line-height: 1.5;
+  border-radius: 6px !important;
+  padding: 5px 8px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.meshnet-tip::before {
+  display: none !important;
+}
+
+/* ── Leaflet z-index overrides ──────────────────────────────────────────────── */
+/* Ensures Leaflet panes stack correctly inside the dashboard layout.          */
+
+.leaflet-attribution-flag { display: none !important; }
+.leaflet-pane             { z-index: 400 !important; }
+.leaflet-tile-pane        { z-index: 200 !important; }
+.leaflet-overlay-pane     { z-index: 400 !important; }
+.leaflet-marker-pane      { z-index: 600 !important; }
+.leaflet-tooltip-pane     { z-index: 650 !important; }
+.leaflet-popup-pane       { z-index: 700 !important; }
+.leaflet-control          { z-index: 800 !important; }

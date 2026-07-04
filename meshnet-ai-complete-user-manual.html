@@ -1,0 +1,670 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>MeshNet AI — User Manual</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6;background:#fff;color:#1f2328}
+.page{max-width:760px;margin:0 auto;padding:0 24px 72px}
+
+/* Cover */
+.cover{background:#060E1C;padding:40px 32px 36px;margin:0 -24px 36px;border-bottom:3px solid #F97316}
+.cover-badge{display:inline-block;background:rgba(249,115,22,.18);color:#F97316;border:1px solid rgba(249,115,22,.4);border-radius:20px;font-size:10px;font-family:monospace;letter-spacing:.12em;text-transform:uppercase;padding:4px 12px;margin-bottom:14px}
+.cover h1{font-size:30px;font-weight:900;color:#E8EEF7;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.cover .sub{font-size:13px;color:#7B9CC4;margin-bottom:20px}
+.cover-meta{display:flex;gap:24px;flex-wrap:wrap}
+.cover-meta span{font-size:11px;font-family:monospace;color:#7B9CC4;display:flex;align-items:center;gap:6px}
+.cover-meta span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#F97316}
+
+/* TOC */
+.toc{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:20px 24px;margin-bottom:36px}
+.toc-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#57606a;margin-bottom:12px}
+.toc-list{display:flex;flex-direction:column;gap:4px}
+.toc-item{display:flex;align-items:baseline;gap:8px;font-size:13px;color:#1f2328;text-decoration:none}
+.toc-item:hover{color:#3b82d4}
+.toc-num{font-family:monospace;font-size:11px;color:#F97316;min-width:24px}
+.toc-dot{flex:1;border-bottom:1px dotted #d1d5db;margin:0 4px 3px}
+.toc-page{font-size:11px;color:#57606a;font-family:monospace}
+
+/* Section headings */
+.section{margin-top:40px}
+.section-label{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.section-num{background:#F97316;color:#fff;border-radius:6px;font-size:11px;font-weight:800;font-family:monospace;padding:3px 9px;letter-spacing:.06em}
+.section-title{font-size:18px;font-weight:800;color:#1f2328;text-transform:uppercase;letter-spacing:.04em}
+h3{font-size:13px;font-weight:700;color:#1f2328;text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px;padding-bottom:5px;border-bottom:1px solid #e5e7eb}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:0;position:relative;padding-left:38px}
+.steps::before{content:"";position:absolute;left:13px;top:8px;bottom:8px;width:2px;background:#e5e7eb}
+.step{position:relative;margin-bottom:20px}
+.step-dot{position:absolute;left:-28px;top:2px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:monospace;color:#fff;flex-shrink:0;z-index:1}
+.step-title{font-weight:700;font-size:13.5px;color:#1f2328;margin-bottom:3px}
+.step-body{font-size:13px;color:#57606a}
+.step-body b{color:#1f2328}
+.step-body code{font-family:monospace;font-size:11.5px;background:#f0f1f3;border:1px solid #e5e7eb;border-radius:3px;padding:1px 5px;color:#3b82d4}
+.step-body ul{margin:6px 0 0 16px}
+.step-body ul li{margin-bottom:3px}
+.step-note{margin-top:6px;background:#f7f8fa;border:1px solid #e5e7eb;border-left:3px solid #F97316;border-radius:0 5px 5px 0;padding:7px 10px;font-size:12px;color:#57606a}
+.step-note b{color:#1f2328}
+
+/* Callouts */
+.callout{border-left:3px solid;border-radius:6px;padding:11px 15px;margin:14px 0;font-size:13px}
+.callout.warn{background:#fff8f5;border-color:#F97316;color:#7a3510}
+.callout.good{background:#f0fdf4;border-color:#22C55E;color:#14532d}
+.callout.info{background:#eff6ff;border-color:#3b82d4;color:#1e3a5f}
+.callout.red{background:#fef2f2;border-color:#EF4444;color:#7f1d1d}
+.callout b{font-weight:700}
+
+/* UI annotation boxes */
+.ui-box{background:#060E1C;border:1px solid #1a3056;border-radius:10px;padding:16px 18px;margin:12px 0;font-size:12px}
+.ui-box .ui-label{font-size:10px;font-family:monospace;text-transform:uppercase;letter-spacing:.1em;color:#7B9CC4;margin-bottom:8px}
+.ui-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px solid #1a3056}
+.ui-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.ui-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ui-item{color:#E8EEF7;font-size:12px}
+.ui-item span{color:#7B9CC4;font-size:11px}
+
+/* Command table */
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0}
+th{background:#f7f8fa;text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#57606a;border-bottom:1px solid #e5e7eb}
+td{padding:8px 12px;border-bottom:1px solid #f0f1f3;vertical-align:top}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:700;white-space:nowrap}
+
+/* Quick ref cards */
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+@media(max-width:520px){.quick-grid{grid-template-columns:1fr}}
+.quick-card{background:#f7f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px}
+.quick-title{font-weight:700;font-size:12px;color:#1f2328;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.quick-item{font-size:12px;color:#57606a;margin-bottom:5px;padding-left:12px;position:relative}
+.quick-item::before{content:"→";position:absolute;left:0;color:#aaa;font-size:11px}
+.quick-item b{color:#1f2328}
+
+/* Divider */
+.divider{height:1px;background:#e5e7eb;margin:36px 0}
+
+/* Terminal block */
+.terminal{background:#0d1117;border-radius:8px;padding:14px 16px;margin:10px 0;overflow-x:auto}
+.terminal pre{font-family:monospace;font-size:12px;color:#c9d1d9;white-space:pre}
+.t-green{color:#3fb950}.t-blue{color:#79c0ff}.t-dim{color:#8b949e}.t-orange{color:#ffa657}
+
+/* Nav tabs visual */
+.nav-tabs{display:flex;gap:0;background:#0B1D3A;border-radius:8px;overflow:hidden;margin:10px 0;border:1px solid rgba(91,141,217,0.2)}
+.nav-tab{flex:1;padding:10px 4px;text-align:center;font-size:11px;font-family:monospace;text-transform:uppercase;letter-spacing:.06em;color:#7B9CC4;border-right:1px solid rgba(91,141,217,0.15)}
+.nav-tab:last-child{border-right:none}
+.nav-tab.active{background:rgba(249,115,22,0.15);color:#F97316;font-weight:700;border-top:2px solid #F97316}
+
+footer{margin-top:56px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#57606a}
+</style>
+</head>
+<body>
+
+
+<div class="cover">
+  <div class="cover-badge">Official User Manual — v1.0</div>
+  <h1>MeshNet AI</h1>
+  <div class="sub">Emergency Offline Mesh Communication &amp; AI-Powered Routing System</div>
+  <div class="cover-meta">
+    <span>Cebu City Field Edition</span>
+    <span>Works without internet or cell signal</span>
+    <span>Android · Desktop · Browser</span>
+  </div>
+</div>
+
+<div class="page">
+
+
+<div class="toc">
+  <div class="toc-title">Table of Contents</div>
+  <div class="toc-list">
+    <a class="toc-item" href="#s1"><span class="toc-num">01</span> What MeshNet AI Does <span class="toc-dot"></span><span class="toc-page">p.1</span></a>
+    <a class="toc-item" href="#s2"><span class="toc-num">02</span> Starting the System (Rescue Team) <span class="toc-dot"></span><span class="toc-page">p.2</span></a>
+    <a class="toc-item" href="#s3"><span class="toc-num">03</span> Mobile App — Victim / Field User <span class="toc-dot"></span><span class="toc-page">p.3</span></a>
+    <a class="toc-item" href="#s4"><span class="toc-num">04</span> Desktop Dashboard — Command Team <span class="toc-dot"></span><span class="toc-page">p.4</span></a>
+    <a class="toc-item" href="#s5"><span class="toc-num">05</span> Map &amp; Node Colours Explained <span class="toc-dot"></span><span class="toc-page">p.5</span></a>
+    <a class="toc-item" href="#s6"><span class="toc-num">06</span> Sending an SOS Alert <span class="toc-dot"></span><span class="toc-page">p.6</span></a>
+    <a class="toc-item" href="#s7"><span class="toc-num">07</span> AI Route Finding <span class="toc-dot"></span><span class="toc-page">p.7</span></a>
+    <a class="toc-item" href="#s8"><span class="toc-num">08</span> HQ Emergency Broadcast <span class="toc-dot"></span><span class="toc-page">p.8</span></a>
+    <a class="toc-item" href="#s9"><span class="toc-num">09</span> Onboarding New Victims (No App) <span class="toc-dot"></span><span class="toc-page">p.9</span></a>
+    <a class="toc-item" href="#s10"><span class="toc-num">10</span> Troubleshooting <span class="toc-dot"></span><span class="toc-page">p.10</span></a>
+    <a class="toc-item" href="#s11"><span class="toc-num">11</span> Quick Reference Card <span class="toc-dot"></span><span class="toc-page">p.11</span></a>
+  </div>
+</div>
+
+
+<div class="section" id="s1">
+  <div class="section-label">
+    <span class="section-num">01</span>
+    <span class="section-title">What MeshNet AI Does</span>
+  </div>
+
+  <p style="font-size:13.5px;color:#57606a;margin-bottom:16px">MeshNet AI is an emergency communication system that works when cell towers and internet are destroyed. Phones and laptops communicate directly with each other using Bluetooth and Wi-Fi — no tower, no router, no internet required.</p>
+
+  <div class="quick-grid">
+    <div class="quick-card">
+      <div class="quick-title" style="color:#EF4444">🆘 For Victims</div>
+      <div class="quick-item">Send SOS alerts with GPS</div>
+      <div class="quick-item">Request medical help</div>
+      <div class="quick-item">Share your location</div>
+      <div class="quick-item">Signal "All Clear" when safe</div>
+      <div class="quick-item">Relay messages for others</div>
+    </div>
+    <div class="quick-card">
+      <div class="quick-title" style="color:#F97316">📡 For Rescue Teams</div>
+      <div class="quick-item">See all nodes on live map</div>
+      <div class="quick-item">Find AI-optimised rescue routes</div>
+      <div class="quick-item">Trigger HQ emergency broadcast</div>
+      <div class="quick-item">Monitor battery &amp; signal levels</div>
+      <div class="quick-item">Log all events in activity feed</div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <b>Key fact:</b> Every phone that joins the mesh automatically extends its range. 10 phones = 10× the coverage area. Phones near the edge relay messages for phones that cannot reach the relay directly.
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s2">
+  <div class="section-label">
+    <span class="section-num">02</span>
+    <span class="section-title">Starting the System — Rescue Team</span>
+  </div>
+
+  <div class="callout warn"><b>Before you start:</b> You need Node.js and Python installed on the relay laptop. Do this setup before the disaster — not during.</div>
+
+  <h3>Step 1 — Start all three servers</h3>
+  <p style="font-size:13px;color:#57606a;margin-bottom:10px">Open <b>3 separate terminal windows</b> on the relay laptop and run one command in each:</p>
+
+  <div class="terminal"><pre><span class="t-dim"># Terminal 1 — Python AI Routing Engine (port 5050)</span>
+<span class="t-blue">cd</span> <span class="t-orange">"C:\...\Mobile App UI Design\backend"</span>
+<span class="t-green">python -m uvicorn api_server:app --port 5050 --reload</span>
+
+<span class="t-dim"># Terminal 2 — Node.js REST API + SQLite (port 4000)</span>
+<span class="t-blue">cd</span> <span class="t-orange">"C:\...\Mobile App UI Design\backend"</span>
+<span class="t-green">npm run dev</span>
+
+<span class="t-dim"># Terminal 3 — Vite frontend (port 5173 dev / 4173 preview)</span>
+<span class="t-blue">cd</span> <span class="t-orange">"C:\...\Mobile App UI Design"</span>
+<span class="t-green">pnpm dev</span></pre></div>
+
+  <div class="steps" style="margin-top:16px">
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">2</div>
+      <div class="step-title">Open the dashboard in your browser</div>
+      <div class="step-body">Navigate to <code>http://localhost:5173</code> on the relay laptop. On a screen wider than 768px the <b>Command Dashboard</b> opens automatically. On a phone-sized screen, the <b>Mobile App</b> opens instead.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#22C55E">3</div>
+      <div class="step-title">Confirm nodes appear on the map</div>
+      <div class="step-body">The map should auto-fit to Cebu City and show <b>5 seed nodes</b> as coloured dots. If the map is grey tiles, click the <b>Fit Nodes</b> button (grid icon, top-right of map). Wait up to 10 seconds for the first data poll.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#3B82F6">4</div>
+      <div class="step-title">Turn on the Wi-Fi hotspot for victim onboarding</div>
+      <div class="step-body">On the relay phone/laptop, enable a Wi-Fi hotspot named <code>MESHNET-xxxxxx</code> (replace with a unique 6-char suffix). Victims nearby can connect and open the app in their browser at <code>http://192.168.49.1:4173</code>.</div>
+      <div class="step-note"><b>Tip:</b> Print the IP address and hotspot name on a card or write it on a piece of paper. Stick it to the outside of the relay device so victims can read it without asking.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s3">
+  <div class="section-label">
+    <span class="section-num">03</span>
+    <span class="section-title">Mobile App — Victim / Field User</span>
+  </div>
+
+  <p style="font-size:13px;color:#57606a;margin-bottom:14px">The mobile app has <b>4 tabs</b> at the bottom. Here is what each one does:</p>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active">🏠 Home</div>
+    <div class="nav-tab">🔔 Alert</div>
+    <div class="nav-tab">🗺 Map</div>
+    <div class="nav-tab">💬 Comms</div>
+  </div>
+
+  <h3>Home Tab</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">!</div>
+      <div class="step-title">Big Orange SOS Button</div>
+      <div class="step-body">Tap once to start a 3-second countdown. The button changes to <b>"SENDING IN 3… 2… 1…"</b> giving you time to cancel. After countdown the button goes red and broadcasts <b>"SOS BROADCASTING"</b> to all reachable nodes on the mesh. Your GPS is attached automatically.</div>
+      <div class="step-note"><b>Use this for:</b> Any life-threatening emergency. Fastest way to call for help.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">❤</div>
+      <div class="step-title">Medical Request button</div>
+      <div class="step-body">Flags a medical emergency at your location. Use this when someone is injured. The rescue team's dashboard shows medical alerts in orange.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#22C55E">📍</div>
+      <div class="step-title">Share GPS button</div>
+      <div class="step-body">Broadcasts your current coordinates to all nodes. Use this when you are moving to a new location and want rescue teams to track you.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#5B8DD9">✓</div>
+      <div class="step-title">All Clear button</div>
+      <div class="step-body">Signals that you are safe. Removes your SOS flag on the rescue map. Always send this once you are evacuated so rescue resources can be redirected.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#22C55E">⚡</div>
+      <div class="step-title">Relay Mode button</div>
+      <div class="step-body">Activates your phone as a relay node — boosting network range. Your device will forward messages from others. Costs more battery. Use when you are stationary with good signal.</div>
+    </div>
+  </div>
+
+  <h3>Alert Tab</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">1</div>
+      <div class="step-title">Select alert type</div>
+      <div class="step-body">Choose from: <b>War Zone</b>, <b>Flood</b>, <b>Medical</b>, <b>Fire</b>, <b>SOS</b>, <b>Evacuate</b>. Tap the correct card — it highlights with the type's colour when selected.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">2</div>
+      <div class="step-title">Type your message (optional but recommended)</div>
+      <div class="step-body">Describe the situation: location, number of people, severity. Max 280 characters. Example: <em>"3 injured civilians at the school gymnasium — 1 critical, need ambulance"</em></div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">3</div>
+      <div class="step-title">Tap SEND SOS</div>
+      <div class="step-body">The button glows red and activates only after you pick a type. Your GPS is automatically attached. The screen shows <b>"SOS Sent — Broadcasting to all reachable mesh nodes"</b> with a pulsing radio icon. The alert appears in the rescue team's Activity Log within seconds.</div>
+    </div>
+  </div>
+
+  <h3>Map Tab</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#3B82F6">📍</div>
+      <div class="step-title">View your position and all nearby nodes</div>
+      <div class="step-body">The map shows all devices currently on the mesh as coloured dots on a real OpenStreetMap. Your location is shown as a <b>blue pulsing circle</b> (the "You" marker). Tap any dot to see that device's name, battery, signal, and radio protocol status.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#22C55E">⊕</div>
+      <div class="step-title">Locate Me button (blue crosshair icon)</div>
+      <div class="step-body">Appears only when GPS is active (blue "GPS ±Xm" badge visible). Tap to fly the map to your current position at zoom level 16.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#5B8DD9">⊞</div>
+      <div class="step-title">Fit Nodes button (grid icon)</div>
+      <div class="step-body">Zooms out to show all nodes on the map at once. Use this when you have navigated away and need to see the full mesh.</div>
+    </div>
+  </div>
+
+  <h3>Comms Tab</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#14B8A6">✉</div>
+      <div class="step-title">Send a text message to the mesh</div>
+      <div class="step-body">Type any message in the input box at the bottom and press the orange send button (or press Enter). Your message is broadcast to all nodes in range. Messages are encrypted end-to-end. History shows previous received messages with colour-coded type indicators.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s4">
+  <div class="section-label">
+    <span class="section-num">04</span>
+    <span class="section-title">Desktop Dashboard — Command Team</span>
+  </div>
+
+  <p style="font-size:13px;color:#57606a;margin-bottom:14px">On any screen wider than 768px (laptop, tablet), the full <b>Command Dashboard</b> opens automatically. It has two panels:</p>
+
+  <div class="quick-grid">
+    <div class="quick-card">
+      <div class="quick-title">◀ Left Panel (360px)</div>
+      <div class="quick-item"><b>Disaster Control Panel</b> — scenario + HQ broadcast</div>
+      <div class="quick-item"><b>SOS Input Portal</b> — send alerts from command</div>
+    </div>
+    <div class="quick-card">
+      <div class="quick-title">▶ Right Panel (flex)</div>
+      <div class="quick-item"><b>Live Mesh Map</b> — all nodes + AI route line</div>
+      <div class="quick-item"><b>Route Result Strip</b> — hop count, latency</div>
+      <div class="quick-item"><b>Activity Log</b> — scrolling event feed</div>
+    </div>
+  </div>
+
+  <h3>Top Status Bar</h3>
+  <div class="ui-box">
+    <div class="ui-label">Header Indicators — Left to Right</div>
+    <div class="ui-row"><div class="ui-dot" style="background:#22C55E"></div><div class="ui-item"><b>Stream live</b> / Stream offline <span>— SSE real-time signal stream connection</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#EF4444"></div><div class="ui-item"><b>X flickers</b> <span>— count of high-priority signal burst alerts received</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#5B8DD9"></div><div class="ui-item"><b>IBM Cloudant / Local API / Seed Data</b> <span>— which data source is active</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#22C55E"></div><div class="ui-item"><b>AI Router / X hop route / Routing…</b> <span>— AI routing engine status</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#22C55E"></div><div class="ui-item"><b>X nodes</b> <span>— total nodes currently visible on the mesh</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#22C55E"></div><div class="ui-item"><b>X BLE</b> <span>— count of nodes with Bluetooth active</span></div></div>
+  </div>
+
+  <h3>Activity Log (bottom-right strip)</h3>
+  <p style="font-size:13px;color:#57606a">Scrolling log of all events. Colour-coded by type:</p>
+  <table>
+    <thead><tr><th>Colour</th><th>Type</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td style="color:#EF4444">Red</td><td>[sos] [war_zone]</td><td>Critical SOS or armed threat alert received</td></tr>
+      <tr><td style="color:#F97316">Orange</td><td>[broadcast] [medical]</td><td>HQ broadcast fired, or medical alert</td></tr>
+      <tr><td style="color:#38BDF8">Blue</td><td>[flood]</td><td>Flood-type alert from a field node</td></tr>
+      <tr><td style="color:#22C55E">Green</td><td>[route]</td><td>AI route successfully computed</td></tr>
+      <tr><td style="color:#7B9CC4">Grey</td><td>[node] [system]</td><td>Node selected, system event</td></tr>
+      <tr><td style="color:#A855F7">Purple</td><td>[scenario]</td><td>Disaster scenario changed</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s5">
+  <div class="section-label">
+    <span class="section-num">05</span>
+    <span class="section-title">Map &amp; Node Colours Explained</span>
+  </div>
+
+  <h3>Node Dot Colours</h3>
+  <div class="ui-box">
+    <div class="ui-label">What each colour means on the map</div>
+    <div class="ui-row"><div class="ui-dot" style="background:#14B8A6"></div><div class="ui-item"><b>Teal</b> — BLE + Wi-Fi both active <span>(best connectivity, longest range)</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#22C55E"></div><div class="ui-item"><b>Green</b> — Bluetooth only active <span>(short range, low battery use)</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#3B82F6"></div><div class="ui-item"><b>Blue</b> — Wi-Fi Direct only <span>(longer range, higher battery drain)</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#4B5563"></div><div class="ui-item"><b>Grey</b> — All radios off <span>(battery critical or manually disabled)</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#5B8DD9;width:14px;height:14px;border:2px solid #5B8DD9;background:transparent;border-radius:50%"></div><div class="ui-item"><b>Large ring</b> — Relay node <span>(higher-capability device, longer range)</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#F97316;width:14px;height:14px;border:2px solid #F97316;background:transparent;border-radius:50%"></div><div class="ui-item"><b>Orange ring + glow</b> — Currently selected node <span>(route source)</span></div></div>
+  </div>
+
+  <h3>Edge Line Colours (lines between nodes)</h3>
+  <div class="ui-box">
+    <div class="ui-label">Lines connecting nodes show the active link protocol</div>
+    <div class="ui-row"><div style="width:24px;height:3px;background:#14B8A6;border-radius:2px"></div><div class="ui-item"><b>Teal dashed</b> — Both nodes have BLE + Wi-Fi active</div></div>
+    <div class="ui-row"><div style="width:24px;height:3px;background:#3B82F6;border-radius:2px"></div><div class="ui-item"><b>Blue dashed</b> — Wi-Fi Direct link</div></div>
+    <div class="ui-row"><div style="width:24px;height:3px;background:#22C55E;border-radius:2px"></div><div class="ui-item"><b>Green dashed</b> — Bluetooth link</div></div>
+    <div class="ui-row"><div style="width:24px;height:2px;background:#4B5563;border-radius:2px;opacity:.5"></div><div class="ui-item"><b>Grey faint</b> — Link exists but radios are off on one end</div></div>
+    <div class="ui-row"><div style="width:24px;height:4px;background:#F97316;border-radius:2px"></div><div class="ui-item"><b>Orange solid thick</b> — Active AI-computed rescue route</div></div>
+  </div>
+
+  <h3>GPS Status Badge (toolbar)</h3>
+  <div class="ui-box">
+    <div class="ui-label">GPS indicator in the map toolbar</div>
+    <div class="ui-row"><div class="ui-dot" style="background:#3B82F6"></div><div class="ui-item"><b>GPS ±Xm</b> (blue) <span>— GPS fix acquired, accuracy shown in metres</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#F97316"></div><div class="ui-item"><b>GPS…</b> (orange) <span>— Acquiring GPS signal, please wait</span></div></div>
+    <div class="ui-row"><div class="ui-dot" style="background:#EF4444"></div><div class="ui-item"><b>No GPS</b> (red) <span>— GPS denied or unavailable on this device</span></div></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s6">
+  <div class="section-label">
+    <span class="section-num">06</span>
+    <span class="section-title">Sending an SOS Alert</span>
+  </div>
+
+  <div class="callout red"><b>Emergency use only.</b> Every SOS creates an entry in the rescue team's activity log and triggers the AI routing engine. Do not test during a live operation.</div>
+
+  <h3>From the Mobile App (Alert Tab)</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">1</div>
+      <div class="step-title">Tap the Alert tab</div>
+      <div class="step-body">Second icon in the bottom navigation bar (bell icon with pulsing ring).</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">2</div>
+      <div class="step-title">Select the emergency type</div>
+      <div class="step-body">Tap one of the 6 options: <b>War Zone</b> · <b>Flood</b> · <b>Medical</b> · <b>Fire</b> · <b>SOS</b> · <b>Evacuate</b>. The chosen card highlights with its colour. Tap again to deselect.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">3</div>
+      <div class="step-title">Type a message (strongly recommended)</div>
+      <div class="step-body">Tap the message box and type your situation. Include: <ul><li>Your exact location (street, building, landmark)</li><li>Number of people affected</li><li>Severity (critical / stable)</li><li>What you need (ambulance, food, rescue team)</li></ul>Max 280 characters. Your GPS coordinates are attached automatically.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">4</div>
+      <div class="step-title">Tap SEND SOS</div>
+      <div class="step-body">Button activates (glows red) only after selecting a type. Tap it. The screen shows "SOS Sent — Broadcasting to all reachable mesh nodes". The rescue team's Activity Log updates within 10 seconds.</div>
+      <div class="step-note"><b>Offline note:</b> If the backend is unreachable, the UI still shows success. The SOS is queued and will be delivered when a relay node is in range.</div>
+    </div>
+  </div>
+
+  <h3>From the Command Dashboard (Left Panel)</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">1</div>
+      <div class="step-title">Use the SOS Input Portal in the left panel</div>
+      <div class="step-body">Same 3 steps: select type → type message → press SEND SOS. The dashboard version also automatically triggers AI route calculation from the selected node to the nearest relay.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s7">
+  <div class="section-label">
+    <span class="section-num">07</span>
+    <span class="section-title">AI Route Finding</span>
+  </div>
+
+  <p style="font-size:13px;color:#57606a;margin-bottom:14px">The AI routing engine finds the <b>optimal multi-hop path</b> from any node to the rescue camp, prioritising nodes with high battery and strong signal.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#5B8DD9">1</div>
+      <div class="step-title">Click a node on the map to select it as the route source</div>
+      <div class="step-body">An orange banner appears above the map: <em>"Route source: [node-id] — Send SOS to auto-route from this node"</em>. The selected node glows with an orange double-ring on the map.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">2</div>
+      <div class="step-title">Send an SOS from the SOS Input Portal</div>
+      <div class="step-body">The dashboard automatically calls the AI routing engine (<code>POST /api/route</code>) from the selected node to the nearest relay node. Route calculation takes 1–3 seconds.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#22C55E">3</div>
+      <div class="step-title">Read the route result strip</div>
+      <div class="step-body">A green strip appears below the map showing: <ul><li>Full path: <em>node-A → relay-B → cmd-hq</em></li><li>Number of hops</li><li>Estimated latency in milliseconds</li><li>Active scenario</li></ul>An <b>orange line</b> draws the path on the map with an animated white dot travelling along it.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">!</div>
+      <div class="step-title">If route shows "No route found"</div>
+      <div class="step-body">The mesh between the source and destination is broken — no chain of nodes connects them. Solutions: <ul><li>Move a relay node physically closer to fill the gap</li><li>Trigger <b>HQ Emergency Broadcast</b> to activate all radios</li><li>Change the disaster scenario to one with a larger radio range</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s8">
+  <div class="section-label">
+    <span class="section-num">08</span>
+    <span class="section-title">HQ Emergency Broadcast</span>
+  </div>
+
+  <div class="callout red"><b>This is a major command action.</b> It activates ALL device radios simultaneously, forces every node to maximum scanning mode, and uses significantly more battery across all devices. Use when you need maximum mesh coverage immediately.</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">1</div>
+      <div class="step-title">Select the correct disaster scenario first</div>
+      <div class="step-body">In the <b>Disaster Control Panel</b> (top of left panel), tap the matching scenario button: <b>Flood</b> (blue, 200m Wi-Fi range) · <b>War Zone</b> (red, 50m range) · <b>Earthquake</b> (orange, 400m range). The selected scenario affects the AI routing weights and radio range calculations.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">2</div>
+      <div class="step-title">Tap TRIGGER HQ EMERGENCY BROADCAST</div>
+      <div class="step-body">The large red button at the bottom of the Disaster Control Panel. It shows <b>"BROADCASTING…"</b> with a pulsing radio icon for 1 second, then turns green with <b>"ALL NODES ACTIVATED"</b> for 4 seconds. The map dots all turn teal (BLE + Wi-Fi both on) for 10 seconds.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#22C55E">3</div>
+      <div class="step-title">Confirm the Activity Log entry</div>
+      <div class="step-body">The bottom Activity Log shows an orange <code>[broadcast]</code> entry: <em>"DISASTER PROTOCOL BROADCASTED — Scenario: EARTHQUAKE — All device radios forced into active BLE scanning mode"</em></div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s9">
+  <div class="section-label">
+    <span class="section-num">09</span>
+    <span class="section-title">Onboarding New Victims (No App Installed)</span>
+  </div>
+
+  <p style="font-size:13px;color:#57606a;margin-bottom:14px">If a victim has no MeshNet app, use this procedure to get them connected in under 60 seconds.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-dot" style="background:#F97316">1</div>
+      <div class="step-title">Relay device creates a Wi-Fi hotspot</div>
+      <div class="step-body">On the relay phone or laptop, enable the Wi-Fi hotspot. Name it <code>MESHNET-xxxxxx</code> (no password, or a simple shared password written on a card).</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#3B82F6">2</div>
+      <div class="step-title">Victim connects their phone to the hotspot</div>
+      <div class="step-body">Victim opens Wi-Fi settings → selects <code>MESHNET-xxxxxx</code> → connects. Takes ~10 seconds. No internet needed — this is a local network between the two devices.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#22C55E">3</div>
+      <div class="step-title">Victim opens browser → types relay IP</div>
+      <div class="step-body">In any browser (Chrome, Safari, Firefox): go to <code>http://192.168.49.1:4173</code>. The full MeshNet AI app loads in 3–5 seconds directly from the relay's Vite preview server. <b>No internet. No app store. No account.</b></div>
+      <div class="step-note"><b>Shortcut:</b> Show the victim a QR code pre-generated for this URL. Free QR generators work offline. Print it and tape it to the relay device before deployment.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#14B8A6">4</div>
+      <div class="step-title">Victim installs the PWA (optional but recommended)</div>
+      <div class="step-body">Browser shows "Add to Home Screen" / "Install app" prompt. Victim taps it → installed in 10 seconds. Now they have the full app, BLE advertising starts, and they become a mesh node that extends range for others.</div>
+    </div>
+    <div class="step">
+      <div class="step-dot" style="background:#EF4444">5</div>
+      <div class="step-title">Victim appears as a dot on the rescue map</div>
+      <div class="step-body">The <code>useMeshDiscovery</code> hook fires <code>POST /api/mesh/register</code> with the victim's GPS. Within 10 seconds, their dot appears on the command dashboard map. The rescue team can now track and route to them.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s10">
+  <div class="section-label">
+    <span class="section-num">10</span>
+    <span class="section-title">Troubleshooting</span>
+  </div>
+
+  <table>
+    <thead><tr><th>Problem</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Map shows no tiles (grey squares)</td>
+        <td>No internet for OSM tiles</td>
+        <td>Tiles are cached after first load. Press <b>Fit Nodes</b> button. Pre-cache tiles by loading the map while online before deployment.</td>
+      </tr>
+      <tr>
+        <td>No nodes on map</td>
+        <td>Backend not running or wrong URL</td>
+        <td>Confirm Terminal 2 (port 4000) is running. Check <code>VITE_API_BASE_URL</code> in <code>backend/config/.env</code> matches the relay's IP.</td>
+      </tr>
+      <tr>
+        <td>"Router offline" in top bar</td>
+        <td>Python FastAPI not running</td>
+        <td>Start Terminal 1 (<code>uvicorn api_server:app --port 5050</code>). Route buttons will still work once it's back.</td>
+      </tr>
+      <tr>
+        <td>"Stream offline" in top bar</td>
+        <td>SSE connection dropped</td>
+        <td>Refresh the page. SSE reconnects automatically every few seconds.</td>
+      </tr>
+      <tr>
+        <td>Map dots in wrong city</td>
+        <td>Seed coordinates are wrong</td>
+        <td>Check <code>database/seeds/nodes.json</code> — coordinates should be Cebu City (~10.31°N, 123.88°E). Re-run the seed script.</td>
+      </tr>
+      <tr>
+        <td>SEND SOS button greyed out</td>
+        <td>No emergency type selected</td>
+        <td>Tap one of the 6 type buttons (War Zone, Flood, Medical, Fire, SOS, Evacuate) to activate the send button.</td>
+      </tr>
+      <tr>
+        <td>GPS shows "No GPS" (red)</td>
+        <td>Browser location permission denied</td>
+        <td>Click the location icon in the browser address bar → Allow location access. On mobile: Settings → Apps → Browser → Permissions → Location → Allow.</td>
+      </tr>
+      <tr>
+        <td>Victim can't connect to hotspot IP</td>
+        <td>Wrong IP or preview server not running</td>
+        <td>Run <code>pnpm preview</code> (not <code>pnpm dev</code>) in Terminal 3 for the preview server on port 4173. Check hotspot IP in network settings — it may be <code>192.168.43.1</code> on some Android devices.</td>
+      </tr>
+      <tr>
+        <td>Map won't display at all (white/blank)</td>
+        <td>Leaflet container height = 0</td>
+        <td>Hard refresh the page (Ctrl+Shift+R). If on mobile, make sure you are on the Map tab (not scrolled content). The map requires a non-zero container height.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="divider"></div>
+
+
+<div class="section" id="s11">
+  <div class="section-label">
+    <span class="section-num">11</span>
+    <span class="section-title">Quick Reference Card</span>
+  </div>
+
+  <p style="font-size:12px;color:#57606a;margin-bottom:12px">Print this page and attach it to the relay device for field use.</p>
+
+  <div class="quick-grid">
+    <div class="quick-card">
+      <div class="quick-title" style="color:#EF4444">🆘 Victim: Send SOS</div>
+      <div class="quick-item">Alert tab → pick type → type message → <b>SEND SOS</b></div>
+      <div class="quick-item">OR: Home tab → big orange <b>SOS ALERT</b> button</div>
+      <div class="quick-item">GPS attaches automatically</div>
+      <div class="quick-item">After rescue: tap <b>All Clear</b> to free resources</div>
+    </div>
+    <div class="quick-card">
+      <div class="quick-title" style="color:#F97316">📡 Rescue: Key Actions</div>
+      <div class="quick-item">Click node → send SOS → AI route appears</div>
+      <div class="quick-item">Disaster scenario → <b>TRIGGER HQ BROADCAST</b></div>
+      <div class="quick-item">Fit Nodes button → see full mesh</div>
+      <div class="quick-item">Activity Log → all events, colour coded</div>
+    </div>
+    <div class="quick-card">
+      <div class="quick-title" style="color:#3B82F6">🖥 Start Servers</div>
+      <div class="quick-item"><b>T1:</b> <code style="font-size:10.5px;font-family:monospace">uvicorn api_server:app --port 5050</code></div>
+      <div class="quick-item"><b>T2:</b> <code style="font-size:10.5px;font-family:monospace">npm run dev</code> (port 4000)</div>
+      <div class="quick-item"><b>T3:</b> <code style="font-size:10.5px;font-family:monospace">pnpm preview</code> (port 4173)</div>
+      <div class="quick-item">Dashboard: <code style="font-size:10.5px;font-family:monospace">http://localhost:4173</code></div>
+    </div>
+    <div class="quick-card">
+      <div class="quick-title" style="color:#22C55E">📲 Onboard Victim (No App)</div>
+      <div class="quick-item">Turn on hotspot: <code style="font-size:10.5px;font-family:monospace">MESHNET-xxxxxx</code></div>
+      <div class="quick-item">Victim connects → opens browser</div>
+      <div class="quick-item">URL: <code style="font-size:10.5px;font-family:monospace">http://192.168.49.1:4173</code></div>
+      <div class="quick-item">App loads in 5s — no install needed</div>
+    </div>
+  </div>
+
+  <h3>Node Colours at a Glance</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#14B8A6"></div><span style="font-size:12px">Teal = BLE+WiFi</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#22C55E"></div><span style="font-size:12px">Green = BLE only</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#3B82F6"></div><span style="font-size:12px">Blue = WiFi only</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#4B5563"></div><span style="font-size:12px">Grey = offline</span></div>
+    <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#F97316"></div><span style="font-size:12px">Orange line = AI route</span></div>
+  </div>
+
+</div>
+
+<footer>MeshNet AI — Emergency Offline Mesh Communication System  ·  Made with IBM Bob</footer>
+</div>
+</body>
+</html>

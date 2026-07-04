@@ -8,9 +8,10 @@
     "signal": 100,
     "battery_percentage": 82,
     "bluetooth_status": 1,
+    "wifi_status": 1,
     "os": "Ubuntu 24.04",
-    "lat": 37.7749,
-    "lng": -122.4194
+    "lat": 10.3157,
+    "lng": 123.8854
   },
   {
     "id": "ramos-phone",
@@ -21,9 +22,10 @@
     "signal": 87,
     "battery_percentage": 67,
     "bluetooth_status": 1,
+    "wifi_status": 1,
     "os": "iOS 17.5",
-    "lat": 37.7751,
-    "lng": -122.4180
+    "lat": 10.3175,
+    "lng": 123.8837
   },
   {
     "id": "chen-laptop",
@@ -34,9 +36,10 @@
     "signal": 72,
     "battery_percentage": 91,
     "bluetooth_status": 0,
+    "wifi_status": 1,
     "os": "macOS Sonoma 14",
-    "lat": 37.7755,
-    "lng": -122.4210
+    "lat": 10.3140,
+    "lng": 123.8878
   },
   {
     "id": "med-01",
@@ -47,9 +50,10 @@
     "signal": 91,
     "battery_percentage": 55,
     "bluetooth_status": 1,
+    "wifi_status": 0,
     "os": "Android 14",
-    "lat": 37.7740,
-    "lng": -122.4195
+    "lat": 10.3162,
+    "lng": 123.8865
   },
   {
     "id": "torres-phone",
@@ -60,8 +64,9 @@
     "signal": 64,
     "battery_percentage": 38,
     "bluetooth_status": 0,
+    "wifi_status": 0,
     "os": "Android 14",
-    "lat": 37.7742,
-    "lng": -122.4175
+    "lat": 10.3148,
+    "lng": 123.8820
   }
 ]

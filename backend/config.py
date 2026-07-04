@@ -19,25 +19,49 @@ from dataclasses import dataclass, field
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Disaster-scenario communication ranges
+# Disaster-scenario communication ranges — per protocol
 # ──────────────────────────────────────────────────────────────────────────────
-# These represent the effective Bluetooth / Wi-Fi Direct radius in each
-# scenario.  Physical obstacles, water absorption, and RF interference
-# are already factored into the conservative estimates below.
+# Two independent radios are modelled for every device:
+#
+#   Bluetooth Low Energy (BLE)
+#     - Short-range (~10–100 m), low power, works even on 5% battery
+#     - Used for peer discovery and short-hop routing
+#
+#   Wi-Fi Direct / Hotspot
+#     - Medium-range (~100–400 m), higher throughput, more battery use
+#     - Used for bulk data transfer and longer hops
+#     - A phone in hotspot mode can bridge BLE-only peers to a wider area
+#
+# Physical obstacles, water absorption, and RF interference are already
+# factored into the conservative estimates below.
 
-MAX_RANGE_FLOOD: int = int(os.getenv("MESH_RANGE_FLOOD", 150))
-# Device communication radius in metres during floods.
-# Water attenuates 2.4 GHz signals; elevated devices can reach 150 m.
+# ── Bluetooth BLE ranges ──────────────────────────────────────────────────────
 
-MAX_RANGE_WAR_ZONE: int = int(os.getenv("MESH_RANGE_WAR_ZONE", 30))
-# Device communication radius due to electronic interference / jamming.
-# 30 m conservative estimate for active RF countermeasures in conflict zones.
-# (Override via MESH_RANGE_WAR_ZONE env var if field measurements differ.)
+BLE_RANGE_FLOOD: int = int(os.getenv("MESH_BLE_RANGE_FLOOD", 80))
+# BLE radius during floods — water absorbs 2.4 GHz; elevated devices ~80 m.
 
-MAX_RANGE_EARTHQUAKE: int = int(os.getenv("MESH_RANGE_EARTHQUAKE", 300))
-# Device communication radius in open post-quake fields.
-# 300 m covers the full 1 km Manila disaster zone at adequate density.
-# Rubble-free areas allow maximum BLE / Wi-Fi Direct propagation.
+BLE_RANGE_WAR_ZONE: int = int(os.getenv("MESH_BLE_RANGE_WAR_ZONE", 20))
+# BLE radius in conflict zones — RF jamming limits effective range to 20 m.
+
+BLE_RANGE_EARTHQUAKE: int = int(os.getenv("MESH_BLE_RANGE_EARTHQUAKE", 120))
+# BLE radius in post-quake open fields — rubble-free line-of-sight ~120 m.
+
+# ── Wi-Fi Direct / hotspot ranges ────────────────────────────────────────────
+
+WIFI_RANGE_FLOOD: int = int(os.getenv("MESH_WIFI_RANGE_FLOOD", 200))
+# Wi-Fi Direct radius during floods — 2.4 GHz at elevation reaches ~200 m.
+
+WIFI_RANGE_WAR_ZONE: int = int(os.getenv("MESH_WIFI_RANGE_WAR_ZONE", 50))
+# Wi-Fi radius in war zones — jamming reduces range to ~50 m.
+
+WIFI_RANGE_EARTHQUAKE: int = int(os.getenv("MESH_WIFI_RANGE_EARTHQUAKE", 400))
+# Wi-Fi radius in post-quake fields — near-free-space propagation ~400 m.
+
+# ── Legacy combined ranges (max of BLE + WiFi) — kept for backwards compat ───
+
+MAX_RANGE_FLOOD: int      = WIFI_RANGE_FLOOD
+MAX_RANGE_WAR_ZONE: int   = WIFI_RANGE_WAR_ZONE
+MAX_RANGE_EARTHQUAKE: int = WIFI_RANGE_EARTHQUAKE
 
 TOTAL_SIMULATED_NODES: int = int(os.getenv("MESH_TOTAL_NODES", 100))
 # Total virtual devices loaded into the simulation database.
@@ -96,12 +120,24 @@ class MeshConfig:
     -------
     >>> cfg = MeshConfig.from_env()
     >>> print(cfg.range_for_scenario("flood"))
-    50
+    200
+    >>> print(cfg.ble_range_for_scenario("flood"))
+    80
     """
 
-    # Scenario ranges
-    max_range_flood: int = MAX_RANGE_FLOOD
-    max_range_war_zone: int = MAX_RANGE_WAR_ZONE
+    # BLE ranges per scenario
+    ble_range_flood:      int = BLE_RANGE_FLOOD
+    ble_range_war_zone:   int = BLE_RANGE_WAR_ZONE
+    ble_range_earthquake: int = BLE_RANGE_EARTHQUAKE
+
+    # Wi-Fi Direct ranges per scenario
+    wifi_range_flood:      int = WIFI_RANGE_FLOOD
+    wifi_range_war_zone:   int = WIFI_RANGE_WAR_ZONE
+    wifi_range_earthquake: int = WIFI_RANGE_EARTHQUAKE
+
+    # Legacy combined (max of the two) — kept for backwards compat
+    max_range_flood:      int = MAX_RANGE_FLOOD
+    max_range_war_zone:   int = MAX_RANGE_WAR_ZONE
     max_range_earthquake: int = MAX_RANGE_EARTHQUAKE
 
     # Simulation
@@ -130,28 +166,26 @@ class MeshConfig:
         return cls()
 
     def range_for_scenario(self, scenario: str) -> int:
-        """
-        Return the effective communication range (metres) for a given scenario.
-
-        Parameters
-        ----------
-        scenario : str
-            One of 'flood', 'war_zone', or 'earthquake'.
-
-        Returns
-        -------
-        int
-            Range in metres.
-
-        Raises
-        ------
-        ValueError
-            If an unknown scenario string is passed.
-        """
+        """Return the maximum effective range (metres) for a given scenario.
+        This is the Wi-Fi Direct range — the larger of the two radios."""
         _map = {
-            "flood":      self.max_range_flood,
-            "war_zone":   self.max_range_war_zone,
-            "earthquake": self.max_range_earthquake,
+            "flood":      self.wifi_range_flood,
+            "war_zone":   self.wifi_range_war_zone,
+            "earthquake": self.wifi_range_earthquake,
+        }
+        if scenario not in _map:
+            raise ValueError(
+                f"Unknown scenario '{scenario}'. "
+                f"Valid options: {list(_map.keys())}"
+            )
+        return _map[scenario]
+
+    def ble_range_for_scenario(self, scenario: str) -> int:
+        """Return the Bluetooth BLE range (metres) for a given scenario."""
+        _map = {
+            "flood":      self.ble_range_flood,
+            "war_zone":   self.ble_range_war_zone,
+            "earthquake": self.ble_range_earthquake,
         }
         if scenario not in _map:
             raise ValueError(
@@ -164,9 +198,12 @@ class MeshConfig:
         """Return a human-readable configuration summary for logging."""
         return (
             f"MeshNet AI Config\n"
-            f"  Ranges     : flood={self.max_range_flood}m  "
-            f"war_zone={self.max_range_war_zone}m  "
-            f"earthquake={self.max_range_earthquake}m\n"
+            f"  BLE ranges : flood={self.ble_range_flood}m  "
+            f"war_zone={self.ble_range_war_zone}m  "
+            f"earthquake={self.ble_range_earthquake}m\n"
+            f"  WiFi ranges: flood={self.wifi_range_flood}m  "
+            f"war_zone={self.wifi_range_war_zone}m  "
+            f"earthquake={self.wifi_range_earthquake}m\n"
             f"  Nodes      : {self.total_simulated_nodes} simulated\n"
             f"  Max hops   : {self.max_hops}\n"
             f"  Packet loss: {self.packet_loss_rate * 100:.0f}%\n"

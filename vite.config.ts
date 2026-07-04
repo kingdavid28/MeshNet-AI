@@ -25,34 +25,15 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Disable service worker in dev — it intercepts requests and caches
+      // the JS bundle, causing code changes to not appear in the browser.
+      devOptions: { enabled: false },
+      // Use the static public/manifest.webmanifest — do not let the plugin
+      // generate one, which avoids the dev-mode JSON syntax error.
+      manifest: false,
+      includeManifestIcons: false,
       // Include all tiles and icons in the service worker's precache manifest
-      includeAssets: ['icons/*.svg', 'tiles/**/*.png'],
-      manifest: {
-        name: 'MeshNet AI',
-        short_name: 'MeshNet',
-        description:
-          'Offline emergency communication and routing during disasters via a secure mesh network.',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
-        display: 'standalone',
-        orientation: 'any',
-        start_url: '/',
-        scope: '/',
-        icons: [
-          {
-            src: '/icons/icon-192.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
-          },
-          {
-            src: '/icons/icon-512.svg',
-            sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
-          },
-        ],
-      },
+      includeAssets: ['icons/*.svg', 'tiles/**/*.png', 'manifest.webmanifest'],
       workbox: {
         // Precache all built JS/CSS/HTML
         globPatterns: ['**/*.{js,css,html,ico,svg}'],

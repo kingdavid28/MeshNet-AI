@@ -20,7 +20,27 @@ export const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
-// ── Auto-create signal_events if the DB pre-dates migration 006 ──────────────
+// ── Ensure alerts and signal_events tables exist on fresh DBs ────────────────
+// alerts: no FK on from_node_id — dashboard UI sends alerts that are not mesh nodes.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS alerts (
+    id             TEXT    PRIMARY KEY,
+    type           TEXT    NOT NULL CHECK (type IN ('sos','medical','safe','hazard','supply','locate')),
+    severity       TEXT    NOT NULL CHECK (severity IN ('critical','high','medium','low')),
+    from_node_id   TEXT    NOT NULL,
+    from_label     TEXT    NOT NULL,
+    message        TEXT,
+    lat            REAL,
+    lng            REAL,
+    ttl            INTEGER NOT NULL DEFAULT 7,
+    acknowledged   INTEGER NOT NULL DEFAULT 0,
+    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    expires_at     TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_alerts_type    ON alerts(type);
+`);
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS signal_events (
     id           TEXT    PRIMARY KEY,
@@ -37,6 +57,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_signal_events_burst ON signal_events(burst);
 `);
 
+// ── Add wifi_status column to nodes if the DB was created before this migration
+// Uses ALTER TABLE … ADD COLUMN IF NOT EXISTS (safe to run on every boot).
+// wifi_status: 1 = Wi-Fi Direct / hotspot active, 0 = Wi-Fi off.
+try {
+  db.exec(`ALTER TABLE nodes ADD COLUMN wifi_status INTEGER NOT NULL DEFAULT 0 CHECK (wifi_status IN (0, 1))`);
+} catch { /* column already exists — ignore */ }
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface NodeRow {
@@ -48,6 +75,7 @@ export interface NodeRow {
   signal:             number;
   battery_percentage: number;
   bluetooth_status:   number;   // SQLite stores boolean as 0 / 1
+  wifi_status:        number;   // SQLite stores boolean as 0 / 1
   os:                 string | null;
   lat:                number | null;
   lng:                number | null;
@@ -109,15 +137,16 @@ export const nodeStmts = {
   upsert: db.prepare<NodeRow>(`
     INSERT INTO nodes
       (id, label, name, device, role, signal,
-       battery_percentage, bluetooth_status, os, lat, lng, last_seen)
+       battery_percentage, bluetooth_status, wifi_status, os, lat, lng, last_seen)
     VALUES
       (@id, @label, @name, @device, @role, @signal,
-       @battery_percentage, @bluetooth_status, @os, @lat, @lng, @last_seen)
+       @battery_percentage, @bluetooth_status, @wifi_status, @os, @lat, @lng, @last_seen)
     ON CONFLICT(id) DO UPDATE SET
       label              = excluded.label,
       signal             = excluded.signal,
       battery_percentage = excluded.battery_percentage,
       bluetooth_status   = excluded.bluetooth_status,
+      wifi_status        = excluded.wifi_status,
       lat                = excluded.lat,
       lng                = excluded.lng,
       last_seen          = excluded.last_seen
@@ -133,12 +162,13 @@ export const nodeStmts = {
 
   heartbeat: db.prepare(`
     UPDATE nodes
-    SET signal = @signal,
+    SET signal             = @signal,
         battery_percentage = @battery_percentage,
         bluetooth_status   = @bluetooth_status,
-        lat      = COALESCE(@lat,  lat),
-        lng      = COALESCE(@lng,  lng),
-        last_seen = @last_seen
+        wifi_status        = @wifi_status,
+        lat                = COALESCE(@lat, lat),
+        lng                = COALESCE(@lng, lng),
+        last_seen          = @last_seen
     WHERE id = @id
   `),
 };

@@ -21,6 +21,7 @@ import FlickerAlertBanner from "./FlickerAlertBanner";
 import { useCloudantNodes, type CloudantNode } from "../hooks/useCloudantNodes";
 import { useRouting } from "../hooks/useRouting";
 import { useSignalStream } from "../hooks/useSignalStream";
+import { useDeviceLocation } from "../hooks/useDeviceLocation";
 import { Radio, Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap } from "lucide-react";
 import { useState } from "react";
 
@@ -51,6 +52,7 @@ export default function DashboardLayout() {
   const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000);
   const { result: routeResult, loading: routeLoading, error: routeError, query: queryRoute } = useRouting();
   const { latestFlicker, flickerHistory, connected: sseConnected, dismiss: dismissFlicker } = useSignalStream();
+  const deviceLocation = useDeviceLocation();
 
   const [log, setLog] = useState<LogEntry[]>([
     makeEntry("system", "Dashboard initialized — IBM Cloudant sync active"),
@@ -142,27 +144,47 @@ export default function DashboardLayout() {
   const activeRoutePath = routeResult?.found ? routeResult.path : [];
 
   return (
-    <>
-      {/* ── Signal-flicker alert pop-up (zero-delay, overlays everything) ── */}
+    // Single root element — no Fragment. The outer div is position:fixed so it
+    // owns its own stacking context and is guaranteed 100vw × 100vh regardless
+    // of what #root or body do. FlickerAlertBanner sits inside as an overlay.
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        background: "radial-gradient(ellipse at 30% 10%, #0F2347 0%, #060E1C 70%)",
+        fontFamily: "Inter, sans-serif",
+      }}
+    >
+      {/* ── Signal-flicker alert pop-up — absolute overlay inside this shell ── */}
       <FlickerAlertBanner
         alert={latestFlicker}
         onDismiss={dismissFlicker}
       />
 
+      {/* ── Content pushed down when flicker banner is visible ────────────── */}
       <div
-        className="flex flex-col h-full min-h-screen"
         style={{
-          background: "radial-gradient(ellipse at 30% 10%, #0F2347 0%, #060E1C 70%)",
-          fontFamily: "Inter, sans-serif",
-          // Push content below the flicker banner when it's visible
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
           paddingTop: latestFlicker ? "68px" : "0",
           transition: "padding-top 0.15s",
         }}
       >
         {/* ── Top bar ──────────────────────────────────────────────────────── */}
         <header
-          className="shrink-0 flex items-center justify-between px-6 py-3 border-b"
-          style={{ borderColor: "rgba(91,141,217,0.15)", background: "rgba(10,21,38,0.8)" }}
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 24px",
+            borderBottom: "1px solid rgba(91,141,217,0.15)",
+            background: "rgba(10,21,38,0.8)",
+          }}
         >
           {/* Brand */}
           <div className="flex items-center gap-3">
@@ -288,15 +310,18 @@ export default function DashboardLayout() {
         </header>
 
         {/* ── Main grid ────────────────────────────────────────────────────── */}
-        <div className="flex flex-1" style={{ overflow: "visible" }}>
+        <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
 
           {/* LEFT — SOS Input Portal + Disaster Control Panel */}
           <aside
-            className="shrink-0 flex flex-col border-r overflow-y-auto"
             style={{
+              flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              overflowY: "auto",
               width: 360,
               minWidth: 320,
-              borderColor: "rgba(91,141,217,0.15)",
+              borderRight: "1px solid rgba(91,141,217,0.15)",
               background: "rgba(11,29,58,0.6)",
               padding: "1.25rem",
               gap: "1.5rem",
@@ -321,7 +346,7 @@ export default function DashboardLayout() {
           </aside>
 
           {/* RIGHT — Map + Route result + Activity log */}
-          <main className="flex-1 flex flex-col gap-0" style={{ overflow: "visible" }}>
+          <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
 
             {/* Selected node hint */}
             {selectedNodeId && (
@@ -345,13 +370,20 @@ export default function DashboardLayout() {
               </div>
             )}
 
-            {/* Map panel — overflow-hidden removed; Leaflet tile panes are
-                absolutely positioned and get clipped by overflow:hidden.
-                height:0 flex trick replaced with an explicit min-height so
-                Leaflet always gets a measurable pixel box. */}
+            {/* Map panel — flex:1 + minHeight:0 so the panel stretches to fill
+                all remaining height in the <main> column. overflow:hidden keeps
+                Leaflet's absolutely-positioned panes from leaking outside.
+                Inline styles only — Tailwind flex-1 is unreliable in the
+                critical height chain with Tailwind v4 source(none). */}
             <div
-              className="flex-1 p-4"
-              style={{ minHeight: 340, overflow: "visible" }}
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                padding: "1rem",
+              }}
             >
               <NodeMapCanvas
                 nodes={nodes}
@@ -362,6 +394,7 @@ export default function DashboardLayout() {
                 activeRoutePath={activeRoutePath}
                 broadcastActive={broadcastActive}
                 onNodeClick={handleNodeClick}
+                deviceLocation={deviceLocation}
               />
             </div>
 
@@ -460,6 +493,6 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
-    </>
+    </div>
   );
 }

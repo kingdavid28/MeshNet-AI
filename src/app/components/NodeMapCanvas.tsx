@@ -11,16 +11,18 @@
  *  • Graceful loading / error states
  */
 
-import { useState, useMemo } from "react";
-import type { ReactNode } from "react";
+import { useState, useMemo, useRef } from "react";
 import type { CloudantNode } from "../hooks/useCloudantNodes";
-import { Bluetooth, Battery, Signal, RefreshCw, Database, Wifi } from "lucide-react";
-import LeafletMap from "./LeafletMap";
+import type { DeviceLocation } from "../hooks/useDeviceLocation";
+import { Bluetooth, Battery, Signal, RefreshCw, Database, Wifi, LocateFixed, Layers, WifiOff } from "lucide-react";
+import LeafletMap, { type LeafletMapHandle } from "./LeafletMap";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
-const COLOR_ON    = "#22C55E";
-const COLOR_OFF   = "#4B5563";
+const COLOR_BOTH  = "#14B8A6";   // teal  — BLE + Wi-Fi
+const COLOR_BLE   = "#22C55E";   // green — BLE only
+const COLOR_WIFI  = "#3B82F6";   // blue  — Wi-Fi Direct only
+const COLOR_OFF   = "#4B5563";   // grey  — all radios off
 const COLOR_RELAY = "#5B8DD9";
 const COLOR_ROUTE = "#F97316";
 
@@ -35,6 +37,7 @@ interface Props {
   activeRoutePath?: string[];
   broadcastActive?: boolean;
   onNodeClick?:     (node: CloudantNode) => void;
+  deviceLocation?:  DeviceLocation | null;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -48,15 +51,21 @@ export default function NodeMapCanvas({
   activeRoutePath = [],
   broadcastActive = false,
   onNodeClick,
-}: Props): ReactNode {
+  deviceLocation,
+}: Props): JSX.Element {
   const [selected, setSelected] = useState<CloudantNode | null>(null);
+  const leafletRef = useRef<LeafletMapHandle>(null);
 
   const effectiveNodes = useMemo(
-    () => broadcastActive ? nodes.map((n) => ({ ...n, bluetooth_status: true })) : nodes,
+    () => broadcastActive
+      ? nodes.map((n) => ({ ...n, bluetooth_status: true, wifi_status: true, protocol_active: "both" as const }))
+      : nodes,
     [nodes, broadcastActive],
   );
 
-  const bleActiveCount = effectiveNodes.filter((n) => n.bluetooth_status).length;
+  const bleActiveCount  = effectiveNodes.filter((n) => n.bluetooth_status).length;
+  const wifiActiveCount = effectiveNodes.filter((n) => n.wifi_status).length;
+  const bothActiveCount = effectiveNodes.filter((n) => n.protocol_active === "both").length;
 
   const sourceBadge: { label: string; color: string } = {
     cloudant:        { label: "IBM Cloudant", color: "#5B8DD9" },
@@ -70,10 +79,10 @@ export default function NodeMapCanvas({
   }
 
   return (
-    /* h-full so the map fills 100% of the dashboard panel height.
-       If the parent has no explicit height (mobile tab), the fixed
-       minHeight on the Leaflet wrapper below acts as the floor. */
-    <div className="flex flex-col gap-3" style={{ height: "100%" }}>
+    /* flex:1 + minHeight:0 fills the parent flex column (both mobile shell
+       and DashboardLayout map panel). Inline styles only — never rely on
+       Tailwind for structural flex properties in the height chain. */
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0 }}>
 
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -86,7 +95,9 @@ export default function NodeMapCanvas({
           </h2>
           <p className="text-[10px] text-[#7B9CC4] mt-0.5 font-mono">
             {effectiveNodes.length} node{effectiveNodes.length !== 1 ? "s" : ""}
-            &nbsp;·&nbsp;{bleActiveCount} BLE active
+              &nbsp;·&nbsp;{bleActiveCount} BLE
+              &nbsp;·&nbsp;{wifiActiveCount} Wi-Fi
+              {bothActiveCount > 0 && <>&nbsp;·&nbsp;<span style={{ color: COLOR_BOTH }}>{bothActiveCount} dual</span></>}
             {activeRoutePath.length > 1 && (
               <span className="text-[#F97316]">
                 &nbsp;·&nbsp;route: {activeRoutePath.length - 1} hop{activeRoutePath.length > 2 ? "s" : ""}
@@ -96,6 +107,35 @@ export default function NodeMapCanvas({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* GPS location status badge */}
+          {deviceLocation && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-mono uppercase tracking-wider border"
+              style={
+                deviceLocation.status === "ok"
+                  ? { background: "rgba(59,130,246,0.1)", borderColor: "rgba(59,130,246,0.3)", color: "#3B82F6" }
+                  : deviceLocation.status === "acquiring"
+                  ? { background: "rgba(249,115,22,0.1)", borderColor: "rgba(249,115,22,0.3)", color: "#F97316" }
+                  : { background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)", color: "#EF4444" }
+              }
+              title={deviceLocation.error ?? "GPS active"}
+            >
+              <div
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  background:
+                    deviceLocation.status === "ok" ? "#3B82F6" :
+                    deviceLocation.status === "acquiring" ? "#F97316" : "#EF4444",
+                }}
+              />
+              {deviceLocation.status === "ok"
+                ? `GPS ±${Math.round(deviceLocation.accuracy ?? 0)}m`
+                : deviceLocation.status === "acquiring"
+                ? "GPS…"
+                : "No GPS"}
+            </div>
+          )}
+
           {/* Source badge */}
           <div
             className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full text-[9px] font-mono uppercase tracking-wider border"
@@ -117,6 +157,26 @@ export default function NodeMapCanvas({
             </span>
           </div>
 
+          {/* Locate me — fly to device GPS position */}
+          {deviceLocation && deviceLocation.status === "ok" && (
+            <button
+              onClick={() => leafletRef.current?.locateMe()}
+              className="w-7 h-7 rounded-lg bg-[#132B5A] border border-[rgba(59,130,246,0.35)] flex items-center justify-center active:scale-90 transition-transform"
+              title="Centre map on my location"
+            >
+              <LocateFixed size={12} className="text-[#3B82F6]" />
+            </button>
+          )}
+
+          {/* Fit nodes — zoom to show all mesh nodes */}
+          <button
+            onClick={() => leafletRef.current?.fitNodes()}
+            className="w-7 h-7 rounded-lg bg-[#132B5A] border border-[rgba(91,141,217,0.2)] flex items-center justify-center active:scale-90 transition-transform"
+            title="Fit map to all nodes"
+          >
+            <Layers size={12} className="text-[#7B9CC4]" />
+          </button>
+
           {/* Refresh */}
           {onRefresh && (
             <button
@@ -130,20 +190,22 @@ export default function NodeMapCanvas({
         </div>
       </div>
 
-      {/* ── Leaflet map canvas ───────────────────────────────────────────────── */}
-      {/* flex-1 so the map grows to fill available height in the dashboard.
-          minHeight 300 ensures the map is always visible on narrow screens.
-          overflow:visible is required — overflow:hidden clips Leaflet panes. */}
+      {/* ── Leaflet map canvas ─────────────────────────────────────────────── */}
+      {/* flex:1 + minHeight:320 guarantees Leaflet always has a concrete pixel
+          height. overflow:hidden is still required for Leaflet's absolutely-
+          positioned tile panes but the minHeight prevents them being clipped. */}
       <div
         className="rounded-2xl border border-[rgba(91,141,217,0.2)] relative"
-        style={{ flex: 1, minHeight: 300, overflow: "visible" }}
+        style={{ flex: 1, minHeight: 320, overflow: "hidden" }}
       >
         <LeafletMap
+          ref={leafletRef}
           nodes={effectiveNodes}
           activeRoutePath={activeRoutePath}
-          broadcastActive={broadcastActive}
           onNodeClick={handleNodeClick}
           selectedNodeId={selected?.node_id ?? null}
+          deviceLocation={deviceLocation}
+          broadcastActive={broadcastActive}
         />
 
         {/* Error overlay */}
@@ -172,9 +234,9 @@ export default function NodeMapCanvas({
       {/* ── Legend ───────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-2">
         {([
-          { dot: COLOR_ON,    label: "BLE Active",  sub: "green dot"  },
-          { dot: COLOR_OFF,   label: "BLE Off",     sub: "grey dot"   },
-          { dot: COLOR_RELAY, label: "Relay Node",  sub: "large ring" },
+          { dot: COLOR_BOTH,  label: "BLE + Wi-Fi", sub: "teal dot"   },
+          { dot: COLOR_BLE,   label: "BLE Only",    sub: "green dot"  },
+          { dot: COLOR_WIFI,  label: "Wi-Fi Only",  sub: "blue dot"   },
           { dot: COLOR_ROUTE, label: "AI Route",    sub: "orange path"},
         ] as const).map((l) => (
           <div key={l.label} className="flex items-center gap-2">
@@ -201,14 +263,34 @@ export default function NodeMapCanvas({
               : "rgba(75,85,99,0.3)",
           }}
         >
+          {/* Protocol icon — shows Bluetooth, Wifi, or WifiOff based on active radio */}
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
             style={{
-              background: selected.bluetooth_status ? "rgba(34,197,94,0.12)" : "rgba(75,85,99,0.12)",
-              border: `1px solid ${selected.bluetooth_status ? "rgba(34,197,94,0.35)" : "rgba(75,85,99,0.35)"}`,
+              background:
+                selected.protocol_active === "both"      ? "rgba(20,184,166,0.12)" :
+                selected.protocol_active === "bluetooth" ? "rgba(34,197,94,0.12)"  :
+                selected.protocol_active === "wifi"      ? "rgba(59,130,246,0.12)" :
+                                                           "rgba(75,85,99,0.12)",
+              border: `1px solid ${
+                selected.protocol_active === "both"      ? "rgba(20,184,166,0.35)" :
+                selected.protocol_active === "bluetooth" ? "rgba(34,197,94,0.35)"  :
+                selected.protocol_active === "wifi"      ? "rgba(59,130,246,0.35)" :
+                                                           "rgba(75,85,99,0.35)"
+              }`,
             }}
           >
-            <Bluetooth size={18} style={{ color: selected.bluetooth_status ? COLOR_ON : COLOR_OFF }} />
+            {selected.protocol_active === "wifi" ? (
+              <Wifi size={18} style={{ color: COLOR_WIFI }} />
+            ) : selected.protocol_active === "none" ? (
+              <WifiOff size={18} style={{ color: COLOR_OFF }} />
+            ) : (
+              <Bluetooth size={18} style={{
+                color:
+                  selected.protocol_active === "both" ? COLOR_BOTH :
+                  selected.protocol_active === "bluetooth" ? COLOR_BLE : COLOR_OFF,
+              }} />
+            )}
           </div>
 
           <div className="flex-1 min-w-0">
@@ -216,14 +298,26 @@ export default function NodeMapCanvas({
               <span className="text-sm font-bold text-[#E8EEF7]" style={{ fontFamily: "Barlow Condensed, sans-serif" }}>
                 {selected.label}
               </span>
+              {/* Protocol badge */}
               <span
                 className="text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-mono"
                 style={{
-                  background: selected.bluetooth_status ? "rgba(34,197,94,0.15)" : "rgba(75,85,99,0.15)",
-                  color: selected.bluetooth_status ? COLOR_ON : COLOR_OFF,
+                  background:
+                    selected.protocol_active === "both"      ? "rgba(20,184,166,0.15)"  :
+                    selected.protocol_active === "bluetooth" ? "rgba(34,197,94,0.15)"   :
+                    selected.protocol_active === "wifi"      ? "rgba(59,130,246,0.15)"  :
+                                                               "rgba(75,85,99,0.15)",
+                  color:
+                    selected.protocol_active === "both"      ? COLOR_BOTH :
+                    selected.protocol_active === "bluetooth" ? COLOR_BLE  :
+                    selected.protocol_active === "wifi"      ? COLOR_WIFI :
+                                                               COLOR_OFF,
                 }}
               >
-                {selected.bluetooth_status ? "BLE ON" : "BLE OFF"}
+                {selected.protocol_active === "both"      ? "BLE+WiFi" :
+                 selected.protocol_active === "bluetooth" ? "BLE only" :
+                 selected.protocol_active === "wifi"      ? "WiFi only" :
+                                                            "offline"}
               </span>
               <span
                 className="text-[9px] px-1.5 py-0.5 rounded-full uppercase"

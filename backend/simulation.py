@@ -82,6 +82,12 @@ log = logging.getLogger(__name__)
 # G.to_directed() when needed.
 mesh_graph: nx.Graph = nx.Graph()
 
+# Protocol priority for edge selection:
+#   "both"      — node has BLE + Wi-Fi active (preferred)
+#   "wifi"      — Wi-Fi Direct / hotspot only (longer range)
+#   "bluetooth" — BLE only (shorter range, lower power)
+#   "none"      — all radios off (no edges)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # MeshNode dataclass
@@ -133,6 +139,7 @@ class MeshNode:
     lng:                 float
     battery_percentage:  int          = 100
     bluetooth_status:    bool         = False
+    wifi_status:         bool         = False   # Wi-Fi Direct / hotspot active
     is_rescue_team:      bool         = False
     signal:              int          = 80
     device:              str          = "smartphone"
@@ -148,6 +155,17 @@ class MeshNode:
         self.x = (self.lng - _BASE_LNG) * _M_PER_DEG_LAT * math.cos(lat_rad)
         self.y = (self.lat - _BASE_LAT) * _M_PER_DEG_LAT
 
+    @property
+    def protocol_active(self) -> str:
+        """Return 'both', 'bluetooth', 'wifi', or 'none' based on active radios."""
+        if self.bluetooth_status and self.wifi_status:
+            return "both"
+        if self.bluetooth_status:
+            return "bluetooth"
+        if self.wifi_status:
+            return "wifi"
+        return "none"
+
     def to_graph_attrs(self) -> dict:
         """Return a dict suitable for nx.Graph.add_node(**attrs)."""
         return {
@@ -157,6 +175,8 @@ class MeshNode:
             "citizen_name":     self.citizen_name,
             "battery":          self.battery_percentage,
             "bluetooth":        self.bluetooth_status,
+            "wifi":             self.wifi_status,
+            "protocol_active":  self.protocol_active,
             "is_rescue_team":   self.is_rescue_team,
             "signal":           self.signal,
             "device":           self.device,
@@ -212,6 +232,7 @@ def calculate_distance(node1: MeshNode, node2: MeshNode) -> float:
 def build_offline_mesh(
     node_list: list[MeshNode],
     max_range_meters: float = 100.0,
+    ble_range_meters: Optional[float] = None,
 ) -> nx.Graph:
     """
     Build the active offline mesh connection graph.
@@ -219,21 +240,27 @@ def build_offline_mesh(
     Algorithm
     ---------
     1.  Clears the module-level ``mesh_graph``.
-    2.  Force-enables BLE on every node (Rohit's Weather HQ Trigger Vision):
-        when a disaster broadcast fires, all available devices are set to
-        active scanning status so rescue packets can propagate maximally.
-    3.  Adds all nodes to the graph with full attribute metadata.
-    4.  Iterates all unique node pairs; for each pair within
-        ``max_range_meters``, creates a local peer-to-peer data bridge
-        (undirected edge) weighted by physical distance.
+    2.  Force-enables BLE + Wi-Fi on every node (disaster broadcast mode):
+        when a disaster broadcast fires, all available radios are activated
+        so rescue packets can propagate over the maximum possible range.
+    3.  Adds all nodes to the graph with full protocol metadata.
+    4.  Iterates all unique node pairs; creates an edge for every pair
+        within radio range, labelling it with the best available protocol:
+          - Both nodes have Wi-Fi AND dist ≤ wifi_range  → protocol='wifi'
+          - Both nodes have BLE   AND dist ≤ ble_range   → protocol='bluetooth'
+          - Mixed (only one side has a radio in range)   → protocol='wifi' or 'bluetooth'
+        Multiple edges (one per protocol) can exist between the same pair.
 
     Parameters
     ----------
     node_list : list[MeshNode]
         All citizen devices in the disaster zone.
     max_range_meters : float
-        Maximum Bluetooth/Wi-Fi Direct communication radius in metres.
-        Default 100 m (≈ BLE 5.0 in open air).
+        Maximum Wi-Fi Direct communication radius in metres.
+        Default 100 m (will be overridden by scenario-specific config).
+    ble_range_meters : float | None
+        Maximum BLE communication radius in metres.
+        Defaults to half of max_range_meters if not specified.
 
     Returns
     -------
@@ -242,48 +269,65 @@ def build_offline_mesh(
         Each edge carries:
             weight   – Euclidean distance in metres (lower = closer = better)
             distance – same value, for readability
-            protocol – 'bluetooth' if dist ≤ 50 m, else 'wifi'
+            protocol – 'wifi', 'bluetooth', or 'both'
 
     Notes
     -----
-    The module-level ``mesh_graph`` is mutated in-place AND returned, so
-    callers may use either the return value or ``simulation.mesh_graph``.
+    The module-level ``mesh_graph`` is mutated in-place AND returned.
     """
+    if ble_range_meters is None:
+        ble_range_meters = max_range_meters * 0.5
+
     mesh_graph.clear()
 
-    # ── Force-Enable BLE background logic ────────────────────────────────────
-    # Spec: "Automated disaster broadcast sets all available nodes to active
-    #        tracking status"
+    # ── Disaster broadcast: activate all radios ───────────────────────────────
+    # When a disaster broadcast fires, every device enables both BLE and
+    # Wi-Fi Direct to maximise the mesh coverage area.
     for node in node_list:
         node.bluetooth_status = True
+        node.wifi_status      = True
         mesh_graph.add_node(node.id, **node.to_graph_attrs())
 
-    # ── Check which devices are close enough to communicate ──────────────────
-    # Spec: "Check which devices are close enough to communicate via
-    #        Wi-Fi/Bluetooth"
+    # ── Build edges — one per protocol per reachable pair ────────────────────
+    # We create two separate passes so each protocol is correctly modelled:
+    #   Pass 1 — BLE edges  (short range, low power)
+    #   Pass 2 — Wi-Fi edges (longer range, higher throughput)
     edge_count = 0
     for i in range(len(node_list)):
         for j in range(i + 1, len(node_list)):
-            dist = calculate_distance(node_list[i], node_list[j])
+            a = node_list[i]
+            b = node_list[j]
+            dist = calculate_distance(a, b)
 
-            if dist <= max_range_meters:
-                # Spec: "Create a local peer-to-peer data bridge between
-                #        these two devices"
-                protocol = "bluetooth" if dist <= 50.0 else "wifi"
-                mesh_graph.add_edge(
-                    node_list[i].id,
-                    node_list[j].id,
-                    weight=dist,
-                    distance=dist,
-                    protocol=protocol,
-                )
-                edge_count += 1
+            ble_reachable  = dist <= ble_range_meters
+            wifi_reachable = dist <= max_range_meters
+
+            if not ble_reachable and not wifi_reachable:
+                continue
+
+            # Determine the best protocol for this edge
+            if ble_reachable and wifi_reachable:
+                protocol = "both"
+            elif wifi_reachable:
+                protocol = "wifi"
+            else:
+                protocol = "bluetooth"
+
+            mesh_graph.add_edge(
+                a.id, b.id,
+                weight=dist,
+                distance=dist,
+                protocol=protocol,
+            )
+            edge_count += 1
 
     log.info(
-        "Offline mesh built — %d nodes, %d edges (max_range=%.0fm)",
+        "Offline mesh built — %d nodes, %d edges "
+        "(wifi_range=%.0fm, ble_range=%.0fm)",
         mesh_graph.number_of_nodes(),
         edge_count,
         max_range_meters,
+        ble_range_meters,
     )
     return mesh_graph
 

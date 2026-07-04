@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import DashboardLayout from "./components/DashboardLayout";
 import NodeMapCanvas from "./components/NodeMapCanvas";
 import { useCloudantNodes } from "./hooks/useCloudantNodes";
+import { useDeviceLocation } from "./hooks/useDeviceLocation";
+import { useMeshDiscovery } from "./hooks/useMeshDiscovery";
 import {
   AlertTriangle,
   Heart,
@@ -676,27 +678,67 @@ function AlertTab() {
 
 function MapTab() {
   const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000);
+  const deviceLocation = useDeviceLocation();
+
+  // ── Real device mesh discovery (BLE + Wi-Fi Direct via Capacitor plugin) ──
+  // On a real Android device this starts BLE advertising + scanning and
+  // Wi-Fi Direct peer discovery.  In the browser it is a safe no-op.
+  const { status: discoveryStatus, peers: discoveredPeers, isNative } =
+    useMeshDiscovery({
+      nodeId:  localStorage.getItem("meshnet_node_id") ?? "mobile-user",
+      label:   "You",
+      battery: 80,
+      signal:  75,
+      deviceLocation,
+    });
 
   return (
-    // position+inset fills the parent flex-1 div completely.
-    // overflow:visible is mandatory — Leaflet tile/marker panes are absolutely
-    // positioned children and get clipped by any overflow:hidden ancestor.
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        flexDirection: "column",
-        padding: "12px",
-        overflow: "visible",
-      }}
-    >
+    <div style={{ flex: 1, minHeight: 0, padding: 12, display: "flex", flexDirection: "column" }}>
+
+      {/* ── Discovery status strip (native only) ──────────────────────────── */}
+      {isNative && discoveryStatus && (
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "6px 10px", marginBottom: 8,
+            borderRadius: 8, flexShrink: 0,
+            background: "rgba(20,184,166,0.08)",
+            border: "1px solid rgba(20,184,166,0.2)",
+          }}
+        >
+          {/* BLE indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{
+              width: 6, height: 6, borderRadius: "50%",
+              background: discoveryStatus.scanning ? "#22C55E" : "#4B5563",
+            }} />
+            <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7B9CC4", textTransform: "uppercase" }}>
+              BLE
+            </span>
+          </div>
+          {/* Wi-Fi indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{
+              width: 6, height: 6, borderRadius: "50%",
+              background: discoveryStatus.wifiDirect ? "#3B82F6" : "#4B5563",
+            }} />
+            <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7B9CC4", textTransform: "uppercase" }}>
+              WiFi
+            </span>
+          </div>
+          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#14B8A6", marginLeft: "auto" }}>
+            {discoveryStatus.peersFound} peer{discoveryStatus.peersFound !== 1 ? "s" : ""} found
+          </span>
+        </div>
+      )}
+
       <NodeMapCanvas
         nodes={nodes}
         loading={loading}
         error={error}
         source={source}
         onRefresh={refresh}
+        deviceLocation={deviceLocation}
       />
     </div>
   );
@@ -843,83 +885,6 @@ export default function App() {
     return <DashboardLayout />;
   }
 
-  // Map tab renders full-screen (no clipping frame) so Leaflet panes aren't cut off
-  if (tab === "map") {
-    return (
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "#0B1D3A",
-          fontFamily: "Inter, sans-serif",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* Slim header */}
-        <div
-          className="shrink-0 flex items-center justify-between px-4 py-2 border-b"
-          style={{ borderColor: "rgba(91,141,217,0.15)", background: "rgba(10,21,38,0.9)" }}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#F97316] flex items-center justify-center">
-              <Radio size={12} className="text-white" strokeWidth={2.5} />
-            </div>
-            <span
-              className="text-sm font-black text-[#E8EEF7] uppercase tracking-wider"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              Live Mesh Map
-            </span>
-          </div>
-          <button
-            onClick={() => setTab("home")}
-            className="text-[10px] font-mono text-[#7B9CC4] px-2 py-1 rounded border border-[rgba(91,141,217,0.2)] hover:text-[#E8EEF7]"
-          >
-            ← Back
-          </button>
-        </div>
-
-        {/* Map fills remaining space */}
-        <div style={{ flex: 1, position: "relative", overflow: "visible" }}>
-          <MapTab />
-        </div>
-
-        {/* Bottom nav */}
-        <div
-          className="shrink-0 border-t border-[rgba(91,141,217,0.15)] bg-[#0A1526]"
-          style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-        >
-          <div className="flex">
-            {NAV.map(({ id, label, icon: Icon }) => {
-              const active = tab === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => setTab(id)}
-                  className={`flex-1 flex flex-col items-center gap-1 py-3 relative transition-colors ${
-                    active ? "text-[#F97316]" : "text-[#7B9CC4]"
-                  }`}
-                >
-                  <Icon size={20} strokeWidth={active ? 2.5 : 1.8} />
-                  <span
-                    className={`text-[10px] uppercase tracking-widest ${active ? "font-bold" : ""}`}
-                    style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-                  >
-                    {label}
-                  </span>
-                  {active && (
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#F97316] rounded-full" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className="min-h-screen w-full flex items-center justify-center"
@@ -968,12 +933,25 @@ export default function App() {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+        {/* Scrollable content — hidden when map tab is active (Leaflet needs a
+            non-scrolling, fixed-height parent; the map gets its own flex-1 slot). */}
+        <div
+          className="flex-1 overflow-y-auto"
+          style={{ scrollbarWidth: "none", display: tab === "map" ? "none" : undefined }}
+        >
           {tab === "home" && <HomeTab />}
           {tab === "alert" && <AlertTab />}
           {tab === "comms" && <CommsTab />}
         </div>
+
+        {/* Map tab — rendered as a flex-1 sibling so it gets the full available
+            height between header and nav. Leaflet requires overflow:hidden and a
+            concrete pixel height — both are guaranteed here. */}
+        {tab === "map" && (
+          <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <MapTab />
+          </div>
+        )}
 
         {/* Bottom nav */}
         <div

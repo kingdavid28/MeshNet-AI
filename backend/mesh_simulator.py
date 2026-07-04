@@ -37,29 +37,33 @@ log = logging.getLogger(__name__)
 class SimulatedNode:
     """Runtime state for a single simulated mesh node."""
 
-    id: str
-    label: str
-    lat: float
-    lng: float
-    battery: float        = 100.0
-    signal: float         = 80.0
-    bluetooth: bool       = True
-    role: str             = "peer"
-    device: str           = "smartphone"
-    alive: bool           = True
+    id:        str
+    label:     str
+    lat:       float
+    lng:       float
+    battery:   float = 100.0
+    signal:    float = 80.0
+    bluetooth: bool  = True
+    wifi:      bool  = True   # Wi-Fi Direct / hotspot active
+    role:      str   = "peer"
+    device:    str   = "smartphone"
+    alive:     bool  = True
 
     def tick(self, cfg: MeshConfig) -> None:
         """Advance node state by one simulation step."""
-        # Battery drains slowly; BLE scanning costs more power
-        drain = random.uniform(0.1, 0.4) + (0.2 if self.bluetooth else 0.0)
+        # Battery drains slowly; BLE + Wi-Fi scanning costs more power
+        drain = (random.uniform(0.1, 0.4)
+                 + (0.2 if self.bluetooth else 0.0)
+                 + (0.3 if self.wifi     else 0.0))
         self.battery = max(0.0, self.battery - drain)
 
         # Signal fluctuates ± 5 %
         self.signal = max(0.0, min(100.0, self.signal + random.uniform(-5, 5)))
 
-        # BLE toggles off when battery is critically low
+        # Radios turn off when battery is critically low to save power
         if self.battery < cfg.default_battery_min:
             self.bluetooth = False
+            self.wifi      = False
 
         # Node goes "silent" (unreachable) probabilistically at low battery
         if self.battery < 5.0 and random.random() < 0.05:
@@ -70,6 +74,7 @@ class SimulatedNode:
             "signal":            round(self.signal),
             "batteryPercentage": round(self.battery),
             "bluetoothStatus":   self.bluetooth,
+            "wifiStatus":        self.wifi,
             "lat":               self.lat,
             "lng":               self.lng,
         }
@@ -131,6 +136,7 @@ class MeshSimulator:
                 battery=random.uniform(40.0, 100.0),
                 signal=random.uniform(50.0, 100.0),
                 bluetooth=random.random() > 0.25,
+                wifi=random.random() > 0.35,    # 65% chance Wi-Fi is active
                 role="relay" if i % 4 == 0 else "peer",
                 device=random.choice(["smartphone", "laptop"]),
             )

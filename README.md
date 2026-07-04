@@ -22,7 +22,8 @@ npm run dev
 Terminal 3 — Vite frontend (React app, port 5173)
 cd "c:\Users\reycel\Downloads\Mobile App UI Design"
 pnpm dev
+pnpm preview
 
 Once all three are running, open your browser at:
 
-http://localhost:5173
+http://localhost:4173

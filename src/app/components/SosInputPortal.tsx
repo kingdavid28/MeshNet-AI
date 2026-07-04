@@ -130,16 +130,29 @@ export default function SosInputPortal({ onSend }: Props) {
     };
 
     try {
+      // Map UI-only types to the backend's allowed CHECK values:
+      //   war_zone  → sos    (armed-threat is an SOS-level event)
+      //   fire      → hazard (no dedicated "fire" type in schema)
+      //   evacuation→ hazard
+      const BACKEND_TYPE_MAP: Record<string, string> = {
+        war_zone:   "sos",
+        sos:        "sos",
+        medical:    "medical",
+        fire:       "hazard",
+        evacuation: "hazard",
+        flood:      "hazard",
+      };
+      const backendType = BACKEND_TYPE_MAP[payload.type] ?? "sos";
+
       // POST to backend — fire and forget; backend relays to mesh nodes
       await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api/alerts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: payload.type === "sos" || payload.type === "war_zone" ? "sos" : payload.type === "evacuation" ? "hazard" : payload.type,
-          severity: payload.type === "war_zone" || payload.type === "sos" ? "critical" : "high",
+          type:    backendType,
           message: payload.message || `${selected?.label} emergency reported`,
-          lat: payload.lat,
-          lng: payload.lng,
+          lat:     payload.lat,
+          lng:     payload.lng,
         }),
       });
     } catch {

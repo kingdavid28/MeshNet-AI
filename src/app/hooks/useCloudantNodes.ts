@@ -31,19 +31,38 @@ import { useState, useEffect, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type ProtocolActive = "bluetooth" | "wifi" | "both" | "none";
+
 export interface CloudantNode {
-  node_id: string;
-  label: string;
-  latitude: number;
-  longitude: number;
+  node_id:            string;
+  label:              string;
+  latitude:           number;
+  longitude:          number;
   battery_percentage: number;
-  /** true  → BLE scanning active → render as GREEN dot
-   *  false → BLE off / unreachable → render as GREY dot */
-  bluetooth_status: boolean;
-  signal: number;
-  device: "smartphone" | "laptop";
-  role: "peer" | "relay";
-  last_seen: string;
+  /** true  → BLE scanning active → contributes to green/teal dot */
+  bluetooth_status:   boolean;
+  /** true  → Wi-Fi Direct / hotspot active → contributes to blue/teal dot */
+  wifi_status:        boolean;
+  /**
+   * Derived from bluetooth_status + wifi_status:
+   *   "both"      → BLE + Wi-Fi on  (teal dot — best range)
+   *   "bluetooth" → BLE only        (green dot)
+   *   "wifi"      → Wi-Fi only      (blue dot — longest range)
+   *   "none"      → all radios off  (grey dot)
+   */
+  protocol_active:    ProtocolActive;
+  signal:             number;
+  device:             "smartphone" | "laptop";
+  role:               "peer" | "relay";
+  last_seen:          string;
+}
+
+/** Derive the protocol_active string from two boolean flags. */
+function deriveProtocol(ble: boolean, wifi: boolean): ProtocolActive {
+  if (ble && wifi) return "both";
+  if (ble)         return "bluetooth";
+  if (wifi)        return "wifi";
+  return "none";
 }
 
 interface UseCloudantNodesResult {
@@ -56,66 +75,83 @@ interface UseCloudantNodesResult {
 
 // ─── Seed fallback — mirrors database/seeds/nodes.json ───────────────────────
 
+// Nodes clustered around Cebu City, Philippines (10.3157, 123.8854).
+// Each node offset ~200-500m and assigned realistic multi-protocol states:
+//   cmd-hq      → BLE + Wi-Fi (relay with hotspot)
+//   ramos-phone → BLE + Wi-Fi (relay with hotspot)
+//   chen-laptop → Wi-Fi only  (BLE disabled, hotspot active)
+//   med-01      → BLE only    (no hotspot)
+//   torres-phone→ none        (battery critical, all radios off)
 const SEED_NODES: CloudantNode[] = [
   {
-    node_id: "cmd-hq",
-    label: "CMD·HQ",
-    latitude: 14.5995,
-    longitude: 120.9842,
+    node_id:            "cmd-hq",
+    label:              "CMD·HQ",
+    latitude:           10.3157,
+    longitude:          123.8854,
     battery_percentage: 82,
-    bluetooth_status: true,
-    signal: 91,
-    device: "laptop",
-    role: "relay",
-    last_seen: new Date().toISOString(),
+    bluetooth_status:   true,
+    wifi_status:        true,
+    protocol_active:    "both",
+    signal:             91,
+    device:             "laptop",
+    role:               "relay",
+    last_seen:          new Date().toISOString(),
   },
   {
-    node_id: "ramos-phone",
-    label: "Ramos",
-    latitude: 14.6015,
-    longitude: 120.9825,
+    node_id:            "ramos-phone",
+    label:              "Ramos",
+    latitude:           10.3175,
+    longitude:          123.8837,
     battery_percentage: 67,
-    bluetooth_status: true,
-    signal: 87,
-    device: "smartphone",
-    role: "relay",
-    last_seen: new Date().toISOString(),
+    bluetooth_status:   true,
+    wifi_status:        true,
+    protocol_active:    "both",
+    signal:             87,
+    device:             "smartphone",
+    role:               "relay",
+    last_seen:          new Date().toISOString(),
   },
   {
-    node_id: "chen-laptop",
-    label: "Chen",
-    latitude: 14.5978,
-    longitude: 120.9871,
+    node_id:            "chen-laptop",
+    label:              "Chen",
+    latitude:           10.3140,
+    longitude:          123.8878,
     battery_percentage: 91,
-    bluetooth_status: false,
-    signal: 72,
-    device: "laptop",
-    role: "relay",
-    last_seen: new Date().toISOString(),
+    bluetooth_status:   false,
+    wifi_status:        true,
+    protocol_active:    "wifi",
+    signal:             72,
+    device:             "laptop",
+    role:               "relay",
+    last_seen:          new Date().toISOString(),
   },
   {
-    node_id: "med-01",
-    label: "MED·01",
-    latitude: 14.6002,
-    longitude: 120.9858,
+    node_id:            "med-01",
+    label:              "MED·01",
+    latitude:           10.3162,
+    longitude:          123.8865,
     battery_percentage: 55,
-    bluetooth_status: true,
-    signal: 91,
-    device: "smartphone",
-    role: "peer",
-    last_seen: new Date().toISOString(),
+    bluetooth_status:   true,
+    wifi_status:        false,
+    protocol_active:    "bluetooth",
+    signal:             91,
+    device:             "smartphone",
+    role:               "peer",
+    last_seen:          new Date().toISOString(),
   },
   {
-    node_id: "torres-phone",
-    label: "Torres",
-    latitude: 14.5989,
-    longitude: 120.9810,
+    node_id:            "torres-phone",
+    label:              "Torres",
+    latitude:           10.3148,
+    longitude:          123.8820,
     battery_percentage: 38,
-    bluetooth_status: false,
-    signal: 64,
-    device: "smartphone",
-    role: "peer",
-    last_seen: new Date().toISOString(),
+    bluetooth_status:   false,
+    wifi_status:        false,
+    protocol_active:    "none",
+    signal:             64,
+    device:             "smartphone",
+    role:               "peer",
+    last_seen:          new Date().toISOString(),
   },
 ];
 
@@ -148,18 +184,24 @@ async function fetchFromCloudant(
   return data.rows
     .map((row) => row.doc)
     .filter((doc) => doc && !String(doc._id ?? "").startsWith("_design"))
-    .map((doc) => ({
-      node_id:            String(doc.node_id ?? doc._id ?? "unknown"),
-      label:              String(doc.label ?? doc.node_id ?? "Node"),
-      latitude:           Number(doc.latitude ?? 0),
-      longitude:          Number(doc.longitude ?? 0),
-      battery_percentage: Number(doc.battery_percentage ?? 80),
-      bluetooth_status:   Boolean(doc.bluetooth_status ?? false),
-      signal:             Number(doc.signal ?? 80),
-      device:             (doc.device as "smartphone" | "laptop") ?? "smartphone",
-      role:               (doc.role as "peer" | "relay") ?? "peer",
-      last_seen:          String(doc.last_seen ?? new Date().toISOString()),
-    }));
+    .map((doc) => {
+      const ble  = Boolean(doc.bluetooth_status ?? false);
+      const wifi = Boolean(doc.wifi_status       ?? false);
+      return {
+        node_id:            String(doc.node_id ?? doc._id ?? "unknown"),
+        label:              String(doc.label ?? doc.node_id ?? "Node"),
+        latitude:           Number(doc.latitude ?? 0),
+        longitude:          Number(doc.longitude ?? 0),
+        battery_percentage: Number(doc.battery_percentage ?? 80),
+        bluetooth_status:   ble,
+        wifi_status:        wifi,
+        protocol_active:    deriveProtocol(ble, wifi),
+        signal:             Number(doc.signal ?? 80),
+        device:             (doc.device as "smartphone" | "laptop") ?? "smartphone",
+        role:               (doc.role as "peer" | "relay") ?? "peer",
+        last_seen:          String(doc.last_seen ?? new Date().toISOString()),
+      };
+    });
 }
 
 // ─── Local backend fallback ───────────────────────────────────────────────────
@@ -183,20 +225,28 @@ async function fetchFromLocalBackend(apiBase: string): Promise<CloudantNode[]> {
     }>;
   };
 
-  return data.nodes.map((n) => ({
-    node_id:            n.id,
-    label:              n.label,
-    latitude:           n.lat ?? 0,
-    longitude:          n.lng ?? 0,
-    battery_percentage: n.battery ?? 80,
-    bluetooth_status:   Array.isArray(n.protocol)
-                          ? n.protocol.includes("bluetooth")
-                          : true,
-    signal:             n.signal,
-    device:             (n.device as "smartphone" | "laptop") ?? "smartphone",
-    role:               (n.role as "peer" | "relay") ?? "peer",
-    last_seen:          n.lastSeen,
-  }));
+  return data.nodes.map((n) => {
+    const ble  = Array.isArray(n.protocol)
+      ? n.protocol.includes("bluetooth")
+      : Boolean((n as Record<string, unknown>).bluetoothStatus ?? true);
+    const wifi = Array.isArray(n.protocol)
+      ? n.protocol.includes("wifi")
+      : Boolean((n as Record<string, unknown>).wifiStatus ?? false);
+    return {
+      node_id:            n.id,
+      label:              n.label,
+      latitude:           n.lat ?? 0,
+      longitude:          n.lng ?? 0,
+      battery_percentage: n.battery ?? 80,
+      bluetooth_status:   ble,
+      wifi_status:        wifi,
+      protocol_active:    deriveProtocol(ble, wifi),
+      signal:             n.signal,
+      device:             (n.device as "smartphone" | "laptop") ?? "smartphone",
+      role:               (n.role as "peer" | "relay") ?? "peer",
+      last_seen:          n.lastSeen,
+    };
+  });
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -241,11 +291,10 @@ export function useCloudantNodes(
       const msg = err instanceof Error ? err.message : "Unknown error";
       setError(msg);
 
-      // Priority 3 — seed fallback so the map always renders something
-      if (nodes.length === 0) {
-        setNodes(SEED_NODES);
-        setSource("seed");
-      }
+      // Priority 3 — seed fallback so the map always renders something.
+      // Use a functional updater to avoid a stale-closure read of `nodes`.
+      setNodes((prev) => (prev.length === 0 ? SEED_NODES : prev));
+      setSource((prev) => (prev === "seed" ? "seed" : prev));
     } finally {
       setLoading(false);
     }
