@@ -106,11 +106,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── CORS — restrict to known origins in production ───────────────────────────
+# Set CORS_ORIGINS env var to a comma-separated list of allowed origins.
+# Falls back to localhost dev ports if not set.
+# The Python service should only be reachable from the Express backend on the
+# same host; set CORS_ORIGINS="" to disable CORS entirely in that configuration.
+_raw_cors_origins = os.getenv(
+    "CORS_ORIGINS", "http://localhost:5173,http://localhost:4173,http://localhost:4000"
+)
+_cors_origins = [o.strip() for o in _raw_cors_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # restrict in production
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Mesh-Secret"],
 )
 
 
@@ -377,8 +387,9 @@ def simulation_seed(body: SimSeedRequest):
         deg_per_m = 1 / 111_320
         return metres * deg_per_m, metres * deg_per_m
 
-    base_lat = 14.5995
-    base_lng = 120.9842
+    # OPS-4: aligned to Cebu City (matches frontend seed data and map centre)
+    base_lat = 10.3157
+    base_lng = 123.8854
     spread   = max_range / 111_320  # metres → degrees
 
     node_ids: list[str] = []

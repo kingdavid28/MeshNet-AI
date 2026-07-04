@@ -13,10 +13,38 @@ android {
         versionName "1.0.0"
     }
 
+    // ── OPS-2: APK signing — credentials read from env vars so the keystore
+    //    password is never committed to source control.
+    //
+    //    Set the following environment variables (or gradle.properties):
+    //      MESHNET_KEYSTORE_FILE    — absolute path to the .jks / .keystore file
+    //      MESHNET_KEYSTORE_PASS    — keystore password
+    //      MESHNET_KEY_ALIAS        — key alias inside the keystore
+    //      MESHNET_KEY_PASS         — key password
+    //
+    //    Generate a keystore for local testing:
+    //      keytool -genkey -v -keystore meshnet.keystore -alias meshnet \
+    //              -keyalg RSA -keysize 2048 -validity 10000
+    signingConfigs {
+        release {
+            def keystoreFile = System.getenv("MESHNET_KEYSTORE_FILE")
+            if (keystoreFile) {
+                storeFile     file(keystoreFile)
+                storePassword System.getenv("MESHNET_KEYSTORE_PASS") ?: ""
+                keyAlias      System.getenv("MESHNET_KEY_ALIAS")     ?: "meshnet"
+                keyPassword   System.getenv("MESHNET_KEY_PASS")      ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Only apply signing config when the keystore env vars are present
+            if (System.getenv("MESHNET_KEYSTORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 

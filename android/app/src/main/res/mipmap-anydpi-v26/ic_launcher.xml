@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Adaptive launcher icon (API 26+).
+    Background uses the brand orange; foreground defined in drawable/.
+    Replace ic_launcher_background with a solid-colour drawable or a
+    raster mipmap after running: npx @capacitor/assets generate
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+</adaptive-icon>

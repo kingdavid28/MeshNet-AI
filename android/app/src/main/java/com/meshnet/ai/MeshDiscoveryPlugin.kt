@@ -68,6 +68,7 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -122,11 +123,14 @@ class MeshDiscoveryPlugin : Plugin() {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    private var apiBase           = "http://10.0.2.2:4000"  // 10.0.2.2 = host from emulator
+    // ANDROID-1: Default to empty string — must be supplied via startDiscovery().
+    // 10.0.2.2 only works from the Android emulator, not physical devices.
+    private var apiBase           = ""
     private var selfNodeId        = ""
     private var selfLabel         = ""
     private var selfLat           = 0.0
     private var selfLng           = 0.0
+    private var selfGpsValid      = false  // ANDROID-3: GPS gate
     private var selfBattery       = 100
     private var selfSignal        = 80
     private var heartbeatInterval = 5_000L
@@ -134,7 +138,12 @@ class MeshDiscoveryPlugin : Plugin() {
     private var isScanning      = false
     private var isAdvertising   = false
     private var isWifiDirect    = false
-    private val knownPeers      = mutableMapOf<String, Long>() // nodeId → lastSeenMs
+    // nodeId → lastSeenMs (thread-safe — updated from BLE binder threads)
+    private val knownPeers      = ConcurrentHashMap<String, Long>()
+    // BLE-verified node IDs → device address (used to gate Wi-Fi Direct connections)
+    private val bleVerifiedAddresses = ConcurrentHashMap<String, String>() // nodeId → BT address
+    // Per-device GATT read state (ANDROID-4: thread-safe, one map per remote device)
+    private val gattReadState   = ConcurrentHashMap<String, ConcurrentHashMap<String, String>>()
 
     // BLE
     private var bluetoothManager: BluetoothManager?      = null
@@ -167,11 +176,25 @@ class MeshDiscoveryPlugin : Plugin() {
     /** Begin BLE advertising + scanning + Wi-Fi Direct + heartbeat loop. */
     @PluginMethod
     fun startDiscovery(call: PluginCall) {
-        apiBase           = call.getString("apiBase",           apiBase)!!
+        val providedApiBase = call.getString("apiBase", "").orEmpty()
+        if (providedApiBase.isNotBlank()) {
+            apiBase = providedApiBase
+        }
+        if (apiBase.isBlank()) {
+            call.reject("apiBase is required — set VITE_API_BASE_URL or pass apiBase to startDiscovery()")
+            return
+        }
+
         selfNodeId        = call.getString("nodeId",            selfNodeId)!!
         selfLabel         = call.getString("label",             "MeshNet Node")!!
-        selfLat           = call.getDouble("lat",               0.0)!!
-        selfLng           = call.getDouble("lng",               0.0)!!
+        val lat           = call.getDouble("lat",               0.0)!!
+        val lng           = call.getDouble("lng",               0.0)!!
+        // ANDROID-3: Only mark GPS valid when coordinates are non-zero
+        selfGpsValid      = lat != 0.0 || lng != 0.0
+        if (selfGpsValid) {
+            selfLat = lat
+            selfLng = lng
+        }
         selfBattery       = call.getInt("battery",              100)!!
         selfSignal        = call.getInt("signal",               80)!!
         heartbeatInterval = call.getLong("heartbeatIntervalMs", 5_000L)!!
@@ -290,7 +313,9 @@ class MeshDiscoveryPlugin : Plugin() {
             }
         })
 
-        // Build the GATT service with all characteristics
+        // Build the GATT service with all characteristics.
+        // SEC-6: PERMISSION_READ_ENCRYPTED requires the remote to pair before reading,
+        // preventing unauthenticated BLE scanners from harvesting node data.
         val service = BluetoothGattService(
             UUID.fromString(MESH_SERVICE_UUID),
             BluetoothGattService.SERVICE_TYPE_PRIMARY
@@ -301,7 +326,7 @@ class MeshDiscoveryPlugin : Plugin() {
                 BluetoothGattCharacteristic(
                     UUID.fromString(uuid),
                     BluetoothGattCharacteristic.PROPERTY_READ,
-                    BluetoothGattCharacteristic.PERMISSION_READ
+                    BluetoothGattCharacteristic.PERMISSION_READ_ENCRYPTED
                 )
             )
         }
@@ -343,20 +368,29 @@ class MeshDiscoveryPlugin : Plugin() {
         notifyStatusChange()
     }
 
-    /** Connect to a discovered BLE device and read all GATT characteristics. */
+    /** Connect to a discovered BLE device and read all GATT characteristics.
+     *  ANDROID-4: each device gets its own ConcurrentHashMap so concurrent callbacks
+     *  for multiple devices cannot corrupt shared state. */
     @SuppressLint("MissingPermission")
     private fun onBleDeviceFound(device: BluetoothDevice, rssi: Int) {
+        val deviceAddr = device.address
+        // Allocate per-device state map (idempotent if already present)
+        val chars = gattReadState.getOrPut(deviceAddr) { ConcurrentHashMap() }
+
         device.connectGatt(context, false, object : BluetoothGattCallback() {
-            private val chars = mutableMapOf<String, String>()
 
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
                     gatt.discoverServices()
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     gatt.close()
-                    // If we read a valid node ID, register it
+                    gattReadState.remove(deviceAddr)
                     val nodeId = chars[CHAR_NODE_ID] ?: return
-                    if (nodeId.isNotEmpty()) processBleDiscovery(chars, rssi)
+                    if (nodeId.isNotEmpty()) {
+                        // ANDROID-5: record as BLE-verified before Wi-Fi Direct can connect
+                        bleVerifiedAddresses[nodeId] = deviceAddr
+                        processBleDiscovery(chars, rssi)
+                    }
                 }
             }
 
@@ -364,7 +398,6 @@ class MeshDiscoveryPlugin : Plugin() {
                 if (status != BluetoothGatt.GATT_SUCCESS) { gatt.disconnect(); return }
                 val service = gatt.getService(UUID.fromString(MESH_SERVICE_UUID))
                 if (service == null) { gatt.disconnect(); return }
-                // Read characteristics sequentially — Bluetooth GATT is single-threaded
                 readNextChar(gatt, service,
                     listOf(CHAR_NODE_ID, CHAR_LABEL, CHAR_LAT, CHAR_LNG,
                            CHAR_BATTERY, CHAR_SIGNAL, CHAR_WIFI), 0, chars)
@@ -511,10 +544,11 @@ class MeshDiscoveryPlugin : Plugin() {
     @SuppressLint("MissingPermission")
     private fun onWifiPeersChanged(manager: WifiP2pManager, channel: WifiP2pManager.Channel) {
         manager.requestPeers(channel) { peerList: WifiP2pDeviceList ->
+            // ANDROID-5: only connect to devices whose BLE identity has been verified.
+            // A device name match is spoofable — require a prior BLE handshake.
+            val verifiedAddresses = bleVerifiedAddresses.values.toSet()
             peerList.deviceList.forEach { device ->
-                // Only connect to devices advertising our SSID prefix
-                if (device.deviceName.startsWith(WIFI_SSID_PREFIX) ||
-                    device.deviceName.contains("meshnet", ignoreCase = true)) {
+                if (verifiedAddresses.contains(device.deviceAddress)) {
                     connectToWifiPeer(manager, channel, device)
                 }
             }
@@ -556,10 +590,13 @@ class MeshDiscoveryPlugin : Plugin() {
             }
         }
 
+        // NET-2: emit the dynamic backend URL so the JS layer can update apiBase
+        val peerApiBase = "http://$groupOwnerAddress:4000"
         val event = JSObject().apply {
             put("groupOwnerAddress", groupOwnerAddress)
             put("isGroupOwner",      info.isGroupOwner)
             put("ssid",              info.groupOwnerAddress?.hostName ?: "")
+            put("backendUrl",        if (info.isGroupOwner) apiBase else peerApiBase)
         }
         notifyListeners("wifiGroupFormed", event)
     }
@@ -577,7 +614,12 @@ class MeshDiscoveryPlugin : Plugin() {
     }
 
     private suspend fun patchHeartbeat() {
-        if (selfNodeId.isEmpty()) return
+        if (selfNodeId.isEmpty() || apiBase.isBlank()) return
+        // ANDROID-3: skip heartbeat until we have a real GPS fix
+        if (!selfGpsValid) {
+            Log.d(TAG, "Heartbeat skipped — waiting for valid GPS fix")
+            return
+        }
         try {
             val url = URL("$apiBase/api/mesh/nodes/$selfNodeId/heartbeat")
             val body = JSONObject().apply {
@@ -753,11 +795,13 @@ class MeshDiscoveryPlugin : Plugin() {
         stopGattServer()
         stopWifiDirect()
         heartbeatJob?.cancel()
-        heartbeatJob = null
-        isScanning   = false
-        isAdvertising = false
-        isWifiDirect  = false
+        heartbeatJob        = null
+        isScanning          = false
+        isAdvertising       = false
+        isWifiDirect        = false
         knownPeers.clear()
+        bleVerifiedAddresses.clear()
+        gattReadState.clear()
         notifyStatusChange()
     }
 

@@ -1,0 +1,82 @@
+# MeshNet AI — docker-compose.yml
+#
+# Starts all three service processes in the correct dependency order:
+#   1. express  — Node.js backend (Layer 4) — port 4000
+#   2. python   — FastAPI routing engine (Layer 3) — port 5050
+#   3. frontend — Vite preview / static PWA (Layer 1) — port 4173
+#
+# Usage:
+#   docker-compose up --build        # first run
+#   docker-compose up                # subsequent runs
+#   docker-compose down              # stop all services
+#
+# Environment:
+#   Copy backend/config/.env.example to backend/config/.env and fill in values
+#   before running. The compose file reads from that file via env_file:.
+#
+# For a real device deployment replace the frontend service with a static file
+# server (nginx) serving the pre-built dist/ directory.
+
+version: "3.9"
+
+services:
+
+  # ── Layer 4: Node.js / Express backend ──────────────────────────────────────
+  express:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.express
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/config/.env
+    volumes:
+      - ./database:/app/database      # persist SQLite across restarts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Layer 3: Python / FastAPI routing engine ─────────────────────────────────
+  python:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.python
+    ports:
+      - "5050:5050"
+    env_file:
+      - ./backend/config/.env
+    environment:
+      BACKEND_API_URL: http://express:4000   # use Docker service name, not localhost
+      CORS_ORIGINS: "http://express:4000,http://localhost:4173,http://localhost:5173"
+    volumes:
+      - ./database:/app/database
+    depends_on:
+      express:
+        condition: service_healthy          # wait for Express to be ready
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5050/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ── Layer 1: Frontend PWA (Vite preview of dist/) ───────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "4173:4173"
+    environment:
+      VITE_API_BASE_URL: http://express:4000
+    depends_on:
+      express:
+        condition: service_healthy
+      python:
+        condition: service_healthy
+    restart: unless-stopped

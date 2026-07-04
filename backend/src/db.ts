@@ -3,7 +3,8 @@
  * backend/src/db.ts
  *
  * Singleton better-sqlite3 connection shared by all route handlers.
- * Provides typed, prepared-statement query methods for every table.
+ * Schema is managed by the migration runner in ./db/migrations.ts —
+ * do NOT add ad-hoc CREATE TABLE or ALTER TABLE statements here.
  *
  * Import pattern:
  *   import { db, NodeRow, AlertRow, MessageRow } from "../db";
@@ -11,6 +12,7 @@
 
 import path from "path";
 import Database from "better-sqlite3";
+import { runMigrations } from "./db/migrations";
 
 // ─── Connection ───────────────────────────────────────────────────────────────
 
@@ -20,49 +22,8 @@ export const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
-// ── Ensure alerts and signal_events tables exist on fresh DBs ────────────────
-// alerts: no FK on from_node_id — dashboard UI sends alerts that are not mesh nodes.
-db.exec(`
-  CREATE TABLE IF NOT EXISTS alerts (
-    id             TEXT    PRIMARY KEY,
-    type           TEXT    NOT NULL CHECK (type IN ('sos','medical','safe','hazard','supply','locate')),
-    severity       TEXT    NOT NULL CHECK (severity IN ('critical','high','medium','low')),
-    from_node_id   TEXT    NOT NULL,
-    from_label     TEXT    NOT NULL,
-    message        TEXT,
-    lat            REAL,
-    lng            REAL,
-    ttl            INTEGER NOT NULL DEFAULT 7,
-    acknowledged   INTEGER NOT NULL DEFAULT 0,
-    created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
-    expires_at     TEXT
-  );
-  CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at DESC);
-  CREATE INDEX IF NOT EXISTS idx_alerts_type    ON alerts(type);
-`);
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS signal_events (
-    id           TEXT    PRIMARY KEY,
-    node_id      TEXT    NOT NULL,
-    node_label   TEXT    NOT NULL,
-    prev_signal  INTEGER NOT NULL DEFAULT 0,
-    curr_signal  INTEGER NOT NULL DEFAULT 0,
-    scenario     TEXT    NOT NULL DEFAULT 'earthquake',
-    burst        INTEGER NOT NULL DEFAULT 0,
-    detected_at  TEXT    NOT NULL DEFAULT (datetime('now'))
-  );
-  CREATE INDEX IF NOT EXISTS idx_signal_events_node  ON signal_events(node_id);
-  CREATE INDEX IF NOT EXISTS idx_signal_events_ts    ON signal_events(detected_at DESC);
-  CREATE INDEX IF NOT EXISTS idx_signal_events_burst ON signal_events(burst);
-`);
-
-// ── Add wifi_status column to nodes if the DB was created before this migration
-// Uses ALTER TABLE … ADD COLUMN IF NOT EXISTS (safe to run on every boot).
-// wifi_status: 1 = Wi-Fi Direct / hotspot active, 0 = Wi-Fi off.
-try {
-  db.exec(`ALTER TABLE nodes ADD COLUMN wifi_status INTEGER NOT NULL DEFAULT 0 CHECK (wifi_status IN (0, 1))`);
-} catch { /* column already exists — ignore */ }
+// Run all pending migrations before preparing any statements.
+runMigrations(db);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

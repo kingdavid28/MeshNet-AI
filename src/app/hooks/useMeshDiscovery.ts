@@ -88,15 +88,23 @@ export interface UseMeshDiscoveryResult {
 }
 
 // ── Stable node ID — persisted in localStorage so it survives app restarts ───
+// DATA-4: use crypto.randomUUID() for guaranteed uniqueness across reinstalls
 
 function getOrCreateNodeId(): string {
   const key = "meshnet_node_id";
   const existing = localStorage.getItem(key);
   if (existing) return existing;
-  // Generate a short stable ID:  "node-<6 hex chars>"
-  const id = "node-" + Math.random().toString(16).slice(2, 8);
+  const id = crypto.randomUUID();
   localStorage.setItem(key, id);
   return id;
+}
+
+function meshHeaders(): HeadersInit {
+  const secret = import.meta.env.VITE_MESH_SECRET as string | undefined;
+  return {
+    "Content-Type": "application/json",
+    ...(secret ? { "X-Mesh-Secret": secret } : {}),
+  };
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -161,7 +169,7 @@ export function useMeshDiscovery({
       // On web: call the backend directly so the node appears on the map
       fetch(`${apiBase}/api/mesh/register`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: meshHeaders(),
         body:    JSON.stringify({
           id:                nodeId,
           label,

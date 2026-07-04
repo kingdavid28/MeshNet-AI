@@ -96,10 +96,18 @@ HTTP_TIMEOUT: int = int(os.getenv("HTTP_TIMEOUT", 10))
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Shared secret for node-to-node HMAC verification.
-# Override via environment variable — never hard-code in production.
-NODE_SHARED_SECRET: str = os.getenv(
-    "MESH_NODE_SECRET", "CHANGE-ME-before-deployment"
-)
+# MUST be set via environment variable — the server refuses to start if absent.
+# Generate a suitable value with: python -c "import secrets; print(secrets.token_hex(32))"
+NODE_SHARED_SECRET: str = os.getenv("MESH_NODE_SECRET", "")
+if not NODE_SHARED_SECRET:
+    import sys
+    print(
+        "[config] FATAL: MESH_NODE_SECRET env var is not set. "
+        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        " and add it to backend/config/.env",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 # AES-GCM key size in bits (256 is the standard for field deployments)
 AES_KEY_BITS: int = 256

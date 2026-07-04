@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        AppTheme — required by AndroidManifest.xml android:theme="@style/AppTheme"
+        Uses the Material3 DayNight base so the WebView chrome adapts to system dark mode.
+        The app itself renders inside a Capacitor WebView so most theming is handled by CSS.
+    -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Status bar and navigation bar colours match the app's dark background -->
+        <item name="android:statusBarColor">#0B1D3A</item>
+        <item name="android:navigationBarColor">#0B1D3A</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Transparent window background so the WebView fills edge-to-edge -->
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

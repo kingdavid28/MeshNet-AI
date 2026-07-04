@@ -1,7 +1,33 @@
-# Local environment variables (never commit)
+﻿# Local environment variables (never commit)
 .env.local
 .env*.local
 
-node_modules/
+# Build output
 dist/
 
+# Node modules
+node_modules/
+
+# Android — generated WebView assets (populated by `pnpm cap:sync`)
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+
+# Android — Capacitor-generated gradle files (re-created by cap sync)
+android/capacitor-cordova-android-plugins/
+android/capacitor.settings.gradle
+android/app/capacitor.build.gradle
+
+# Python bytecode
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# SQLite database files (runtime data, not source)
+database/*.db
+database/*.db-shm
+database/*.db-wal
+
+# Bob AI workspace tmp files
+.bob/

@@ -1,0 +1,494 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MeshNet AI — Production Gap Analysis</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px; line-height: 1.6;
+    background: #ffffff; color: #1f2328;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 0.85rem; color: #57606a; margin-bottom: 28px; }
+
+  /* summary bar */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .summary-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 14px;
+    background: #f7f8fa;
+    text-align: center;
+  }
+  .summary-card .num { font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
+  .summary-card .lbl { font-size: 0.72rem; color: #57606a; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .c-crit { color: #cf222e; }
+  .c-high { color: #bc4c00; }
+  .c-med  { color: #9a6700; }
+  .c-low  { color: #3b82d4; }
+
+  /* section */
+  .section { margin-bottom: 28px; }
+  .section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #57606a;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+
+  /* gap card */
+  .gap {
+    border: 1px solid #e5e7eb;
+    border-left: 4px solid #e5e7eb;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: #ffffff;
+  }
+  .gap.sev-critical { border-left-color: #cf222e; }
+  .gap.sev-high     { border-left-color: #bc4c00; }
+  .gap.sev-medium   { border-left-color: #9a6700; }
+  .gap.sev-low      { border-left-color: #3b82d4; }
+
+  .gap-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .badge {
+    font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    border-radius: 3px; padding: 1px 6px;
+  }
+  /* Solid backgrounds ensure WCAG AA contrast (≥4.5:1) on white page bg */
+  .badge-critical { background: #fce8e9; color: #9e1b24; }
+  .badge-high     { background: #fdeede; color: #7c3000; }
+  .badge-medium   { background: #fef3cd; color: #614200; }
+  .badge-low      { background: #ddeaf8; color: #1a5fa8; }
+
+  .gap-title { font-weight: 600; font-size: 0.9rem; }
+  .gap-body  { font-size: 0.845rem; color: #444c56; }
+  .gap-body code {
+    background: #f0f2f4; border-radius: 3px;
+    padding: 1px 5px; font-size: 0.8rem;
+    font-family: "Cascadia Code", "Fira Mono", monospace;
+  }
+  .gap-fix {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    color: #57606a;
+    border-top: 1px solid #f0f2f4;
+    padding-top: 5px;
+  }
+  .gap-fix strong { color: #1f2328; }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #8b949e;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>MeshNet AI — Production Gap Analysis</h1>
+  <p class="subtitle">Full-stack audit across Security · Android Native · Networking · Backend · Data · UX · Operations</p>
+
+  <div class="summary">
+    <div class="summary-card"><div class="num c-crit">7</div><div class="lbl">Critical</div></div>
+    <div class="summary-card"><div class="num c-high">9</div><div class="lbl">High</div></div>
+    <div class="summary-card"><div class="num c-med">8</div><div class="lbl">Medium</div></div>
+    <div class="summary-card"><div class="num c-low">6</div><div class="lbl">Low</div></div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-title">1 · Security</div>
+
+    <div class="gap sev-critical">
+      <div class="gap-header">
+        <span class="badge badge-critical">Critical</span>
+        <span class="gap-title">IAM API key exposed in the browser</span>
+      </div>
+      <div class="gap-body">
+        <code>useCloudantNodes.ts</code> reads <code>VITE_CLOUDANT_API_KEY</code> and sends it directly in the <code>Authorization: Bearer</code> header from the client. Vite bakes every <code>VITE_*</code> variable into the JS bundle at build time — anyone who opens DevTools can read the key, rotate it, or call Cloudant directly.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Move all Cloudant calls to the Express backend. The frontend never touches Cloudant credentials directly.</div>
+    </div>
+
+    <div class="gap sev-critical">
+      <div class="gap-header">
+        <span class="badge badge-critical">Critical</span>
+        <span class="gap-title">CORS set to <code>origin: "*"</code> on all layers</span>
+      </div>
+      <div class="gap-body">
+        Both the Express backend (<code>backend/src/index.ts</code>) and the FastAPI server (<code>api_server.py</code>) allow any origin. In a disaster-response deployment the backend is typically on the LAN and only the app's WebView or a known dashboard host should be allowed.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Enumerate allowed origins via env var (<code>CORS_ORIGINS</code>). Wildcard may be acceptable for the Python service if it is never reachable from the public internet, but not for Express.</div>
+    </div>
+
+    <div class="gap sev-critical">
+      <div class="gap-header">
+        <span class="badge badge-critical">Critical</span>
+        <span class="gap-title">Shared secret hard-coded as <code>"CHANGE-ME-before-deployment"</code></span>
+      </div>
+      <div class="gap-body">
+        <code>config.py</code> line 102: <code>NODE_SHARED_SECRET = os.getenv("MESH_NODE_SECRET", "CHANGE-ME-before-deployment")</code>. If the env var is not set in production the HMAC secret is publicly known from the source code.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Remove the fallback string and make the app refuse to start if <code>MESH_NODE_SECRET</code> is absent. Add it to a CI secret and a deployment checklist.</div>
+    </div>
+
+    <div class="gap sev-critical">
+      <div class="gap-header">
+        <span class="badge badge-critical">Critical</span>
+        <span class="gap-title">Messages stored as plaintext in SQLite</span>
+      </div>
+      <div class="gap-body">
+        The <code>messages</code> table column is named <code>ciphertext</code> but the <code>CommsTab</code> in <code>App.tsx</code> sends raw user text and the DB layer stores it verbatim. The <code>RoutingEngine</code> AES-256-GCM encryption exists in <code>routing_engine.py</code> but is never called by the frontend send path.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Implement client-side encryption before POSTing. Alternatively, have the Express backend encrypt on receipt — but then it holds the key, which is a different threat model. Decide and implement one of the two.</div>
+    </div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">No authentication on any Express endpoint</span>
+      </div>
+      <div class="gap-body">
+        Any device on the same network can register arbitrary nodes, post fake alerts, or drain the SQLite database. The rate limiter (<code>middleware/rateLimit.ts</code>) is the only protection — it limits volume, not identity.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add a shared API token (Bearer or HMAC-signed request) for node-to-backend calls. A per-device identity derived from the Capacitor plugin's stable node ID is a natural fit.</div>
+    </div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">BLE GATT characteristics have no authentication</span>
+      </div>
+      <div class="gap-body">
+        <code>MeshDiscoveryPlugin.kt</code> exposes node ID, label, lat/lng, battery, and signal over open GATT characteristics (<code>PERMISSION_READ</code> only). Any BLE-capable device within range can connect and read all mesh node data without credentials.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add a challenge-response over GATT before serving characteristics, or use GATT encryption (<code>PERMISSION_READ_ENCRYPTED</code>) which requires an OS-level BLE pairing.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">AES session key is never returned to the caller in the AI-route endpoint</span>
+      </div>
+      <div class="gap-body">
+        <code>api_server.py</code> deliberately omits <code>session_key</code> from the <code>/api/simulation/ai-route</code> response — but provides no out-of-band mechanism for the rescue base camp to receive it. The encrypted hop packets are undecrytable without it.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Define and implement the key-distribution channel: pre-shared key per mission, QR code pairing at mission start, or asymmetric key wrap.</div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-title">2 · Android Native Layer</div>
+
+    <div class="gap sev-critical">
+      <div class="gap-header">
+        <span class="badge badge-critical">Critical</span>
+        <span class="gap-title">App has never been built or deployed to a physical device</span>
+      </div>
+      <div class="gap-body">
+        <code>android/app/src/main/assets/public/</code> was empty until <code>cap sync</code> was just run. There is no evidence of a successful Gradle build, APK signing, or a device test. BLE advertising, GATT server startup, and Wi-Fi Direct group creation have never been exercised on real hardware.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Run <code>pnpm run cap:open</code>, build a debug APK in Android Studio, sideload to a physical device (API 26+), and walk through the BLE + Wi-Fi Direct permission grant flow manually.</div>
+    </div>
+
+    <div class="gap sev-critical">
+      <div class="gap-header">
+        <span class="badge badge-critical">Critical</span>
+        <span class="gap-title">Backend URL is hard-coded to emulator loopback (<code>10.0.2.2</code>)</span>
+      </div>
+      <div class="gap-body">
+        <code>MeshDiscoveryPlugin.kt</code> line 125: <code>private var apiBase = "http://10.0.2.2:4000"</code>. On a real device <code>10.0.2.2</code> does not resolve. The Capacitor config supplies the URL via <code>startDiscovery()</code>, but the heartbeat fires before the first call reaches the plugin only if the default is wrong.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Change the default to the machine's LAN IP (or make it blank and guard in <code>patchHeartbeat()</code> until overridden). Document in README with a note about <code>VITE_API_BASE_URL</code>.</div>
+    </div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">No Android launcher icons or splash screen</span>
+      </div>
+      <div class="gap-body">
+        <code>AndroidManifest.xml</code> references <code>@mipmap/ic_launcher</code> and <code>@style/AppTheme</code> but neither the <code>res/mipmap-*/</code> directories nor <code>res/values/styles.xml</code> exist in the project. The APK will fail to compile in Gradle.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add the standard Capacitor Android resource scaffold: run <code>npx @capacitor/assets generate</code> after placing a 1024×1024 icon, or copy the Capacitor android-template <code>res/</code> tree.</div>
+    </div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">GPS coordinates sent to BLE peers are <code>0.0, 0.0</code> until updated</span>
+      </div>
+      <div class="gap-body">
+        <code>useMeshDiscovery.ts</code> initialises <code>latRef</code>/<code>lngRef</code> from <code>deviceLocation</code> which is <code>null</code> on first render. The initial <code>registerSelf()</code> and the GATT server characteristics (<code>CHAR_LAT</code>/<code>CHAR_LNG</code>) broadcast <code>0.0, 0.0</code> until GPS acquires — placing all newly-discovered nodes at the ocean off the coast of Africa on the map.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Gate <code>registerSelf()</code> behind a non-null location check, or display a clear "Acquiring GPS…" state and avoid registering the node until a first fix arrives.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">BLE GATT read is not thread-safe on older Android versions</span>
+      </div>
+      <div class="gap-body">
+        <code>processBleDiscovery()</code> is called from within the GATT callback on the binder thread. The <code>chars</code> map is mutated in <code>onCharacteristicRead()</code> which runs on the same binder thread — but on Android 8–11 concurrent GATT callbacks for multiple devices can overlap, causing <code>ConcurrentModificationException</code> on the shared map.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Use a <code>ConcurrentHashMap</code> per-device, keyed by device address, or serialize all GATT reads through a single-threaded coroutine dispatcher.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">Wi-Fi Direct automatically connects to any device with "meshnet" in its name</span>
+      </div>
+      <div class="gap-body">
+        <code>onWifiPeersChanged()</code> checks <code>device.deviceName.contains("meshnet", ignoreCase = true)</code>. This is trivially spoofable — any device naming itself "meshnet-evil" would be invited to join the mesh group, gaining access to the local Express API at port 4000.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Replace the name-match with a GATT-verified node ID whitelist built during the BLE discovery phase. Only connect Wi-Fi Direct to addresses whose BLE identity has been verified.</div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-title">3 · Networking &amp; Offline Behaviour</div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">Alert send silently succeeds even when backend is unreachable</span>
+      </div>
+      <div class="gap-body">
+        <code>AlertTab</code> in <code>App.tsx</code>: the <code>catch</code> block on the <code>fetch</code> call is empty — the UI shows "Alert Sent · Broadcast to 6 nodes" regardless of whether the backend received the alert. In a real disaster this creates false confidence.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Queue undelivered alerts in IndexedDB / localStorage and retry with a background <code>sync</code> event (PWA Background Sync API). Show a distinct "Queued — will send when connected" state.</div>
+    </div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">Express backend assumed reachable at a single static URL</span>
+      </div>
+      <div class="gap-body">
+        Every data path (heartbeat, register, routing query, SSE stream) targets <code>VITE_API_BASE_URL</code> which is baked at build time. In a real mesh, the backend may be running on a different device at a different IP depending on which node is acting as group owner. The Wi-Fi Direct <code>onWifiGroupConnected()</code> overrides <code>apiBase</code> for that call only; the JS side never learns the dynamic IP.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Emit a <code>backendUrl</code> field in the <code>wifiGroupFormed</code> Capacitor event and update the <code>apiBase</code> state in <code>useMeshDiscovery</code> so all subsequent calls from the frontend target the correct peer.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">SSE stream has no auth and no node filter</span>
+      </div>
+      <div class="gap-body">
+        <code>useSignalStream.ts</code> opens <code>GET /api/signal/stream</code> with no credentials. Anyone on the LAN can subscribe and see all flicker events for all nodes, including location data embedded in the topology.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Require the same API token as all other endpoints. Optionally add a <code>?nodeId=</code> filter so each device only receives events relevant to itself.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">Comms messages are append-only with no delivery confirmation</span>
+      </div>
+      <div class="gap-body">
+        Messages POSTed to <code>/api/messages</code> are written to SQLite and never forwarded over BLE or Wi-Fi Direct to the intended recipient. The "Encrypted · offline · peer-to-peer" label on the UI is aspirational — there is no actual P2P delivery path.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Implement hop-forwarding: when a message arrives at a node that is not the destination, the backend should PUT it on the outbound queue for BLE/Wi-Fi forwarding to a neighbour that is closer to the target.</div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-title">4 · Backend &amp; Data Layer</div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">SQLite file used as the single source of truth with no replication</span>
+      </div>
+      <div class="gap-body">
+        All node state, edges, alerts, and messages live in a single <code>meshnet.db</code> file on whichever device runs the Express backend. If that device loses power, all shared state is gone. The WAL journal helps writes but does not provide HA or multi-node consensus.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> For a field deployment, replicate to IBM Cloudant on every heartbeat (it already has write support — only reads are wired). Alternatively mirror the DB to a second relay node's Express instance.</div>
+    </div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">Node stale-detection and eviction are missing</span>
+      </div>
+      <div class="gap-body">
+        Nodes registered via <code>/api/mesh/register</code> are never removed. A node that goes silent (battery died, left the area) stays in the topology indefinitely, polluting the routing graph and cluttering the map. The <code>last_seen</code> column is updated but never queried for eviction.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add a cleanup job (30 s interval) that marks nodes as offline if <code>last_seen</code> is older than 3× the heartbeat interval, and removes them from the graph after 5 minutes.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">Two separate routing engines with diverging behaviour</span>
+      </div>
+      <div class="gap-body">
+        <code>route_engine.py</code> (Dijkstra on live topology from Express) and <code>routing_engine.py</code> (battery-prioritised Dijkstra on the offline SQLite mesh) coexist but are not reconciled. The Express <code>/api/route</code> endpoint proxies only <code>route_engine.py</code>. <code>routing_engine.py</code> (with AES encryption) is only reachable via the Python <code>/api/simulation/ai-route</code> endpoint, which the frontend never calls.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Decide on one routing engine for production. Merge the battery-penalty logic from <code>routing_engine.py</code> into <code>route_engine.py</code> and expose encryption through the same path.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">GPS coordinates fixed to San Francisco in the AlertTab UI</span>
+      </div>
+      <div class="gap-body">
+        Line 656 in <code>App.tsx</code>: <code>"37.7749° N · 122.4194° W"</code> is hard-coded text in the location badge. The actual <code>useDeviceLocation</code> hook is wired to the <em>map</em> but not to the alert form — every alert sent shows San Francisco coordinates regardless of where the device actually is.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Pass <code>useDeviceLocation()</code> into <code>AlertTab</code> and render the live coordinates (or "Acquiring…" if not yet resolved).</div>
+    </div>
+
+    <div class="gap sev-low">
+      <div class="gap-header">
+        <span class="badge badge-low">Low</span>
+        <span class="gap-title">Node ID generated with <code>Math.random()</code></span>
+      </div>
+      <div class="gap-body">
+        <code>useMeshDiscovery.ts</code>: <code>"node-" + Math.random().toString(16).slice(2, 8)</code> — 6 hex chars = 24 bits of entropy. With 100 nodes the collision probability is about 0.05%, but uniqueness is not guaranteed across reinstalls.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Use <code>crypto.randomUUID()</code> (already available everywhere the app runs) and store the full UUID in localStorage.</div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-title">5 · UX &amp; Product Completeness</div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">HomeTab and MeshCanvas use hardcoded static data only</span>
+      </div>
+      <div class="gap-body">
+        The <code>NODES</code>, <code>EDGES</code>, and <code>MESSAGES</code> constants at the top of <code>App.tsx</code> are rendered in the Home tab canvas (<code>MeshCanvas</code>) and message list. They do not reflect live backend data. The <code>MapTab</code> correctly uses <code>useCloudantNodes</code> but the Home tab does not.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Wire <code>MeshCanvas</code> to the same <code>useCloudantNodes</code> data source, or extract a shared context provider so all tabs see the same live node list.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">"Broadcast to 6 nodes" is always hardcoded</span>
+      </div>
+      <div class="gap-body">
+        The post-send confirmation screen in <code>AlertTab</code> says "Broadcast to 6 nodes" unconditionally. In a real deployment this number should reflect the current live peer count from <code>useCloudantNodes</code>.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Read <code>nodes.length</code> from the shared node hook and interpolate it into the confirmation message.</div>
+    </div>
+
+    <div class="gap sev-low">
+      <div class="gap-header">
+        <span class="badge badge-low">Low</span>
+        <span class="gap-title">No iOS support</span>
+      </div>
+      <div class="gap-body">
+        <code>MeshDiscoveryPlugin.ts</code> documents "iOS: returns safe no-op stubs". There is no <code>ios/</code> Capacitor project and no Swift plugin. Disaster teams often use iPhones — Core Bluetooth and MultipeerConnectivity are the iOS equivalents.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Run <code>npx cap add ios</code> and implement <code>MeshDiscoveryPlugin.swift</code> using <code>CBCentralManager</code> / <code>CBPeripheralManager</code> for BLE and <code>MCSession</code> for peer connectivity.</div>
+    </div>
+
+    <div class="gap sev-low">
+      <div class="gap-header">
+        <span class="badge badge-low">Low</span>
+        <span class="gap-title">No accessibility (a11y) support</span>
+      </div>
+      <div class="gap-body">
+        Canvas-rendered nodes (<code>NodeMapCanvas.tsx</code>, <code>MeshCanvas</code>), icon-only nav bar buttons, and colour-only status dots have no ARIA labels or roles. The app would fail WCAG 2.1 AA — a concern for government-funded disaster-response tools.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add <code>aria-label</code> to all interactive elements; provide a text-based node list as a screen-reader alternative to the canvas map.</div>
+    </div>
+  </div>
+
+  
+  <div class="section">
+    <div class="section-title">6 · Operations &amp; Deployment</div>
+
+    <div class="gap sev-high">
+      <div class="gap-header">
+        <span class="badge badge-high">High</span>
+        <span class="gap-title">No process management for the three server processes</span>
+      </div>
+      <div class="gap-body">
+        Running MeshNet AI in production requires three concurrent processes: Vite (or the built PWA served statically), the Express Node.js backend, and the FastAPI Python server. There is no <code>Procfile</code>, <code>docker-compose.yml</code>, or systemd unit file. There is also no documented startup order (Express must start before FastAPI or the Python health check fails).
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add a <code>docker-compose.yml</code> with three services and health-check dependencies, or at minimum a <code>Procfile</code> for use with <code>pm2</code> / <code>foreman</code>.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">No automated tests</span>
+      </div>
+      <div class="gap-body">
+        There are no test files for the React frontend, the Express routes, or the Python routing engine (a <code>backend/tests/</code> directory exists but is empty). The <code>RouteEngine</code>, <code>SignalMonitor</code>, and <code>BurstDispatcher</code> are all pure-logic classes that are straightforward to unit test.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add pytest tests for Python routing logic and Vitest/Jest tests for the React hooks. Prioritise <code>SignalMonitor.ingest_sample()</code> and <code>RouteEngine.query()</code> as they contain the core decision logic.</div>
+    </div>
+
+    <div class="gap sev-medium">
+      <div class="gap-header">
+        <span class="badge badge-medium">Medium</span>
+        <span class="gap-title">No APK signing configuration</span>
+      </div>
+      <div class="gap-body">
+        <code>android/app/build.gradle</code> has no <code>signingConfigs</code> block. The Play Store requires a signed release APK; sideloading to a device requires at minimum a debug keystore. There is no CI workflow to build and sign the APK.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Add a <code>signingConfigs.release</code> block in <code>build.gradle</code> that reads keystore path/password from env vars, and add a GitHub Actions workflow that builds and signs the release APK.</div>
+    </div>
+
+    <div class="gap sev-low">
+      <div class="gap-header">
+        <span class="badge badge-low">Low</span>
+        <span class="gap-title">Database migrations are ad-hoc</span>
+      </div>
+      <div class="gap-body">
+        Schema changes are handled by try/catch <code>ALTER TABLE</code> statements at boot time in <code>db.ts</code>. This works for additive changes but cannot handle column renames, type changes, or data migrations.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Adopt a lightweight migration framework (e.g. <code>better-sqlite3-migrations</code> or numbered SQL files applied sequentially) so the schema history is reproducible.</div>
+    </div>
+
+    <div class="gap sev-low">
+      <div class="gap-header">
+        <span class="badge badge-low">Low</span>
+        <span class="gap-title">Simulation seeding targets Manila; app UI targets Cebu</span>
+      </div>
+      <div class="gap-body">
+        <code>mesh_simulator.py</code> and <code>api_server.py /api/simulation/seed</code> generate random nodes centred at Manila (14.5995°N, 120.9842°E). The seed data in <code>useCloudantNodes.ts</code> and the map centre target Cebu City (10.3157°N, 123.8854°E). Running a seed will populate the map with nodes ~600 km off-screen.
+      </div>
+      <div class="gap-fix"><strong>Fix:</strong> Align the simulation base coordinates to Cebu City, or make them configurable via env var.</div>
+    </div>
+  </div>
+
+  <footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import DashboardLayout from "./components/DashboardLayout";
 import NodeMapCanvas from "./components/NodeMapCanvas";
+import SimPerfOverlay from "./components/SimPerfOverlay";
 import { useCloudantNodes } from "./hooks/useCloudantNodes";
 import { useDeviceLocation } from "./hooks/useDeviceLocation";
 import { useMeshDiscovery } from "./hooks/useMeshDiscovery";
+import { useMockNodeSimulation } from "./hooks/useMockNodeSimulation";
+import { encryptMessage } from "./hooks/useMeshCrypto";
 import {
   AlertTriangle,
   Heart,
@@ -316,7 +319,7 @@ function StatusBar({ nodeCount }: { nodeCount: number }) {
   );
 }
 
-function HomeTab() {
+function HomeTab({ liveNodes }: { liveNodes: import("./hooks/useCloudantNodes").CloudantNode[] }) {
   const [sosActive, setSosActive] = useState(false);
   const [sosCountdown, setSosCountdown] = useState<number | null>(null);
 
@@ -339,6 +342,17 @@ function HomeTab() {
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Network health */}
+      {(() => {
+        const onlineNodes = liveNodes.filter((n) => n.signal > 0);
+        const avgSignal = onlineNodes.length > 0
+          ? Math.round(onlineNodes.reduce((s, n) => s + n.signal, 0) / onlineNodes.length)
+          : 0;
+        const stats = [
+          { label: "Nodes",   value: String(onlineNodes.length), sub: "online" },
+          { label: "Signal",  value: `${avgSignal}%`,            sub: "avg" },
+          { label: "Latency", value: "—",                        sub: "p95" },
+        ];
+        return (
       <div className="rounded-xl border border-[rgba(91,141,217,0.2)] bg-[#132B5A] p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -347,14 +361,10 @@ function HomeTab() {
               Mesh Active
             </span>
           </div>
-          <span className="text-xs font-mono text-[#7B9CC4]">6 nodes · 3.2km range</span>
+          <span className="text-xs font-mono text-[#7B9CC4]">{onlineNodes.length} nodes online</span>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Nodes", value: "6", sub: "online" },
-            { label: "Signal", value: "87%", sub: "avg" },
-            { label: "Latency", value: "42ms", sub: "p95" },
-          ].map((s) => (
+          {stats.map((s) => (
             <div key={s.label} className="rounded-lg bg-[#0B1D3A]/60 px-3 py-2 text-center">
               <div
                 className="text-xl font-bold text-[#E8EEF7] leading-none"
@@ -368,6 +378,8 @@ function HomeTab() {
           ))}
         </div>
       </div>
+        );
+      })()}
 
       {/* SOS Button */}
       <button
@@ -519,6 +531,16 @@ function HomeTab() {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000";
 
+// Attach X-Mesh-Secret to every backend call made from App.tsx
+function meshHeaders(extra?: Record<string, string>): HeadersInit {
+  const secret = import.meta.env.VITE_MESH_SECRET as string | undefined;
+  return {
+    "Content-Type": "application/json",
+    ...(secret ? { "X-Mesh-Secret": secret } : {}),
+    ...extra,
+  };
+}
+
 // Map mobile alert type IDs to the backend alert schema
 const ALERT_TYPE_MAP: Record<string, string> = {
   sos:     "sos",
@@ -529,48 +551,58 @@ const ALERT_TYPE_MAP: Record<string, string> = {
   locate:  "locate",
 };
 
-function AlertTab() {
+function AlertTab({ nodeCount }: { nodeCount: number }) {
   const [alertType, setAlertType] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [queued, setQueued] = useState(false);
+  const deviceLocation = useDeviceLocation();
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!alertType || sending) return;
     setSending(true);
 
-    // Grab GPS if available
-    let lat: number | undefined;
-    let lng: number | undefined;
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3_000 })
-      );
-      lat = pos.coords.latitude;
-      lng = pos.coords.longitude;
-    } catch { /* GPS unavailable — send without coords */ }
+    const lat = deviceLocation.lat ?? undefined;
+    const lng = deviceLocation.lng ?? undefined;
 
+    const payload = {
+      type:    ALERT_TYPE_MAP[alertType] ?? "sos",
+      message: message.trim() || undefined,
+      lat,
+      lng,
+    };
+
+    let delivered = false;
     try {
-      await fetch(`${API_BASE}/api/alerts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type:    ALERT_TYPE_MAP[alertType] ?? "sos",
-          message: message.trim() || undefined,
-          lat,
-          lng,
-        }),
+      const res = await fetch(`${API_BASE}/api/alerts`, {
+        method:  "POST",
+        headers: meshHeaders(),
+        body:    JSON.stringify(payload),
+        signal:  AbortSignal.timeout(6_000),
       });
-    } catch { /* backend unreachable — still show sent so UI isn't blocked */ }
+      delivered = res.ok || res.status === 201;
+    } catch {
+      // Backend unreachable — queue for retry
+    }
+
+    if (!delivered) {
+      // Queue alert in localStorage for background retry
+      const queue = JSON.parse(localStorage.getItem("meshnet_alert_queue") ?? "[]") as unknown[];
+      queue.push({ ...payload, queuedAt: Date.now() });
+      localStorage.setItem("meshnet_alert_queue", JSON.stringify(queue));
+      setQueued(true);
+    }
 
     setSending(false);
     setSent(true);
     setTimeout(() => {
       setSent(false);
+      setQueued(false);
       setAlertType(null);
       setMessage("");
     }, 3_000);
-  };
+  }, [alertType, sending, message, deviceLocation]);
 
   const types = [
     { id: "sos", label: "SOS Alert", icon: <AlertTriangle size={22} />, color: "#EF4444", bg: "#EF4444" },
@@ -584,17 +616,19 @@ function AlertTab() {
   if (sent) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-8 h-full min-h-[480px]">
-        <div className="w-20 h-20 rounded-full bg-[#22C55E]/20 flex items-center justify-center">
-          <CheckCircle2 size={40} className="text-[#22C55E]" />
+        <div className={`w-20 h-20 rounded-full flex items-center justify-center ${queued ? "bg-[#F97316]/20" : "bg-[#22C55E]/20"}`}>
+          <CheckCircle2 size={40} className={queued ? "text-[#F97316]" : "text-[#22C55E]"} />
         </div>
         <div
-          className="text-3xl font-black text-[#22C55E] tracking-widest uppercase"
+          className={`text-3xl font-black tracking-widest uppercase ${queued ? "text-[#F97316]" : "text-[#22C55E]"}`}
           style={{ fontFamily: "Barlow Condensed, sans-serif" }}
         >
-          Alert Sent
+          {queued ? "Alert Queued" : "Alert Sent"}
         </div>
         <p className="text-sm text-[#7B9CC4] text-center">
-          Broadcast to 6 nodes · Relayed across mesh network
+          {queued
+            ? "Backend unreachable — will retry automatically when connected"
+            : `Broadcast to ${nodeCount} node${nodeCount !== 1 ? "s" : ""} · Relayed across mesh network`}
         </p>
       </div>
     );
@@ -651,12 +685,24 @@ function AlertTab() {
       </div>
 
       <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.18)] p-3 flex items-center gap-3">
-        <Navigation size={16} className="text-[#22C55E] shrink-0" />
+        <Navigation size={16} className={deviceLocation.status === "ok" ? "text-[#22C55E] shrink-0" : "text-[#7B9CC4] shrink-0"} />
         <div className="flex-1">
-          <div className="text-xs font-mono text-[#22C55E]">37.7749° N · 122.4194° W</div>
-          <div className="text-[10px] text-[#7B9CC4]">GPS locked · Auto-attach to alert</div>
+          {deviceLocation.status === "ok" && deviceLocation.lat !== null && deviceLocation.lng !== null ? (
+            <div className="text-xs font-mono text-[#22C55E]">
+              {Math.abs(deviceLocation.lat).toFixed(4)}° {deviceLocation.lat >= 0 ? "N" : "S"} · {Math.abs(deviceLocation.lng).toFixed(4)}° {deviceLocation.lng >= 0 ? "E" : "W"}
+            </div>
+          ) : (
+            <div className="text-xs font-mono text-[#7B9CC4]">
+              {deviceLocation.status === "acquiring" ? "Acquiring GPS…" : deviceLocation.error ?? "GPS unavailable"}
+            </div>
+          )}
+          <div className="text-[10px] text-[#7B9CC4]">
+            {deviceLocation.status === "ok" ? "GPS locked · Auto-attach to alert" : "Alert will send without coordinates"}
+          </div>
         </div>
-        <CheckCircle2 size={14} className="text-[#22C55E]" />
+        {deviceLocation.status === "ok"
+          ? <CheckCircle2 size={14} className="text-[#22C55E]" />
+          : <Navigation size={14} className="text-[#7B9CC4] animate-pulse" />}
       </div>
 
       <button
@@ -676,14 +722,34 @@ function AlertTab() {
   );
 }
 
+/**
+ * SIM_MODE — set VITE_SIM_MODE=true in .env.local to replace the live backend
+ * poll with the local mock simulation.  The interval fires every TICK_MS ms
+ * (default 5 000).  A perf overlay in the map corner shows tick cost and
+ * React render count so you can verify the dashboard stays performant.
+ */
+const SIM_MODE  = import.meta.env.VITE_SIM_MODE === "true";
+const TICK_MS   = parseInt(import.meta.env.VITE_SIM_TICK_MS as string ?? "5000", 10);
+
 function MapTab() {
-  const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000);
   const deviceLocation = useDeviceLocation();
+
+  // ── Live data source — either mock simulation or real backend ───────────
+  const live = useCloudantNodes(10_000);
+  const sim  = useMockNodeSimulation(TICK_MS);
+
+  const nodes   = SIM_MODE ? sim.nodes   : live.nodes;
+  const loading = SIM_MODE ? false        : live.loading;
+  const error   = SIM_MODE ? null         : live.error;
+  const source  = SIM_MODE
+    ? ("seed" as const)
+    : live.source;
+  const refresh = SIM_MODE ? () => {}     : live.refresh;
 
   // ── Real device mesh discovery (BLE + Wi-Fi Direct via Capacitor plugin) ──
   // On a real Android device this starts BLE advertising + scanning and
   // Wi-Fi Direct peer discovery.  In the browser it is a safe no-op.
-  const { status: discoveryStatus, peers: discoveredPeers, isNative } =
+  const { status: discoveryStatus, isNative } =
     useMeshDiscovery({
       nodeId:  localStorage.getItem("meshnet_node_id") ?? "mobile-user",
       label:   "You",
@@ -732,14 +798,43 @@ function MapTab() {
         </div>
       )}
 
-      <NodeMapCanvas
-        nodes={nodes}
-        loading={loading}
-        error={error}
-        source={source}
-        onRefresh={refresh}
-        deviceLocation={deviceLocation}
-      />
+      {/* ── Simulation mode banner ─────────────────────────────────────────── */}
+      {SIM_MODE && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "4px 10px", marginBottom: 6, borderRadius: 6, flexShrink: 0,
+          background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.22)",
+          fontSize: 9, fontFamily: "monospace", color: "#F97316",
+          textTransform: "uppercase", letterSpacing: "0.08em",
+        }}>
+          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316" }} />
+          Simulation mode · {TICK_MS / 1000}s tick · {sim.nodes.length} mock nodes
+        </div>
+      )}
+
+      {/* ── Map canvas (wraps relative so SimPerfOverlay can be positioned) ─ */}
+      <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
+        <NodeMapCanvas
+          nodes={nodes}
+          loading={loading}
+          error={error}
+          source={source}
+          onRefresh={refresh}
+          deviceLocation={deviceLocation}
+        />
+
+        {/* Perf overlay — simulation mode only, zero cost when SIM_MODE=false */}
+        {SIM_MODE && (
+          <SimPerfOverlay
+            stats={sim.stats}
+            tickMs={TICK_MS}
+            nodeCount={sim.nodes.length}
+            isPaused={sim.isPaused}
+            onPause={sim.pause}
+            onResume={sim.resume}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -758,23 +853,26 @@ function CommsTab() {
   const [msgs, setMsgs] = useState<LocalMessage[]>(MESSAGES);
   const [sending, setSending] = useState(false);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const trimmed = input.trim();
     if (!trimmed || sending) return;
     setSending(true);
 
     try {
+      // SEC-4: encrypt before sending — ciphertext stored in DB, not plaintext
+      const ciphertext = await encryptMessage(trimmed);
       await fetch(`${API_BASE}/api/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from_node_id: "self",
-          from_label:   "You",
-          to_node_id:   "broadcast",
-          category:     "info",
-          ciphertext:   trimmed,
-          hops:         0,
+        method:  "POST",
+        headers: meshHeaders(),
+        body:    JSON.stringify({
+          fromNodeId: localStorage.getItem("meshnet_node_id") ?? "self",
+          fromLabel:  "You",
+          toNodeId:   "broadcast",
+          category:   "info",
+          ciphertext,
+          hops:       0,
         }),
+        signal: AbortSignal.timeout(6_000),
       });
     } catch { /* offline — still append locally */ }
 
@@ -788,7 +886,7 @@ function CommsTab() {
     ]);
     setInput("");
     setSending(false);
-  };
+  }, [input, sending]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -878,8 +976,9 @@ export default function App() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Live node count — NODES includes "self", so total peers = NODES.length - 1
-  const peerCount = NODES.filter((n) => n.id !== "self").length;
+  // Live node data — shared by HomeTab, AlertTab, StatusBar
+  const { nodes: liveNodes } = useCloudantNodes(10_000);
+  const peerCount = liveNodes.length;
 
   if (isDesktop) {
     return <DashboardLayout />;
@@ -939,8 +1038,8 @@ export default function App() {
           className="flex-1 overflow-y-auto"
           style={{ scrollbarWidth: "none", display: tab === "map" ? "none" : undefined }}
         >
-          {tab === "home" && <HomeTab />}
-          {tab === "alert" && <AlertTab />}
+          {tab === "home"  && <HomeTab  liveNodes={liveNodes} />}
+          {tab === "alert" && <AlertTab nodeCount={peerCount} />}
           {tab === "comms" && <CommsTab />}
         </div>
 

@@ -17,25 +17,58 @@ import { routeRouter }   from "./routes/route";
 import { signalRouter }  from "./routes/signal";
 import { requestLogger } from "./middleware/logger";
 import { rateLimiter }   from "./middleware/rateLimit";
+import { requireMeshAuth } from "./middleware/auth";
+import { startEvictionJob } from "./jobs/eviction";
+import { cloudantRouter }  from "./routes/cloudant";
+import { db } from "./db";
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
 
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+// Restrict to known origins in production via CORS_ORIGINS env var.
+// Multiple origins are comma-separated: "https://app.example.com,http://10.0.0.5:5173"
+// Falls back to localhost dev server if not set — never wildcards in production.
+const rawOrigins = process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:4173";
+const allowedOrigins = rawOrigins.split(",").map((o) => o.trim()).filter(Boolean);
+
 app.use(helmet());
-app.use(cors({ origin: "*" })); // Restrict in production to known node origins
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no Origin header (same-origin, curl, native WebView)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' is not allowed`));
+    }
+  },
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "X-Mesh-Secret"],
+}));
 app.use(express.json({ limit: "64kb" }));
 app.use(requestLogger);
 app.use(rateLimiter);
 
+// ─── Routes ───────────────────────────────────────────────────────────────────
+// /api/health is intentionally unauthenticated — uptime monitors probe it.
 app.use("/api/health", healthRouter);
-app.use("/api/mesh", meshRouter);
-app.use("/api/alerts", alertsRouter);
-app.use("/api/messages", messagesRouter);
-app.use("/api/route", routeRouter);
-app.use("/api/signal", signalRouter);
+
+// All other routes require a valid X-Mesh-Secret header.
+app.use("/api/mesh",      requireMeshAuth, meshRouter);
+app.use("/api/alerts",    requireMeshAuth, alertsRouter);
+app.use("/api/messages",  requireMeshAuth, messagesRouter);
+app.use("/api/route",     requireMeshAuth, routeRouter);
+app.use("/api/signal",    requireMeshAuth, signalRouter);
+// Cloudant proxy — key stays server-side, frontend uses this instead of Cloudant directly
+app.use("/api/cloudant",  requireMeshAuth, cloudantRouter);
+
+// ─── Background jobs ──────────────────────────────────────────────────────────
+// Evict stale nodes (last_seen > 5 min) from the topology every 30 s.
+startEvictionJob(db);
 
 app.listen(PORT, () => {
   console.log(`[MeshNet] Backend running on port ${PORT}`);
+  console.log(`[MeshNet] Allowed CORS origins: ${allowedOrigins.join(", ")}`);
 });
 
 export default app;

@@ -121,8 +121,9 @@ class MeshSimulator:
 
     def bootstrap(self) -> None:
         """Register all simulated nodes with the Express backend."""
-        base_lat = 14.5995
-        base_lng = 120.9842
+        # OPS-4: aligned to Cebu City (matches frontend seed data and map centre)
+        base_lat = 10.3157
+        base_lng = 123.8854
         max_range = self._cfg.range_for_scenario(self._scenario)
         spread = max_range / 111_320
 

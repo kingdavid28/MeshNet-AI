@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ic_launcher_foreground.xml — adaptive icon foreground layer
+    Displays the MeshNet AI "mesh" radio icon on a transparent background.
+    The actual raster icons in mipmap-* directories should be generated via:
+        npx @capacitor/assets generate
+    after placing a 1024x1024 icon.png in the project root.
+    This SVG drawable is a fallback for API 26+ adaptive icons.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background fill (orange — MeshNet brand colour) -->
+    <path android:fillColor="#F97316"
+          android:pathData="M0,0h108v108h-108z"/>
+    <!-- Simple radio/mesh icon centred at 54,54 -->
+    <path android:fillColor="#FFFFFF"
+          android:pathData="M54,30 a24,24 0 0,1 0,48 a24,24 0 0,1 0,-48z
+                            M54,38 a16,16 0 0,1 0,32 a16,16 0 0,1 0,-32z
+                            M54,46 a8,8  0 0,1 0,16 a8,8  0 0,1 0,-16z
+                            M52,54 h4 v-14 h-4z"/>
+</vector>
