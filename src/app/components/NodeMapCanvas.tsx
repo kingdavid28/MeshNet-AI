@@ -359,7 +359,10 @@ export default function NodeMapCanvas({
             </div>
 
             <div className="mt-2 text-[9px] font-mono text-[#7B9CC4]/70">
-              {selected.latitude.toFixed(4)}°N · {selected.longitude.toFixed(4)}°E · bat {selected.battery_percentage}%
+              {selected.latitude != null && selected.longitude != null
+                ? `${selected.latitude.toFixed(5)}°N · ${selected.longitude.toFixed(5)}°E · `
+                : "No GPS coords · "}
+              bat {selected.battery_percentage}%
             </div>
           </div>
         </div>

@@ -132,6 +132,14 @@ export const nodeStmts = {
         last_seen          = @last_seen
     WHERE id = @id
   `),
+
+  delete: db.prepare<[string], any>(
+    "DELETE FROM nodes WHERE id = ?"
+  ),
+
+  deleteAll: db.prepare<[], any>(
+    "DELETE FROM nodes"
+  ),
 };
 
 // ── edges ──

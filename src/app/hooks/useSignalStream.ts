@@ -71,7 +71,14 @@ export function useSignalStream(
       esRef.current.close();
     }
 
-    const es = new EventSource(`${base}/api/signal/stream`);
+    // EventSource cannot set request headers, so the shared secret is passed as
+    // a query param instead.  Read it here (inside the callback) so it is always
+    // the value baked into the current bundle, not a stale closure.
+    const secret = import.meta.env.VITE_MESH_SECRET as string | undefined;
+    const streamUrl = secret
+      ? `${base}/api/signal/stream?secret=${encodeURIComponent(secret)}`
+      : `${base}/api/signal/stream`;
+    const es = new EventSource(streamUrl);
     esRef.current = es;
 
     es.onopen = () => {

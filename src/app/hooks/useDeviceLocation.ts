@@ -41,15 +41,32 @@ const INITIAL: DeviceLocation = {
   error:    null,
 };
 
+// Electron IPC fallback — used when Chromium's geolocation fails (Google 403)
+async function tryElectronLocation(): Promise<DeviceLocation | null> {
+  const api = (window as Record<string, any>).electronAPI;
+  if (!api?.getLocation) return null;
+  try {
+    const result = await api.getLocation() as { success: boolean; lat?: number; lng?: number; accuracy?: number | null; error?: string };
+    if (result.success && result.lat != null && result.lng != null) {
+      return { lat: result.lat, lng: result.lng, accuracy: result.accuracy ?? null, status: "ok", error: null };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 export function useDeviceLocation(): DeviceLocation {
   const [loc, setLoc] = useState<DeviceLocation>(INITIAL);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
-      setLoc({
-        lat: null, lng: null, accuracy: null,
-        status: "unavailable",
-        error: "Geolocation is not supported by this browser",
+      // No browser geolocation — try Electron IPC directly
+      setLoc((prev) => ({ ...prev, status: "acquiring" }));
+      tryElectronLocation().then((elLoc) => {
+        setLoc(elLoc ?? {
+          lat: null, lng: null, accuracy: null,
+          status: "unavailable",
+          error: "Geolocation is not supported by this browser",
+        });
       });
       return;
     }
@@ -78,18 +95,25 @@ export function useDeviceLocation(): DeviceLocation {
           message = "Location request timed out";
         }
 
-        setLoc((prev) => ({
-          lat:      prev.lat,   // keep last known position on error
-          lng:      prev.lng,
-          accuracy: prev.accuracy,
-          status,
-          error: message,
-        }));
+        // Browser geolocation failed — try Electron IPC (Windows Location API)
+        tryElectronLocation().then((elLoc) => {
+          if (elLoc) {
+            setLoc(elLoc);
+          } else {
+            setLoc((prev) => ({
+              lat:      prev.lat,
+              lng:      prev.lng,
+              accuracy: prev.accuracy,
+              status,
+              error: message,
+            }));
+          }
+        });
       },
       {
         enableHighAccuracy: true,
-        timeout:            15_000,   // 15 s before timeout error
-        maximumAge:         30_000,   // accept cached position up to 30 s old
+        timeout:            15_000,
+        maximumAge:         30_000,
       },
     );
 

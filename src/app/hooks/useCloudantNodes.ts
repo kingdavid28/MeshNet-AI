@@ -27,8 +27,8 @@ export type ProtocolActive = "bluetooth" | "wifi" | "both" | "none";
 export interface CloudantNode {
   node_id:            string;
   label:              string;
-  latitude:           number;
-  longitude:          number;
+  latitude:           number | null;
+  longitude:          number | null;
   battery_percentage: number;
   bluetooth_status:   boolean;
   wifi_status:        boolean;
@@ -54,45 +54,54 @@ interface UseCloudantNodesResult {
   refresh: () => void;
 }
 
-// ─── Seed fallback — Cebu City, Philippines ───────────────────────────────────
+// ─── Seed fallback generator — generates nodes around device location ───────────
 
-const SEED_NODES: CloudantNode[] = [
-  {
-    node_id: "cmd-hq",     label: "CMD·HQ",  latitude: 10.3157, longitude: 123.8854,
-    battery_percentage: 82,  bluetooth_status: true,  wifi_status: true,
-    protocol_active: "both",      signal: 91, device: "laptop",     role: "relay",
-    last_seen: new Date().toISOString(),
-  },
-  {
-    node_id: "ramos-phone", label: "Ramos",  latitude: 10.3175, longitude: 123.8837,
-    battery_percentage: 67,  bluetooth_status: true,  wifi_status: true,
-    protocol_active: "both",      signal: 87, device: "smartphone", role: "relay",
-    last_seen: new Date().toISOString(),
-  },
-  {
-    node_id: "chen-laptop", label: "Chen",   latitude: 10.3140, longitude: 123.8878,
-    battery_percentage: 91,  bluetooth_status: false, wifi_status: true,
-    protocol_active: "wifi",      signal: 72, device: "laptop",     role: "relay",
-    last_seen: new Date().toISOString(),
-  },
-  {
-    node_id: "med-01",      label: "MED·01", latitude: 10.3162, longitude: 123.8865,
-    battery_percentage: 55,  bluetooth_status: true,  wifi_status: false,
-    protocol_active: "bluetooth", signal: 91, device: "smartphone", role: "peer",
-    last_seen: new Date().toISOString(),
-  },
-  {
-    node_id: "torres-phone", label: "Torres", latitude: 10.3148, longitude: 123.8820,
-    battery_percentage: 38,  bluetooth_status: false, wifi_status: false,
-    protocol_active: "none",      signal: 64, device: "smartphone", role: "peer",
-    last_seen: new Date().toISOString(),
-  },
-];
+function generateSeedNodes(centerLat: number | null, centerLng: number | null): CloudantNode[] {
+  // Default to Cebu City if no location available
+  const lat = centerLat ?? 10.3157;
+  const lng = centerLng ?? 123.8854;
+
+  // Generate nodes in a ~1km radius around the center point
+  const offset = 0.01; // ~1km at equator
+
+  return [
+    {
+      node_id: "cmd-hq",     label: "CMD·HQ",  latitude: lat, longitude: lng,
+      battery_percentage: 82,  bluetooth_status: true,  wifi_status: true,
+      protocol_active: "both",      signal: 91, device: "laptop",     role: "relay",
+      last_seen: new Date().toISOString(),
+    },
+    {
+      node_id: "ramos-phone", label: "Ramos",  latitude: lat + offset * 0.2, longitude: lng - offset * 0.2,
+      battery_percentage: 67,  bluetooth_status: true,  wifi_status: true,
+      protocol_active: "both",      signal: 87, device: "smartphone", role: "relay",
+      last_seen: new Date().toISOString(),
+    },
+    {
+      node_id: "chen-laptop", label: "Chen",   latitude: lat - offset * 0.2, longitude: lng + offset * 0.3,
+      battery_percentage: 91,  bluetooth_status: false, wifi_status: true,
+      protocol_active: "wifi",      signal: 72, device: "laptop",     role: "relay",
+      last_seen: new Date().toISOString(),
+    },
+    {
+      node_id: "med-01",      label: "MED·01", latitude: lat + offset * 0.1, longitude: lng + offset * 0.1,
+      battery_percentage: 55,  bluetooth_status: true,  wifi_status: false,
+      protocol_active: "bluetooth", signal: 91, device: "smartphone", role: "peer",
+      last_seen: new Date().toISOString(),
+    },
+    {
+      node_id: "torres-phone", label: "Torres", latitude: lat - offset * 0.1, longitude: lng - offset * 0.4,
+      battery_percentage: 38,  bluetooth_status: false, wifi_status: false,
+      protocol_active: "none",      signal: 64, device: "smartphone", role: "peer",
+      last_seen: new Date().toISOString(),
+    },
+  ];
+}
 
 // ─── Shared fetch helper ──────────────────────────────────────────────────────
 
 function meshHeaders(): HeadersInit {
-  const secret = import.meta.env.VITE_MESH_SECRET as string | undefined;
+  const secret = (import.meta.env.VITE_MESH_SECRET as string | undefined) || localStorage.getItem('mesh-secret') || '';
   return secret ? { "Content-Type": "application/json", "X-Mesh-Secret": secret } : {};
 }
 
@@ -135,8 +144,8 @@ async function fetchFromLocalBackend(apiBase: string): Promise<CloudantNode[]> {
     return {
       node_id:            n.id,
       label:              n.label,
-      latitude:           n.lat  ?? 0,
-      longitude:          n.lng  ?? 0,
+      latitude:           n.lat  ?? null,
+      longitude:          n.lng  ?? null,
       battery_percentage: n.battery ?? 80,
       bluetooth_status:   ble,
       wifi_status:        wifi,
@@ -151,7 +160,11 @@ async function fetchFromLocalBackend(apiBase: string): Promise<CloudantNode[]> {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useCloudantNodes(pollIntervalMs = 10_000): UseCloudantNodesResult {
+export function useCloudantNodes(
+  pollIntervalMs = 10_000,
+  deviceLat: number | null = null,
+  deviceLng: number | null = null
+): UseCloudantNodesResult {
   const [nodes,   setNodes]   = useState<CloudantNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
@@ -164,6 +177,10 @@ export function useCloudantNodes(pollIntervalMs = 10_000): UseCloudantNodesResul
       // Priority 1 — backend Cloudant proxy (Cloudant credentials stay server-side)
       try {
         const data = await fetchFromCloudantProxy(apiBase);
+        // If Cloudant returns empty nodes, fall through to local topology
+        if (data.length === 0) {
+          throw new Error("Cloudant not configured or empty");
+        }
         setNodes(data);
         setSource("cloudant");
         setError(null);
@@ -181,12 +198,13 @@ export function useCloudantNodes(pollIntervalMs = 10_000): UseCloudantNodesResul
       const msg = err instanceof Error ? err.message : "Unknown error";
       setError(msg);
       // Priority 3 — seed fallback so the map always renders something
-      setNodes((prev) => (prev.length === 0 ? SEED_NODES : prev));
+      const seedNodes = generateSeedNodes(deviceLat, deviceLng);
+      setNodes((prev) => (prev.length === 0 ? seedNodes : prev));
       setSource((prev) => (prev === "seed" ? "seed" : prev));
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, [apiBase, deviceLat, deviceLng]);
 
   useEffect(() => {
     load();

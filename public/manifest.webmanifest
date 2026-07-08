@@ -1,13 +1,28 @@
 {
-  "name": "MeshNet AI",
+  "name": "MeshNet AI - Emergency Mesh Communication",
   "short_name": "MeshNet",
-  "description": "Offline emergency communication and routing during disasters via a secure mesh network.",
+  "description": "Offline emergency communication and intelligent routing during disasters via secure mesh networking. Install on any device to become a network node.",
   "theme_color": "#0f172a",
   "background_color": "#0f172a",
   "display": "standalone",
   "orientation": "any",
   "start_url": "/",
   "scope": "/",
+  "categories": ["emergency", "communication", "utilities", "social"],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "label": "MeshNet Home Screen"
+    },
+    {
+      "src": "/screenshots/map.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "label": "Network Map View"
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.svg",
@@ -20,6 +35,23 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "features": [
+    "Offline Support",
+    "Mesh Networking",
+    "Emergency Communication",
+    "Device Discovery",
+    "Store-and-Forward Messaging",
+    "GPS Location Sharing",
+    "Cross-Platform"
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+meshnet",
+      "url": "/handle/%s"
     }
   ]
 }

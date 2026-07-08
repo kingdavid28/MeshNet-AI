@@ -97,7 +97,9 @@ class MeshGraphBuilder:
         nx.DiGraph
             Empty graph if the backend is unreachable.
         """
+        log.info("MeshGraphBuilder.build() called with api_base=%s, scenario=%s", self.api_base, self.scenario)
         topology = self._fetch_topology()
+        log.info("Topology received: %d nodes, %d edges", len(topology.get("nodes", [])), len(topology.get("edges", [])))
         G: nx.DiGraph = nx.DiGraph()
 
         for n in topology.get("nodes", []):
@@ -134,10 +136,15 @@ class MeshGraphBuilder:
 
     def _fetch_topology(self) -> dict[str, Any]:
         url = f"{self.api_base}/api/mesh/topology"
+        headers = {"X-Mesh-Secret": self.cfg.node_shared_secret}
+        log.info("Fetching topology from %s with secret %s...", url, self.cfg.node_shared_secret[:20] + "...")
         try:
-            resp = requests.get(url, timeout=self.cfg.http_timeout)
+            resp = requests.get(url, headers=headers, timeout=self.cfg.http_timeout)
+            log.info("Response status: %d, body: %s", resp.status_code, resp.text[:200] if resp.text else "empty")
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            log.info("Received %d nodes, %d edges", len(data.get("nodes", [])), len(data.get("edges", [])))
+            return data
         except requests.RequestException as exc:
             log.warning("Could not fetch topology from %s: %s", url, exc)
             return {"nodes": [], "edges": []}

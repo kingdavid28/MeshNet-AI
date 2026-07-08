@@ -41,7 +41,13 @@ import os
 import random
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
+
+# Load backend/config/.env before any local module (e.g. config.py) reads os.getenv().
+# override=False keeps any already-set OS env vars winning over the file.
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=Path(__file__).parent / "config" / ".env", override=False)
 
 import requests
 from fastapi import FastAPI, HTTPException
@@ -63,7 +69,7 @@ from simulation import (
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Enable debug logging
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
 )
 log = logging.getLogger("meshnet.api")
@@ -76,7 +82,7 @@ _cfg = MeshConfig.from_env()
 _engine = RouteEngine(
     api_base=_cfg.backend_api_url,
     cfg=_cfg,
-    cache_ttl_s=float(os.getenv("GRAPH_CACHE_TTL_S", 5.0)),
+    cache_ttl_s=float(os.getenv("GRAPH_CACHE_TTL_S", 0.0)),  # Disable cache for debugging
 )
 
 # ── Signal flicker monitor (shared instance) ──────────────────────────────────
@@ -216,6 +222,7 @@ def simulation_topology(scenario: str = "earthquake"):
     if scenario not in ("flood", "war_zone", "earthquake"):
         raise HTTPException(status_code=422, detail="Invalid scenario")
 
+    log.debug("Building topology graph for scenario: %s", scenario)
     builder = MeshGraphBuilder(
         api_base=_cfg.backend_api_url,
         scenario=scenario,

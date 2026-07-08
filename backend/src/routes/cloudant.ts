@@ -28,12 +28,9 @@ function deriveProtocol(ble: boolean, wifi: boolean): string {
 }
 
 cloudantRouter.get("/nodes", async (_req: Request, res: Response) => {
-  // If Cloudant is not configured, return a clear error rather than a silent empty list
+  // If Cloudant is not configured, return empty nodes with 200 so frontend falls back silently
   if (!CLOUDANT_URL || CLOUDANT_URL.includes("<") || !CLOUDANT_KEY || CLOUDANT_KEY.includes("<")) {
-    res.status(503).json({
-      error: "Cloudant not configured — set CLOUDANT_URL and CLOUDANT_API_KEY in config/.env",
-      nodes: [],
-    });
+    res.json({ nodes: [] });
     return;
   }
 

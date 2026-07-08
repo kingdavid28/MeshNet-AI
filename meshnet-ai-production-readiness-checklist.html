@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MeshNet AI — Production Checklist</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 32px; }
+  h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #57606a;
+    margin: 32px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .step {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .badge.critical { background: #fee2e2; color: #b91c1c; }
+  .badge.important { background: #fef3c7; color: #92400e; }
+  .badge.nice { background: #dbeafe; color: #1d4ed8; }
+  .step-title { font-weight: 600; font-size: 14px; }
+  .step-body { color: #444d56; font-size: 13px; }
+  .step-body p { margin-bottom: 6px; }
+  .step-body p:last-child { margin-bottom: 0; }
+  pre, code {
+    font-family: "Cascadia Code", "Fira Mono", "Consolas", monospace;
+    font-size: 12px;
+  }
+  pre {
+    background: #1f2328;
+    color: #e6edf3;
+    border-radius: 4px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    margin: 8px 0 4px;
+  }
+  code {
+    background: #eef0f3;
+    color: #c0392b;
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    color: #57606a;
+  }
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    font-size: 12px;
+    color: #57606a;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  .dot.critical { background: #fee2e2; border: 1.5px solid #b91c1c; }
+  .dot.important { background: #fef3c7; border: 1.5px solid #92400e; }
+  .dot.nice { background: #dbeafe; border: 1.5px solid #1d4ed8; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  th {
+    text-align: left;
+    padding: 7px 10px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    font-weight: 600;
+    color: #57606a;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  td {
+    padding: 7px 10px;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  .status-done { color: #15803d; font-weight: 600; }
+  .status-gap  { color: #b91c1c; font-weight: 600; }
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 12px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>MeshNet AI — Production Readiness Checklist</h1>
+  <p class="subtitle">React PWA (Vite) · Express (Node.js / Layer 4) · FastAPI (Python / Layer 3) · Supabase · Docker</p>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot critical"></div> Must fix before going live (security / correctness)</div>
+    <div class="legend-item"><div class="dot important"></div> Should fix (stability / ops)</div>
+    <div class="legend-item"><div class="dot nice"></div> Nice to have (scalability / DX)</div>
+  </div>
+
+  
+  <h2>1 · Environment &amp; Secrets</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Fill in all placeholder values in <code>.env.local</code> and <code>backend/config/.env</code></span>
+    </div>
+    <div class="step-body">
+      <p>Two placeholders are never filled in and will break at runtime:</p>
+      <pre><code># .env.local — replace BOTH of these
+VITE_SUPABASE_URL=https://&lt;your-project&gt;.supabase.co
+VITE_SUPABASE_ANON_KEY=&lt;your-supabase-anon-key&gt;</code></pre>
+      <p>Get the values from Supabase → Project Settings → API.</p>
+    </div>
+    <div class="tag-row"><span class="tag">frontend</span><span class="tag">supabase</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Rotate <code>VITE_MESH_SECRET</code> / <code>MESH_SECRET</code> — the dev key is already public</span>
+    </div>
+    <div class="step-body">
+      <p>The 128-char hex secret currently in <code>.env.local</code> is committed to git history. Generate a fresh one:</p>
+      <pre><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code></pre>
+      <p>Set it in both <code>.env.local</code> (<code>VITE_MESH_SECRET</code>) and <code>backend/config/.env</code> (<code>MESH_SECRET</code>). Never commit either file again.</p>
+    </div>
+    <div class="tag-row"><span class="tag">security</span><span class="tag">backend</span><span class="tag">frontend</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge important">~</span>
+      <span class="step-title">Move from shared secret to per-node Ed25519 signatures (already planned)</span>
+    </div>
+    <div class="step-body">
+      <p><code>auth.ts</code> already has a comment: <em>"Production upgrade path: replace the shared secret with per-node Ed25519 signatures."</em> The <code>cryptography</code> package (<code>requirements.txt</code>) is already installed. Implement this before exposing the API to untrusted networks.</p>
+    </div>
+    <div class="tag-row"><span class="tag">security</span><span class="tag">backend</span></div>
+  </div>
+
+  
+  <h2>2 · Frontend Build</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Run a production Vite build and serve via nginx, not <code>vite preview</code></span>
+    </div>
+    <div class="step-body">
+      <p>The docker-compose file serves the frontend with <code>vite preview</code> — that is a local-preview tool, not a production server. The compose file itself warns this:</p>
+      <pre><code># 1. Build the static bundle
+pnpm build          # outputs to dist/
+
+# 2. Serve with nginx (replace the frontend service in docker-compose.yml)
+# Dockerfile.frontend.prod
+FROM nginx:alpine
+COPY dist/ /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf</code></pre>
+      <p>A minimal <code>nginx.conf</code> for a React SPA:</p>
+      <pre><code>server {
+  listen 80;
+  root /usr/share/nginx/html;
+  index index.html;
+  location / { try_files $uri $uri/ /index.html; }
+  location /api/ { proxy_pass http://express:4000; }
+}</code></pre>
+    </div>
+    <div class="tag-row"><span class="tag">frontend</span><span class="tag">docker</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Set production environment variables at build time</span>
+    </div>
+    <div class="step-body">
+      <p>Vite bakes <code>VITE_*</code> vars into the JS bundle at build time. For production, supply a proper <code>.env.production</code>:</p>
+      <pre><code>VITE_API_BASE_URL=https://api.yourdomain.com
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_MESH_SECRET=&lt;rotated-secret&gt;
+VITE_SIM_MODE=false</code></pre>
+      <p><strong>Never</strong> commit this file. Use CI/CD secrets injection instead (GitHub Actions, Railway, etc.).</p>
+    </div>
+    <div class="tag-row"><span class="tag">frontend</span><span class="tag">ci/cd</span></div>
+  </div>
+
+  
+  <h2>3 · Backend — Express (Layer 4)</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Set <code>NODE_ENV=production</code> in <code>backend/config/.env</code></span>
+    </div>
+    <div class="step-body">
+      <p>Express disables stack traces in error responses and enables various optimisations when <code>NODE_ENV=production</code>. Without it, internal errors can leak stack traces to clients.</p>
+      <pre><code>NODE_ENV=production</code></pre>
+    </div>
+    <div class="tag-row"><span class="tag">express</span><span class="tag">security</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge important">~</span>
+      <span class="step-title">Lock <code>CORS_ORIGINS</code> to your actual domain</span>
+    </div>
+    <div class="step-body">
+      <p>The Python FastAPI defaults to allowing <code>localhost:5173</code>, <code>localhost:4173</code>, and <code>localhost:4000</code> when <code>CORS_ORIGINS</code> is unset. In production, set this in <code>backend/config/.env</code>:</p>
+      <pre><code>CORS_ORIGINS=https://app.yourdomain.com</code></pre>
+    </div>
+    <div class="tag-row"><span class="tag">fastapi</span><span class="tag">security</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge important">~</span>
+      <span class="step-title">Replace <code>hardcoded localhost</code> URLs in <code>graph_builder.py</code></span>
+    </div>
+    <div class="step-body">
+      <p><code>MeshGraphBuilder</code> defaults to <code>http://localhost:4000</code>. In Docker Compose this resolves correctly via the <code>BACKEND_API_URL</code> env var — but make sure every instantiation respects that env var:</p>
+      <pre><code># backend/config.py — verify BACKEND_API_URL is read here
+# In graph_builder.py the api_base default is "http://localhost:4000"
+# It must be overridden from config / env at startup in api_server.py</code></pre>
+    </div>
+    <div class="tag-row"><span class="tag">python</span><span class="tag">config</span></div>
+  </div>
+
+  
+  <h2>4 · Backend — FastAPI / Uvicorn (Layer 3)</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Run uvicorn with multiple workers behind gunicorn</span>
+    </div>
+    <div class="step-body">
+      <p>The dev command <code>uvicorn api_server:app --port 5050</code> is single-process. For production:</p>
+      <pre><code>pip install gunicorn
+gunicorn api_server:app \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --workers 4 \
+  --bind 0.0.0.0:5050 \
+  --access-logfile - \
+  --error-logfile -</code></pre>
+      <p>Update your <code>Dockerfile.python</code> CMD to use the gunicorn command above.</p>
+    </div>
+    <div class="tag-row"><span class="tag">python</span><span class="tag">performance</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge important">~</span>
+      <span class="step-title">Disable FastAPI's interactive docs in production</span>
+    </div>
+    <div class="step-body">
+      <p>FastAPI exposes <code>/docs</code> and <code>/redoc</code> publicly by default. Disable them so your internal API isn't browseable by anyone:</p>
+      <pre><code>app = FastAPI(
+    ...,
+    docs_url=None,     # disable /docs
+    redoc_url=None,    # disable /redoc
+    openapi_url=None,  # disable /openapi.json
+)</code></pre>
+      <p>Or gate them behind <code>DEBUG=true</code> only.</p>
+    </div>
+    <div class="tag-row"><span class="tag">python</span><span class="tag">security</span></div>
+  </div>
+
+  
+  <h2>5 · TLS / HTTPS</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Terminate TLS in front of every service — nothing should be served over HTTP in production</span>
+    </div>
+    <div class="step-body">
+      <p>Options (pick one):</p>
+      <ul style="padding-left:18px;margin-top:6px;color:#444d56">
+        <li style="margin-bottom:4px"><strong>Cloudflare Tunnel</strong> — free, zero-config TLS. Best for disaster-response deployments.</li>
+        <li style="margin-bottom:4px"><strong>nginx + Let's Encrypt (Certbot)</strong> — reverse proxy in front of Docker Compose on a VPS.</li>
+        <li><strong>Railway / Render / Fly.io</strong> — managed platforms that provide TLS automatically.</li>
+      </ul>
+      <p style="margin-top:8px">The SSE endpoint (<code>/api/signal/stream</code>) also requires HTTPS; plain HTTP SSE gets killed by corporate proxies.</p>
+    </div>
+    <div class="tag-row"><span class="tag">infra</span><span class="tag">security</span></div>
+  </div>
+
+  
+  <h2>6 · Supabase / Database</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge critical">!</span>
+      <span class="step-title">Connect a real Supabase project and run migrations</span>
+    </div>
+    <div class="step-body">
+      <p>Both Supabase env vars are placeholders. Steps:</p>
+      <ul style="padding-left:18px;margin-top:6px;color:#444d56">
+        <li>Create a project at <a href="https://supabase.com" style="color:#3b82d4">supabase.com</a></li>
+        <li>Copy the Project URL and Anon Key into <code>.env.production</code></li>
+        <li>Run any SQL migrations in <code>database/</code> via the Supabase SQL Editor or <code>supabase db push</code></li>
+        <li>Set <code>SUPABASE_DB_URL</code> in <code>backend/config/.env</code> for the <code>psycopg2</code> Python layer</li>
+      </ul>
+    </div>
+    <div class="tag-row"><span class="tag">database</span><span class="tag">supabase</span></div>
+  </div>
+
+  
+  <h2>7 · Android / Capacitor</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge important">~</span>
+      <span class="step-title">Update <code>capacitor.config.ts</code> server URL for production</span>
+    </div>
+    <div class="step-body">
+      <p>The Capacitor config likely still has a <code>server.url</code> pointing to localhost. For production builds targeting real devices, point it to your HTTPS domain so the PWA inside the WebView hits the real API:</p>
+      <pre><code>// capacitor.config.ts
+const config: CapacitorConfig = {
+  ...
+  server: {
+    url: "https://app.yourdomain.com",   // ← replace
+    cleartext: false,                    // never allow HTTP
+  }
+};</code></pre>
+      <p>Then rebuild and resync: <code>pnpm cap:sync</code></p>
+    </div>
+    <div class="tag-row"><span class="tag">android</span><span class="tag">capacitor</span></div>
+  </div>
+
+  
+  <h2>8 · Observability &amp; Ops</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge important">~</span>
+      <span class="step-title">Add structured logging and a log aggregator</span>
+    </div>
+    <div class="step-body">
+      <p>Both services use <code>console.*</code> / Python <code>logging</code>. For production, ship logs to a collector:</p>
+      <ul style="padding-left:18px;margin-top:6px;color:#444d56">
+        <li><strong>Papertrail</strong> or <strong>Logtail</strong> — free tier, easy Docker syslog driver</li>
+        <li><strong>Grafana Loki</strong> — self-hosted, pairs well with Prometheus</li>
+      </ul>
+    </div>
+    <div class="tag-row"><span class="tag">ops</span></div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="badge important">~</span>
+      <span class="step-title">Wire up the existing <code>/health</code> and <code>/api/health</code> endpoints to an uptime monitor</span>
+    </div>
+    <div class="step-body">
+      <p>Both the Express and FastAPI services already expose health endpoints. Point an external monitor (UptimeRobot free, BetterUptime, etc.) to them so you get alerts if either service goes down.</p>
+    </div>
+    <div class="tag-row"><span class="tag">ops</span><span class="tag">monitoring</span></div>
+  </div>
+
+  
+  <h2>Summary — What's Already Done vs. What's Missing</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Area</th>
+        <th>Already Done</th>
+        <th>Missing / Needs Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Docker Compose</td>
+        <td class="status-done">All services, healthchecks, restart policies</td>
+        <td class="status-gap">Replace vite preview with nginx</td>
+      </tr>
+      <tr>
+        <td>Auth / Secrets</td>
+        <td class="status-done">Shared-secret middleware, fail-fast on missing secret</td>
+        <td class="status-gap">Rotate dev secret, fill Supabase placeholders</td>
+      </tr>
+      <tr>
+        <td>CORS</td>
+        <td class="status-done">Configurable via CORS_ORIGINS env var</td>
+        <td class="status-gap">Set to real domain (currently defaults to localhost)</td>
+      </tr>
+      <tr>
+        <td>TLS / HTTPS</td>
+        <td class="status-done">Nothing — all localhost HTTP</td>
+        <td class="status-gap">Add nginx + Certbot or Cloudflare Tunnel</td>
+      </tr>
+      <tr>
+        <td>FastAPI server</td>
+        <td class="status-done">Health endpoint, lifespan, structured logging</td>
+        <td class="status-gap">Gunicorn workers, disable /docs in prod</td>
+      </tr>
+      <tr>
+        <td>Database</td>
+        <td class="status-done">psycopg2 installed, schema exists</td>
+        <td class="status-gap">Real Supabase project + migrations applied</td>
+      </tr>
+      <tr>
+        <td>Android / Capacitor</td>
+        <td class="status-done">Build scripts present (cap:sync, cap:run)</td>
+        <td class="status-gap">Point server.url to production HTTPS domain</td>
+      </tr>
+      <tr>
+        <td>Observability</td>
+        <td class="status-done">Health endpoints ready</td>
+        <td class="status-gap">Log aggregator + uptime monitor not wired</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+<footer>Made with IBM Bob</footer>
+</body>
+</html>

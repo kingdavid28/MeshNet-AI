@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import dotenv from "dotenv";
 
 // Resolve config/.env relative to the project root (works in both
@@ -9,7 +9,7 @@ dotenv.config({ path: envPath });
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { meshRouter }    from "./routes/mesh";
+import { meshRouter, publicMeshRouter } from "./routes/mesh";
 import { alertsRouter }  from "./routes/alerts";
 import { messagesRouter } from "./routes/messages";
 import { healthRouter }  from "./routes/health";
@@ -32,7 +32,19 @@ const PORT = process.env.PORT ?? 4000;
 const rawOrigins = process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:4173";
 const allowedOrigins = rawOrigins.split(",").map((o) => o.trim()).filter(Boolean);
 
-app.use(helmet());
+// Configure helmet with relaxed CSP for the join endpoint
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+    },
+  },
+  crossOriginOpenerPolicy: false,
+  originAgentCluster: false,
+}));
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no Origin header (same-origin, curl, native WebView)
@@ -53,7 +65,10 @@ app.use(rateLimiter);
 // /api/health is intentionally unauthenticated — uptime monitors probe it.
 app.use("/api/health", healthRouter);
 
-// All other routes require a valid X-Mesh-Secret header.
+// Public mesh endpoints — no auth required (captive portal + victim self-registration)
+app.use("/api/mesh", publicMeshRouter);
+
+// All other /api/mesh/* require a valid X-Mesh-Secret header.
 app.use("/api/mesh",      requireMeshAuth, meshRouter);
 app.use("/api/alerts",    requireMeshAuth, alertsRouter);
 app.use("/api/messages",  requireMeshAuth, messagesRouter);

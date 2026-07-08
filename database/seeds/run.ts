@@ -9,6 +9,7 @@ import nodes from "./nodes.json";
 import alerts from "./alerts.json";
 
 const DB_PATH = process.env.DB_PATH ?? path.join(__dirname, "..", "meshnet.db");
+console.log(`Seeding database at: ${DB_PATH}`);
 const db = new Database(DB_PATH);
 db.pragma("foreign_keys = ON");
 
@@ -21,14 +22,49 @@ db.transaction((rows: typeof nodes) => rows.forEach((r) => insertNode.run(r)))(n
 console.log(`  seeded ${nodes.length} nodes`);
 
 // ── Edges ──────────────────────────────────────────────────────────────────────
-const edges = [
-  { node_a: "cmd-hq",      node_b: "ramos-phone",  protocol: "bluetooth", quality: 87 },
-  { node_a: "cmd-hq",      node_b: "chen-laptop",   protocol: "wifi",      quality: 72 },
-  { node_a: "cmd-hq",      node_b: "med-01",        protocol: "wifi",      quality: 91 },
-  { node_a: "ramos-phone", node_b: "torres-phone",  protocol: "bluetooth", quality: 64 },
-  { node_a: "med-01",      node_b: "torres-phone",  protocol: "bluetooth", quality: 70 },
-  { node_a: "chen-laptop", node_b: "med-01",        protocol: "wifi",      quality: 80 },
-];
+// Generate realistic mesh connections based on proximity and signal strength
+const edges: Array<{node_a: string, node_b: string, protocol: string, quality: number}> = [];
+
+// Connect each node to 2-4 nearby nodes to create a realistic mesh
+for (let i = 0; i < nodes.length; i++) {
+  const nodeA = nodes[i];
+  const connections = Math.floor(Math.random() * 3) + 2; // 2-4 connections per node
+  
+  // Find closest nodes based on coordinate distance
+  const distances = nodes
+    .map((nodeB, idx) => {
+      if (idx === i) return { idx, dist: Infinity };
+      const dist = Math.sqrt(
+        Math.pow(nodeA.lat - nodeB.lat, 2) + 
+        Math.pow(nodeA.lng - nodeB.lng, 2)
+      );
+      return { idx, dist };
+    })
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, connections + 1); // +1 to account for self
+  
+  for (const { idx } of distances) {
+    if (idx === i) continue;
+    const nodeB = nodes[idx];
+    
+    // Check if edge already exists (avoid duplicates)
+    const exists = edges.some(
+      e => (e.node_a === nodeA.id && e.node_b === nodeB.id) ||
+           (e.node_a === nodeB.id && e.node_b === nodeA.id)
+    );
+    
+    if (!exists) {
+      const protocol = Math.random() > 0.4 ? "wifi" : "bluetooth";
+      const quality = Math.floor(Math.random() * 40) + 60; // 60-100 quality
+      edges.push({
+        node_a: nodeA.id,
+        node_b: nodeB.id,
+        protocol,
+        quality
+      });
+    }
+  }
+}
 const insertEdge = db.prepare(`
   INSERT OR REPLACE INTO edges (node_a, node_b, protocol, quality)
   VALUES (@node_a, @node_b, @protocol, @quality)

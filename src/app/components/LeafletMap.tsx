@@ -178,7 +178,10 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
     fitNodes() {
       const map = mapRef.current;
       if (!map || nodes.length === 0) return;
-      const latlngs = nodes.map((n) => L.latLng(n.latitude, n.longitude));
+      const latlngs = nodes
+        .filter((n) => n.latitude != null && n.longitude != null)
+        .map((n) => L.latLng(n.latitude!, n.longitude!));
+      if (latlngs.length === 0) return;
       map.fitBounds(L.latLngBounds(latlngs), { padding: [48, 48], maxZoom: 16 });
     },
   }), [deviceLocation, nodes]);
@@ -255,6 +258,7 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
     const currentBroadcast  = broadcastActiveRef.current;
 
     for (const node of currentNodes) {
+      if (node.latitude == null || node.longitude == null) continue;
       const protocol = currentBroadcast ? "both" : node.protocol_active;
       const isRelay  = node.role === "relay";
       const isSel    = node.node_id === currentSelected;
@@ -282,6 +286,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
       for (let j = i + 1; j < currentNodes.length; j++) {
         const a = currentNodes[i];
         const b = currentNodes[j];
+        if (a.latitude == null || a.longitude == null) continue;
+        if (b.latitude == null || b.longitude == null) continue;
         if (Math.abs(a.latitude  - b.latitude)  > MAX_DEG) continue;
         if (Math.abs(a.longitude - b.longitude) > MAX_DEG) continue;
         const pa = currentBroadcast ? "both" : a.protocol_active;
@@ -304,9 +310,13 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
 
     // fitBounds on first load
     if (!fittedRef.current && currentNodes.length > 0) {
-      const latlngs = currentNodes.map((n) => L.latLng(n.latitude, n.longitude));
-      map.fitBounds(L.latLngBounds(latlngs), { padding: [48, 48], maxZoom: 16 });
-      fittedRef.current = true;
+      const latlngs = currentNodes
+        .filter((n) => n.latitude != null && n.longitude != null)
+        .map((n) => L.latLng(n.latitude!, n.longitude!));
+      if (latlngs.length > 0) {
+        map.fitBounds(L.latLngBounds(latlngs), { padding: [48, 48], maxZoom: 16 });
+        fittedRef.current = true;
+      }
     }
   }
 
@@ -350,6 +360,7 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
 
     for (const node of nodes) {
       seen.add(node.node_id);
+      if (node.latitude == null || node.longitude == null) continue;
       const protocol = broadcastActive ? "both" : node.protocol_active;
       const isRelay  = node.role === "relay";
       const isSel    = node.node_id === selectedNodeId;
@@ -392,9 +403,13 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
 
     // Always fit to node bounds on first load — GPS does NOT block this
     if (!fittedRef.current && nodes.length > 0) {
-      const latlngs = nodes.map((n) => L.latLng(n.latitude, n.longitude));
-      map.fitBounds(L.latLngBounds(latlngs), { padding: [48, 48], maxZoom: 16 });
-      fittedRef.current = true;
+      const latlngs = nodes
+        .filter((n) => n.latitude != null && n.longitude != null)
+        .map((n) => L.latLng(n.latitude!, n.longitude!));
+      if (latlngs.length > 0) {
+        map.fitBounds(L.latLngBounds(latlngs), { padding: [48, 48], maxZoom: 16 });
+        fittedRef.current = true;
+      }
     }
   }, [nodes, selectedNodeId]);
 
@@ -411,6 +426,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i];
         const b = nodes[j];
+        if (a.latitude == null || a.longitude == null) continue;
+        if (b.latitude == null || b.longitude == null) continue;
         if (Math.abs(a.latitude  - b.latitude)  > MAX_DEG) continue;
         if (Math.abs(a.longitude - b.longitude) > MAX_DEG) continue;
 
@@ -460,7 +477,9 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
     const routeLatLngs: L.LatLng[] = [];
     for (const id of activeRoutePath) {
       const n = nodeById.get(id);
-      if (n) routeLatLngs.push(L.latLng(n.latitude, n.longitude));
+      if (n && n.latitude != null && n.longitude != null) {
+        routeLatLngs.push(L.latLng(n.latitude, n.longitude));
+      }
     }
     if (routeLatLngs.length < 2) return;
 

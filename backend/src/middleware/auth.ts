@@ -25,7 +25,10 @@ if (!MESH_SECRET) {
  * verify against the registered public key).
  */
 export function requireMeshAuth(req: Request, res: Response, next: NextFunction): void {
-  const token = req.headers["x-mesh-secret"];
+  // Primary: X-Mesh-Secret header (all standard requests)
+  // Fallback: ?secret= query param — EventSource (SSE) cannot set headers, so the
+  // signal stream endpoint passes the secret in the URL instead.
+  const token = req.headers["x-mesh-secret"] ?? req.query["secret"];
   if (token !== MESH_SECRET) {
     res.status(401).json({ error: "Unauthorized — invalid or missing X-Mesh-Secret header" });
     return;

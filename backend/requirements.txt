@@ -27,6 +27,7 @@ psycopg2-binary==2.9.10  # PostgreSQL adapter — used when SUPABASE_DB_URL is s
 
 # ── HTTP client (Cloudant REST + backend heartbeats) ─────────────────────────
 requests==2.34.2         # HTTP client — Cloudant REST API & backend health checks
+python-dotenv==1.1.1     # Loads backend/config/.env into os.environ at startup
 
 # ── Transitive dependencies (pinned for reproducibility) ─────────────────────
 anyio==4.9.0             # Async I/O abstraction (uvicorn / FastAPI)

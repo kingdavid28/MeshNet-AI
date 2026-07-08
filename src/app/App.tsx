@@ -6,7 +6,13 @@ import { useCloudantNodes } from "./hooks/useCloudantNodes";
 import { useDeviceLocation } from "./hooks/useDeviceLocation";
 import { useMeshDiscovery } from "./hooks/useMeshDiscovery";
 import { useMockNodeSimulation } from "./hooks/useMockNodeSimulation";
-import { encryptMessage } from "./hooks/useMeshCrypto";
+import { encryptMessage, decryptMessage } from "./hooks/useMeshCrypto";
+import { BluetoothScanner } from "../components/BluetoothScanner";
+import { WebRTCManager } from "../components/WebRTCManager";
+import { HotspotManager } from "../components/HotspotManager";
+import { NetworkStatus } from "../components/NetworkStatus";
+import { EmergencyMode } from "../components/EmergencyMode";
+import { MeshNetDiscovery } from "../components/MeshNetDiscovery";
 import {
   AlertTriangle,
   Heart,
@@ -26,9 +32,10 @@ import {
   Zap,
   Navigation,
   Shield,
+  Settings,
 } from "lucide-react";
 
-type Tab = "home" | "alert" | "map" | "comms";
+type Tab = "home" | "alert" | "map" | "comms" | "protocols";
 type DeviceKind = "self" | "smartphone" | "laptop";
 type Protocol = "wifi" | "bluetooth";
 
@@ -551,6 +558,26 @@ const ALERT_TYPE_MAP: Record<string, string> = {
   locate:  "locate",
 };
 
+// Map alert type to message category for the messages table
+const ALERT_MSG_CATEGORY: Record<string, "alert" | "medical" | "info" | "gps"> = {
+  sos:     "alert",
+  medical: "medical",
+  safe:    "info",
+  hazard:  "alert",
+  supply:  "info",
+  locate:  "gps",
+};
+
+// Human-readable label shown in CommsTab for each alert type
+const ALERT_LABEL: Record<string, string> = {
+  sos:     "🆘 SOS ALERT",
+  medical: "🏥 MEDICAL EMERGENCY",
+  safe:    "✅ I AM SAFE",
+  hazard:  "⚠️ HAZARD REPORTED",
+  supply:  "📦 NEEDS SUPPLIES",
+  locate:  "📍 LOCATION BROADCAST",
+};
+
 function AlertTab({ nodeCount }: { nodeCount: number }) {
   const [alertType, setAlertType] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -586,7 +613,31 @@ function AlertTab({ nodeCount }: { nodeCount: number }) {
       // Backend unreachable — queue for retry
     }
 
-    if (!delivered) {
+    if (delivered) {
+      // Fan-out: broadcast an encrypted mesh message so every node's CommsTab receives it
+      try {
+        const label   = ALERT_LABEL[alertType] ?? alertType.toUpperCase();
+        const gpsLine = lat != null && lng != null
+          ? ` · GPS ${lat.toFixed(5)}°N ${lng.toFixed(5)}°E`
+          : "";
+        const details  = message.trim() ? ` · ${message.trim()}` : "";
+        const plaintext = `${label}${details}${gpsLine}`;
+        const ciphertext = await encryptMessage(plaintext);
+        await fetch(`${API_BASE}/api/messages`, {
+          method:  "POST",
+          headers: meshHeaders(),
+          body:    JSON.stringify({
+            fromNodeId: localStorage.getItem("meshnet_node_id") ?? "self",
+            fromLabel:  localStorage.getItem("meshnet_node_label") ?? "Node",
+            toNodeId:   "broadcast",
+            category:   ALERT_MSG_CATEGORY[alertType] ?? "alert",
+            ciphertext,
+            hops:       0,
+          }),
+          signal: AbortSignal.timeout(6_000),
+        });
+      } catch { /* non-fatal — alert already stored */ }
+    } else {
       // Queue alert in localStorage for background retry
       const queue = JSON.parse(localStorage.getItem("meshnet_alert_queue") ?? "[]") as unknown[];
       queue.push({ ...payload, queuedAt: Date.now() });
@@ -850,8 +901,93 @@ interface LocalMessage {
 
 function CommsTab() {
   const [input, setInput] = useState("");
-  const [msgs, setMsgs] = useState<LocalMessage[]>(MESSAGES);
+  const [msgs, setMsgs] = useState<LocalMessage[]>([]);
   const [sending, setSending] = useState(false);
+  const seenIds = useRef<Set<string>>(new Set());
+
+  // Poll backend for incoming messages every 5 s and decrypt them
+  useEffect(() => {
+    const nodeId = localStorage.getItem("meshnet_node_id") ?? "";
+
+    async function fetchIncoming() {
+      const incoming: LocalMessage[] = [];
+
+      // ── 1. Poll encrypted mesh messages ────────────────────────────────────
+      try {
+        const url = nodeId
+          ? `${API_BASE}/api/messages?nodeId=${encodeURIComponent(nodeId)}`
+          : `${API_BASE}/api/messages`;
+        const res = await fetch(url, {
+          headers: meshHeaders(),
+          signal: AbortSignal.timeout(6_000),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as Array<{
+            id: string; fromLabel: string; ciphertext: string;
+            category: string; createdAt: string; fromNodeId: string;
+          }>;
+          for (const item of data) {
+            if (seenIds.current.has(item.id)) continue;
+            seenIds.current.add(item.id);
+            const plain = await decryptMessage(item.ciphertext);
+            const d = new Date(item.createdAt);
+            incoming.push({
+              id:   item.id,
+              from: item.fromLabel || item.fromNodeId,
+              text: plain ?? "[encrypted]",
+              time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
+              type: (item.category as LocalMessage["type"]) ?? "info",
+              read: false,
+            });
+          }
+        }
+      } catch { /* offline */ }
+
+      // ── 2. Poll alerts — surfaces SOS / medical requests from all nodes ────
+      try {
+        const aRes = await fetch(`${API_BASE}/api/alerts`, {
+          headers: meshHeaders(),
+          signal: AbortSignal.timeout(6_000),
+        });
+        if (aRes.ok) {
+          const alerts = (await aRes.json()) as Array<{
+            id: string; type: string; fromLabel: string; fromNodeId: string;
+            message?: string; lat?: number; lng?: number;
+            createdAt: string; acknowledged: boolean;
+          }>;
+          for (const a of alerts) {
+            const msgId = `alert-${a.id}`;
+            if (seenIds.current.has(msgId)) continue;
+            seenIds.current.add(msgId);
+            const label = ALERT_LABEL[a.type] ?? a.type.toUpperCase();
+            const gpsLine = a.lat != null && a.lng != null
+              ? ` · GPS ${a.lat.toFixed(5)}°N ${a.lng.toFixed(5)}°E`
+              : "";
+            const details = a.message ? ` · ${a.message}` : "";
+            const d = new Date(a.createdAt);
+            incoming.push({
+              id:   msgId,
+              from: a.fromLabel || a.fromNodeId,
+              text: `${label}${details}${gpsLine}`,
+              time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
+              type: (ALERT_MSG_CATEGORY[a.type] as LocalMessage["type"]) ?? "alert",
+              read: a.acknowledged,
+            });
+          }
+        }
+      } catch { /* offline */ }
+
+      if (incoming.length > 0) {
+        // Sort oldest-first so newest ends up at top after prepend
+        incoming.sort((x, y) => x.time.localeCompare(y.time));
+        setMsgs((prev) => [...incoming.reverse(), ...prev]);
+      }
+    }
+
+    void fetchIncoming();
+    const id = setInterval(() => void fetchIncoming(), 5_000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleSend = useCallback(async () => {
     const trimmed = input.trim();
@@ -861,7 +997,7 @@ function CommsTab() {
     try {
       // SEC-4: encrypt before sending — ciphertext stored in DB, not plaintext
       const ciphertext = await encryptMessage(trimmed);
-      await fetch(`${API_BASE}/api/messages`, {
+      const res = await fetch(`${API_BASE}/api/messages`, {
         method:  "POST",
         headers: meshHeaders(),
         body:    JSON.stringify({
@@ -874,6 +1010,11 @@ function CommsTab() {
         }),
         signal: AbortSignal.timeout(6_000),
       });
+      // Mark the server-assigned ID as seen so the poll doesn't duplicate it
+      if (res.ok) {
+        const saved = await res.json() as { id?: string };
+        if (saved.id) seenIds.current.add(saved.id);
+      }
     } catch { /* offline — still append locally */ }
 
     const now = new Date();
@@ -956,11 +1097,136 @@ function CommsTab() {
   );
 }
 
+function ProtocolsTab() {
+  const [activeProtocol, setActiveProtocol] = useState<'ble' | 'webrtc' | 'hotspot' | null>(null);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
+  const [isElectron, setIsElectron] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    setIsDesktop(mq.matches);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    // Check if running in Electron
+    setIsElectron(!!(window as any).electronAPI);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <div>
+        <h2
+          className="text-lg font-bold text-[#E8EEF7] uppercase tracking-widest"
+          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+        >
+          Connection Protocols
+        </h2>
+        <p className="text-xs text-[#7B9CC4]">Select a protocol to manage mesh connections</p>
+      </div>
+
+      {/* MeshNet Discovery - Only on mobile devices (desktop/Electron is hotspot host) */}
+      {!isDesktop && !isElectron && <MeshNetDiscovery />}
+
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={() => setActiveProtocol('ble')}
+          className={`p-3 rounded-lg border-2 transition-all ${
+            activeProtocol === 'ble' 
+              ? 'bg-[#F97316] border-[#F97316]' 
+              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
+          }`}
+        >
+          <div className="text-2xl mb-1">📡</div>
+          <div className="text-xs font-bold text-[#E8EEF7]">BLE</div>
+        </button>
+        <button
+          onClick={() => setActiveProtocol('webrtc')}
+          className={`p-3 rounded-lg border-2 transition-all ${
+            activeProtocol === 'webrtc' 
+              ? 'bg-[#F97316] border-[#F97316]' 
+              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
+          }`}
+        >
+          <div className="text-2xl mb-1">🔗</div>
+          <div className="text-xs font-bold text-[#E8EEF7]">WebRTC</div>
+        </button>
+        <button
+          onClick={() => setActiveProtocol('hotspot')}
+          className={`p-3 rounded-lg border-2 transition-all ${
+            activeProtocol === 'hotspot' 
+              ? 'bg-[#F97316] border-[#F97316]' 
+              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
+          }`}
+        >
+          <div className="text-2xl mb-1">📶</div>
+          <div className="text-xs font-bold text-[#E8EEF7]">Hotspot</div>
+        </button>
+      </div>
+
+      {activeProtocol === 'ble' && (
+        <div className="animate-fadeIn">
+          <BluetoothScanner />
+        </div>
+      )}
+      {activeProtocol === 'webrtc' && (
+        <div className="animate-fadeIn">
+          <WebRTCManager />
+        </div>
+      )}
+      {activeProtocol === 'hotspot' && (
+        <div className="animate-fadeIn">
+          <HotspotManager />
+        </div>
+      )}
+
+      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4">
+        <h3
+          className="text-sm font-bold text-[#E8EEF7] uppercase tracking-widest mb-3"
+          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+        >
+          Network Status
+        </h3>
+        <NetworkStatus />
+      </div>
+
+      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4">
+        <h3
+          className="text-sm font-bold text-[#E8EEF7] uppercase tracking-widest mb-3"
+          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+        >
+          Emergency Mode
+        </h3>
+        <EmergencyMode />
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 const NAV = [
   { id: "home" as Tab, label: "Home", icon: Home },
   { id: "alert" as Tab, label: "Alert", icon: Bell },
   { id: "map" as Tab, label: "Map", icon: Map },
   { id: "comms" as Tab, label: "Comms", icon: MessageCircle },
+  { id: "protocols" as Tab, label: "Protocols", icon: Settings },
 ];
 
 export default function App() {
@@ -1041,6 +1307,7 @@ export default function App() {
           {tab === "home"  && <HomeTab  liveNodes={liveNodes} />}
           {tab === "alert" && <AlertTab nodeCount={peerCount} />}
           {tab === "comms" && <CommsTab />}
+          {tab === "protocols" && <ProtocolsTab />}
         </div>
 
         {/* Map tab — rendered as a flex-1 sibling so it gets the full available

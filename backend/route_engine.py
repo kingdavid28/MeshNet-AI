@@ -232,8 +232,10 @@ class RouteEngine:
         now = time.time()
         cached = self._graph_cache.get(scenario)
         if cached and (now - cached[1]) < self._cache_ttl:
+            log.info("Using cached graph for scenario %s (age %.1fs)", scenario, now - cached[1])
             return cached[0]
 
+        log.info("Building fresh graph for scenario %s", scenario)
         builder = MeshGraphBuilder(
             api_base=self._api_base,
             scenario=scenario,
@@ -241,4 +243,5 @@ class RouteEngine:
         )
         G = builder.build()
         self._graph_cache[scenario] = (G, now)
+        log.info("Graph cached: %d nodes, %d edges", G.number_of_nodes(), G.number_of_edges())
         return G

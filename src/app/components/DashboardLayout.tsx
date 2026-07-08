@@ -22,8 +22,13 @@ import { useCloudantNodes, type CloudantNode } from "../hooks/useCloudantNodes";
 import { useRouting } from "../hooks/useRouting";
 import { useSignalStream } from "../hooks/useSignalStream";
 import { useDeviceLocation } from "../hooks/useDeviceLocation";
-import { Radio, Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap } from "lucide-react";
-import { useState } from "react";
+import { BluetoothScanner } from "../../components/BluetoothScanner";
+import { WebRTCManager } from "../../components/WebRTCManager";
+import { HotspotManager } from "../../components/HotspotManager";
+import { NetworkStatus } from "../../components/NetworkStatus";
+import { EmergencyMode } from "../../components/EmergencyMode";
+import { Radio, Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, Home, Bell, Map, MessageCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
 // ─── Activity log ─────────────────────────────────────────────────────────────
 
@@ -49,13 +54,13 @@ function makeEntry(type: string, message: string): LogEntry {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DashboardLayout() {
-  const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000);
+  const deviceLocation = useDeviceLocation();
+  const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000, deviceLocation.lat, deviceLocation.lng);
   const { result: routeResult, loading: routeLoading, error: routeError, query: queryRoute } = useRouting();
   const { latestFlicker, flickerHistory, connected: sseConnected, dismiss: dismissFlicker } = useSignalStream();
-  const deviceLocation = useDeviceLocation();
 
   const [log, setLog] = useState<LogEntry[]>([
-    makeEntry("system", "Dashboard initialized — IBM Cloudant sync active"),
+    makeEntry("system", "Dashboard initialized — IBM Cloudant sync active... acquiring GPS"),
   ]);
 
   // Disaster scenario state
@@ -64,10 +69,55 @@ export default function DashboardLayout() {
   const [broadcastActive,  setBroadcastActive]  = useState(false);
   // Clicked node for route source selection
   const [selectedNodeId,   setSelectedNodeId]   = useState<string | null>(null);
+  // Desktop tab state
+  const [activeTab,        setActiveTab]        = useState<"dashboard" | "protocols">("dashboard");
+  // Protocol selection
+  const [activeProtocol,   setActiveProtocol]   = useState<'ble' | 'webrtc' | 'hotspot' | null>(null);
 
   const appendLog = (type: string, message: string) => {
     setLog((prev) => [makeEntry(type, message), ...prev].slice(0, 40));
   };
+
+  // ── Self-registration: register/heartbeat the rescuer "You" node ──────────
+  const selfRegistered = useRef(false);
+  useEffect(() => {
+    if (deviceLocation.status !== "ok" || deviceLocation.lat == null || deviceLocation.lng == null) return;
+    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000";
+    const secret  = (import.meta.env.VITE_MESH_SECRET as string | undefined) ?? localStorage.getItem("mesh-secret") ?? "";
+    const nodeId  = (() => {
+      let id = localStorage.getItem("meshnet_node_id");
+      if (!id) {
+        id = `device-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        localStorage.setItem("meshnet_node_id", id);
+        localStorage.setItem("meshnet_node_label", "You");
+      }
+      return id;
+    })();
+
+    void fetch(`${apiBase}/api/mesh/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(secret ? { "X-Mesh-Secret": secret } : {}) },
+      body: JSON.stringify({
+        id:                nodeId,
+        label:             "You",
+        name:              "Rescuer (Desktop)",
+        device:            "laptop",
+        role:              "relay",
+        signal:            100,
+        batteryPercentage: 100,
+        bluetoothStatus:   false,
+        wifiStatus:        true,
+        lat:               deviceLocation.lat,
+        lng:               deviceLocation.lng,
+      }),
+      signal: AbortSignal.timeout(6_000),
+    }).then((r) => {
+      if (r.ok && !selfRegistered.current) {
+        selfRegistered.current = true;
+        appendLog("node", `You (${nodeId}) registered at ${deviceLocation.lat!.toFixed(5)}, ${deviceLocation.lng!.toFixed(5)}`);
+      }
+    }).catch(() => { /* offline — will retry on next GPS update */ });
+  }, [deviceLocation.lat, deviceLocation.lng, deviceLocation.status]);
 
   // ── HQ Broadcast ──────────────────────────────────────────────────────────
 
@@ -492,6 +542,197 @@ export default function DashboardLayout() {
             </div>
           </main>
         </div>
+
+        {/* ── Bottom Navigation Bar (Desktop) ───────────────────────────────── */}
+        <div
+          style={{
+            flexShrink: 0,
+            borderTop: "1px solid rgba(91,141,217,0.15)",
+            background: "rgba(10,21,38,0.8)",
+            padding: "12px 24px",
+          }}
+        >
+          <div className="flex items-center justify-center gap-8">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                activeTab === "dashboard"
+                  ? "bg-[#F97316] text-white"
+                  : "text-[#7B9CC4] hover:text-[#E8EEF7] hover:bg-[rgba(91,141,217,0.1)]"
+              }`}
+            >
+              <Route size={18} />
+              <span className="text-sm font-semibold">Dashboard</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("protocols")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                activeTab === "protocols"
+                  ? "bg-[#F97316] text-white"
+                  : "text-[#7B9CC4] hover:text-[#E8EEF7] hover:bg-[rgba(91,141,217,0.1)]"
+              }`}
+            >
+              <Settings size={18} />
+              <span className="text-sm font-semibold">Protocols</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── Protocols Panel (shown when protocols tab is active) ──────────────── */}
+        {activeTab === "protocols" && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(6,14,28,0.95)",
+              zIndex: 1000,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 24px",
+                borderBottom: "1px solid rgba(91,141,217,0.15)",
+                background: "rgba(10,21,38,0.8)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#F97316] flex items-center justify-center">
+                  <Settings size={16} className="text-white" />
+                </div>
+                <div>
+                  <div
+                    className="text-base font-black text-[#E8EEF7] tracking-wider uppercase leading-none"
+                    style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+                  >
+                    Connection Protocols
+                  </div>
+                  <div className="text-[9px] font-mono text-[#7B9CC4] tracking-widest uppercase">
+                    Mesh Networking Management
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className="w-10 h-10 rounded-lg bg-[rgba(91,141,217,0.2)] flex items-center justify-center hover:bg-[rgba(91,141,217,0.3)] transition-colors"
+              >
+                <X size={20} className="text-[#7B9CC4]" />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflow: "auto", padding: "24px" }}>
+              <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px" }}>
+                {/* Protocol Selection */}
+                <div
+                  style={{
+                    background: "rgba(11,29,58,0.6)",
+                    border: "1px solid rgba(91,141,217,0.15)",
+                    borderRadius: "12px",
+                    padding: "20px",
+                  }}
+                >
+                  <h3
+                    className="text-sm font-bold text-[#E8EEF7] uppercase tracking-widest mb-4"
+                    style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+                  >
+                    Select Protocol
+                  </h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+                    <button
+                      onClick={() => setActiveProtocol('ble')}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        activeProtocol === 'ble' 
+                          ? 'bg-[#F97316] border-[#F97316]' 
+                          : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)] hover:border-[rgba(91,141,217,0.4)]'
+                      }`}
+                    >
+                      <div style={{ fontSize: "24px", marginBottom: "8px" }}>📡</div>
+                      <div className="text-xs font-bold text-[#E8EEF7]">BLE</div>
+                    </button>
+                    <button
+                      onClick={() => setActiveProtocol('webrtc')}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        activeProtocol === 'webrtc' 
+                          ? 'bg-[#F97316] border-[#F97316]' 
+                          : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)] hover:border-[rgba(91,141,217,0.4)]'
+                      }`}
+                    >
+                      <div style={{ fontSize: "24px", marginBottom: "8px" }}>🔗</div>
+                      <div className="text-xs font-bold text-[#E8EEF7]">WebRTC</div>
+                    </button>
+                    <button
+                      onClick={() => setActiveProtocol('hotspot')}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        activeProtocol === 'hotspot' 
+                          ? 'bg-[#F97316] border-[#F97316]' 
+                          : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)] hover:border-[rgba(91,141,217,0.4)]'
+                      }`}
+                    >
+                      <div style={{ fontSize: "24px", marginBottom: "8px" }}>📶</div>
+                      <div className="text-xs font-bold text-[#E8EEF7]">Hotspot</div>
+                    </button>
+                  </div>
+
+                  {activeProtocol === 'ble' && (
+                    <div style={{ marginTop: "20px" }}>
+                      <BluetoothScanner />
+                    </div>
+                  )}
+                  {activeProtocol === 'webrtc' && (
+                    <div style={{ marginTop: "20px" }}>
+                      <WebRTCManager />
+                    </div>
+                  )}
+                  {activeProtocol === 'hotspot' && (
+                    <div style={{ marginTop: "20px" }}>
+                      <HotspotManager />
+                    </div>
+                  )}
+                </div>
+
+                {/* Network Status */}
+                <div
+                  style={{
+                    background: "rgba(11,29,58,0.6)",
+                    border: "1px solid rgba(91,141,217,0.15)",
+                    borderRadius: "12px",
+                    padding: "20px",
+                  }}
+                >
+                  <h3
+                    className="text-sm font-bold text-[#E8EEF7] uppercase tracking-widest mb-4"
+                    style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+                  >
+                    Network Status
+                  </h3>
+                  <NetworkStatus />
+                </div>
+
+                {/* Emergency Mode */}
+                <div
+                  style={{
+                    background: "rgba(11,29,58,0.6)",
+                    border: "1px solid rgba(91,141,217,0.15)",
+                    borderRadius: "12px",
+                    padding: "20px",
+                  }}
+                >
+                  <h3
+                    className="text-sm font-bold text-[#E8EEF7] uppercase tracking-widest mb-4"
+                    style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+                  >
+                    Emergency Mode
+                  </h3>
+                  <EmergencyMode />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

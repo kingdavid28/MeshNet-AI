@@ -32,12 +32,15 @@ export default defineConfig({
       // generate one, which avoids the dev-mode JSON syntax error.
       manifest: false,
       includeManifestIcons: false,
+      // Use custom service worker for mesh networking
+      filename: 'sw-enhanced.js',
       // Include all tiles and icons in the service worker's precache manifest
-      includeAssets: ['icons/*.svg', 'tiles/**/*.png', 'manifest.webmanifest'],
+      includeAssets: ['icons/*.svg', 'tiles/**/*.png', 'manifest.webmanifest', 'offline.html', 'sw-enhanced.js'],
       workbox: {
-        // Precache all built JS/CSS/HTML
-        globPatterns: ['**/*.{js,css,html,ico,svg}'],
-        // Runtime caching strategies
+        // Use custom service worker instead of generated one
+        // The sw-enhanced.js handles mesh-specific caching strategies
+        globPatterns: ['**/*.{js,css,html,ico,svg,png}'],
+        // Runtime caching strategies for mesh networking
         runtimeCaching: [
           {
             // Offline map tiles — CacheFirst, large quota
