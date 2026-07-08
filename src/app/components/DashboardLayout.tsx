@@ -23,6 +23,7 @@ import { useRouting } from "../hooks/useRouting";
 import { useSignalStream } from "../hooks/useSignalStream";
 import { useDeviceLocation } from "../hooks/useDeviceLocation";
 import { BluetoothScanner } from "../../components/BluetoothScanner";
+import { BluetoothMeshService } from "../../services/bluetooth";
 import { WebRTCManager } from "../../components/WebRTCManager";
 import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
@@ -58,6 +59,14 @@ export default function DashboardLayout() {
   const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000, deviceLocation.lat, deviceLocation.lng);
   const { result: routeResult, loading: routeLoading, error: routeError, query: queryRoute } = useRouting();
   const { latestFlicker, flickerHistory, connected: sseConnected, dismiss: dismissFlicker } = useSignalStream();
+
+  // Shared BLE service instance — used by the SOS portal as an emergency fallback
+  // and by the BluetoothScanner UI for direct connect/scans.
+  const bleServiceRef = useRef<BluetoothMeshService | null>(null);
+  if (!bleServiceRef.current) {
+    bleServiceRef.current = new BluetoothMeshService();
+  }
+  const bleService = bleServiceRef.current;
 
   const [log, setLog] = useState<LogEntry[]>([
     makeEntry("system", "Dashboard initialized — IBM Cloudant sync active... acquiring GPS"),
@@ -392,7 +401,7 @@ export default function DashboardLayout() {
             <div className="border-t" style={{ borderColor: "rgba(91,141,217,0.12)" }} />
 
             {/* SOS Input Portal */}
-            <SosInputPortal onSend={handleSosSent} />
+            <SosInputPortal onSend={handleSosSent} bleService={bleService} />
           </aside>
 
           {/* RIGHT — Map + Route result + Activity log */}
@@ -679,7 +688,7 @@ export default function DashboardLayout() {
 
                   {activeProtocol === 'ble' && (
                     <div style={{ marginTop: "20px" }}>
-                      <BluetoothScanner />
+                      <BluetoothScanner service={bleService} />
                     </div>
                   )}
                   {activeProtocol === 'webrtc' && (

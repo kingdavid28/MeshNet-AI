@@ -1,15 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { BluetoothMeshService, BLEDevice, MeshMessage } from '../services/bluetooth';
 
+interface BluetoothScannerProps {
+  // Optional externally-managed service instance. When provided, the scanner
+  // shares that instance with the parent (e.g. DashboardLayout SOS portal).
+  service?: BluetoothMeshService | null;
+}
+
 // One shared service instance per mount — recreated on remount.
-function useBluetoothService() {
+function useBluetoothService(external?: BluetoothMeshService | null) {
   const ref = useRef<BluetoothMeshService | null>(null);
-  if (!ref.current) ref.current = new BluetoothMeshService();
+  if (external) return external;
+  ref.current ??= new BluetoothMeshService();
   return ref.current;
 }
 
-export function BluetoothScanner() {
-  const svc = useBluetoothService();
+export function BluetoothScanner({ service }: Readonly<BluetoothScannerProps>) {
+  const svc = useBluetoothService(service);
   const [supported]      = useState(() => BluetoothMeshService.isSupported());
   const [scanning,       setScanning]       = useState(false);
   const [connecting,     setConnecting]     = useState(false);
@@ -17,23 +24,40 @@ export function BluetoothScanner() {
   const [connected,      setConnected]      = useState(false);
   const [lastMsg,        setLastMsg]        = useState<string | null>(null);
   const [error,          setError]          = useState<string | null>(null);
+  const [emergencyQueue, setEmergencyQueue] = useState(0);
 
   useEffect(() => {
     const onConnected    = (d: BLEDevice)      => { setDevice(d); setConnected(true); setError(null); };
     const onDisconnected = (_d: BLEDevice)     => { setConnected(false); setLastMsg(null); };
     const onData         = (m: MeshMessage)    => setLastMsg(`${m.type} from ${m.deviceId}`);
     const onSos          = (m: MeshMessage)    => setLastMsg(`🆘 SOS from ${m.deviceId}`);
+    const onEmergency    = (m: MeshMessage)    => {
+      const packet = (m.payload as { lat?: number; lng?: number; message?: string } | undefined) ?? {};
+      const loc = packet.lat != null && packet.lng != null
+        ? `${packet.lat.toFixed(5)}, ${packet.lng.toFixed(5)}`
+        : 'no GPS';
+      const suffix = packet.message ? ` — ${packet.message}` : '';
+      setLastMsg(`🆘 EMERGENCY from ${m.deviceId} @ ${loc}${suffix}`);
+    };
+    const updateQueue = () => setEmergencyQueue(svc.pendingCount);
 
     svc.on('connected',    onConnected);
     svc.on('disconnected', onDisconnected);
     svc.on('dataReceived', onData);
     svc.on('sos',          onSos);
+    svc.on('emergency',    onEmergency);
+
+    // Poll queue length so UI can show pending emergency packets
+    const id = setInterval(updateQueue, 1_000);
+    updateQueue();
 
     return () => {
       svc.off('connected',    onConnected);
       svc.off('disconnected', onDisconnected);
       svc.off('dataReceived', onData);
       svc.off('sos',          onSos);
+      svc.off('emergency',    onEmergency);
+      clearInterval(id);
       svc.disconnect();
     };
   }, [svc]);
@@ -131,6 +155,19 @@ export function BluetoothScanner() {
         </div>
       )}
 
+      {/* Emergency queue banner */}
+      {emergencyQueue > 0 && (
+        <div className="rounded-lg border border-amber-700 bg-amber-900/20 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400 shrink-0 text-xs">⏳</span>
+            <p className="text-amber-300 text-xs font-bold">
+              {emergencyQueue} emergency packet{emergencyQueue > 1 ? 's' : ''} queued for BLE
+            </p>
+          </div>
+          <span className="text-[10px] text-amber-400 font-mono">auto-flush on connect</span>
+        </div>
+      )}
+
       {/* Connected state */}
       {connected ? (
         <div className="space-y-3">
@@ -144,7 +181,7 @@ export function BluetoothScanner() {
             </div>
             <div className="pt-2 border-t border-green-800 space-y-1">
               <p className="text-green-400 text-xs">✓ GATT connected — receiving mesh messages</p>
-              <p className="text-green-400 text-xs">✓ Registered as relay node in backend</p>
+              <p className="text-green-400 text-xs">✓ Auto-flushing queued emergency packets</p>
             </div>
           </div>
           <button
@@ -172,6 +209,12 @@ export function BluetoothScanner() {
             )}
           </button>
 
+          {emergencyQueue > 0 && (
+            <p className="text-amber-400 text-[10px] font-mono text-center">
+              Connect to a MeshNet device to flush {emergencyQueue} queued emergency packet{emergencyQueue > 1 ? 's' : ''}
+            </p>
+          )}
+
           {/* How-it-works callout */}
           <div className="rounded-lg bg-[#132B5A] p-4 space-y-2">
             <p className="text-[#E8EEF7] text-xs font-bold uppercase tracking-widest">How it works</p>
@@ -182,7 +225,7 @@ export function BluetoothScanner() {
                 'Select the phone. This desktop becomes a BLE Central, connects to the phone\'s GATT server, and registers it as a relay node.',
                 'Messages and SOS alerts are relayed bidirectionally over the BLE link.',
               ].map((step, i) => (
-                <li key={i} className="flex gap-3">
+                <li key={step.slice(0, 24)} className="flex gap-3">
                   <span className="text-[#F97316] font-bold shrink-0 text-xs">{i + 1}.</span>
                   <span className="text-[#7B9CC4] text-xs">{step}</span>
                 </li>

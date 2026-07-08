@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { BluetoothMeshService, type EmergencyPacket } from "../../services/bluetooth";
 import {
   AlertTriangle,
   Heart,
@@ -53,6 +54,7 @@ interface EmergencyType {
 
 interface Props {
   onSend?: (payload: SosPayload) => void;
+  bleService?: BluetoothMeshService | null;
 }
 
 // ─── Emergency type catalogue ─────────────────────────────────────────────────
@@ -180,7 +182,7 @@ const API_BASE: string =
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function SosInputPortal({ onSend }: Readonly<Props>) {
+export default function SosInputPortal({ onSend, bleService }: Readonly<Props>) {
   const [selectedType, setSelectedType]       = useState<string | null>(null);
   const [message, setMessage]                 = useState("");
   const [sending, setSending]                 = useState(false);
@@ -269,6 +271,8 @@ export default function SosInputPortal({ onSend }: Readonly<Props>) {
     const secret      = localStorage.getItem("mesh-secret") ?? "";
 
     let delivered = false;
+    let bleDelivered = false;
+    let bleAttempted = false;
     try {
       const res = await fetch(`${API_BASE}/api/alerts`, {
         method: "POST",
@@ -277,14 +281,33 @@ export default function SosInputPortal({ onSend }: Readonly<Props>) {
         signal: AbortSignal.timeout(6_000),
       });
       delivered = res.ok;
-    } catch { /* network error — fall through to queue */ }
+    } catch { /* network error — fall through to BLE / queue */ }
 
-    if (!delivered) {
+    // Fallback: send compact emergency packet over BLE if available
+    if (!delivered && bleService && BluetoothMeshService.isSupported()) {
+      bleAttempted = true;
+      const nodeId = localStorage.getItem("mesh-device-id") ?? `ble-${crypto.randomUUID().slice(0, 6)}`;
+      const packet: EmergencyPacket = {
+        nodeId: nodeId.slice(-6),
+        category: payload.type,
+        lat: payload.lat ?? null,
+        lng: payload.lng ?? null,
+        battery: 100, // desktop rescuer node — no native battery API, report full
+        timestamp: Date.now(),
+        message: payload.message.slice(0, 100),
+      };
+      bleDelivered = await bleService.sendEmergencyPacket(packet);
+    }
+
+    if (!delivered && !bleDelivered) {
       const queue = loadQueue();
       queue.push({ id: crypto.randomUUID(), payload, backendType, queuedAt: new Date().toISOString() });
       saveQueue(queue);
       setQueuedCount(queue.length);
-      setError("⚠ Backend unreachable — SOS queued. Will retry automatically.");
+      const fallbackText = bleAttempted
+        ? "⚠ Backend + BLE unreachable — SOS queued. Will retry on both channels automatically."
+        : "⚠ Backend unreachable — SOS queued. Will retry automatically.";
+      setError(fallbackText);
     }
 
     onSend?.(payload);
