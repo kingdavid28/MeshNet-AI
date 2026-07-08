@@ -2,7 +2,10 @@ const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('node:path');
 const http = require('node:http');
 const { exec } = require('node:child_process');
+const { promisify } = require('node:util');
 const WiFiModule = require('./wifi-module/index');
+
+const execAsync = promisify(exec);
 
 let mainWindow;
 let redirectServer = null;
@@ -290,12 +293,68 @@ function tryDNSListen(server, port, addr) {
   });
 }
 
+function redirectBody(url) {
+  return `<!DOCTYPE html>
+<html><head><meta http-equiv="refresh" content="0;url=${url}">
+<title>MeshNet Emergency</title>
+</head>
+<body><a href="${url}">Tap here to open MeshNet Emergency</a></body></html>`;
+}
+
 function makeProbeHandler(joinUrl) {
   return (req, res) => {
     console.log(`[CaptivePortal] ${req.method} ${req.url} from ${req.socket.remoteAddress}`);
-    res.writeHead(302, { Location: joinUrl, 'Cache-Control': 'no-cache' });
-    res.end();
+    const body = redirectBody(joinUrl);
+    res.writeHead(302, {
+      Location: joinUrl,
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Content-Length': Buffer.byteLength(body),
+    });
+    res.end(body);
   };
+}
+
+async function checkPortproxy(hotspotIP) {
+  try {
+    const { stdout } = await execAsync('netsh interface portproxy show v4tov4');
+    return stdout.includes(hotspotIP) && stdout.includes('80') && stdout.includes('8080');
+  } catch {
+    return false;
+  }
+}
+
+async function startDNSHijack(ip) {
+  const dns = createDNSServer(ip);
+  try {
+    await tryDNSListen(dns, 53, ip);
+    dnsServer = dns;
+    console.log(`[CaptivePortal] DNS hijack on ${ip}:53`);
+    return true;
+  } catch (error_) {
+    console.warn('[CaptivePortal] DNS bind failed:', error_.code);
+    return false;
+  }
+}
+
+async function startHTTPRedirect(joinUrl) {
+  const server = http.createServer(makeProbeHandler(joinUrl));
+  try {
+    await tryListen(server, 8080, '0.0.0.0');
+    redirectServer = server;
+    console.log(`[CaptivePortal] HTTP server on 0.0.0.0:8080 -> ${joinUrl}`);
+    return true;
+  } catch (error_) {
+    console.warn('[CaptivePortal] Port 8080 bind failed:', error_.code);
+    return false;
+  }
+}
+
+function portalMethod(dnsActive, httpActive) {
+  if (dnsActive && httpActive) return 'dns+http';
+  if (dnsActive) return 'dns';
+  if (httpActive) return 'http';
+  return 'manual';
 }
 
 ipcMain.handle('start-redirect-server', async (event, hotspotIP) => {
@@ -306,44 +365,27 @@ ipcMain.handle('start-redirect-server', async (event, hotspotIP) => {
     if (dnsServer)      { dnsServer.close();      dnsServer      = null; }
     if (redirectServer) { redirectServer.close();  redirectServer = null; }
 
-    // ── Tier 1: DNS hijack ─────────────────────────────────────────────────
-    let dnsActive = false;
-    const dns = createDNSServer(ip);
-    try {
-      await tryDNSListen(dns, 53, ip);
-      dnsServer = dns;
-      dnsActive = true;
-      console.log(`[CaptivePortal] DNS hijack on ${ip}:53`);
-    } catch (error_) {
-      console.warn('[CaptivePortal] DNS bind failed:', error_.code);
-    }
+    const dnsActive  = await startDNSHijack(ip);
+    const httpActive = await startHTTPRedirect(joinUrl);
+    const proxied    = httpActive ? await checkPortproxy(ip) : false;
 
-    // ── Tier 2: HTTP redirect server on port 8080 ─────────────────────────
-    // Portproxy rule 192.168.137.1:80 → 192.168.137.1:8080 must exist.
-    // Added by setup-captive-portal IPC (one-time admin UAC).
-    let httpActive = false;
-    const server = http.createServer(makeProbeHandler(joinUrl));
-    try {
-      await tryListen(server, 8080, '0.0.0.0');
-      redirectServer = server;
-      httpActive = true;
-      console.log(`[CaptivePortal] HTTP server on 0.0.0.0:8080, portproxy 80→8080 → ${joinUrl}`);
-    } catch (error_) {
-      console.warn('[CaptivePortal] Port 8080 bind failed:', error_.code);
-    }
-
-    if (dnsActive || httpActive) {
-      let method;
-      if (dnsActive && httpActive)  { method = 'dns+http'; }
-      else if (dnsActive)           { method = 'dns'; }
-      else                          { method = 'http'; }
-      return { success: true, method, port: httpActive ? 8080 : null, manualUrl: null };
+    const method = portalMethod(dnsActive, httpActive);
+    if (method !== 'manual') {
+      return {
+        success: true,
+        method,
+        port: httpActive ? 8080 : null,
+        proxied,
+        manualUrl: proxied ? null : joinUrl,
+        warning: proxied ? null : 'Click "Enable Auto-Popup" to run the one-time setup.',
+      };
     }
 
     return {
       success: true,
       method: 'manual',
       port: null,
+      proxied: false,
       manualUrl: joinUrl,
       warning: 'Click "Enable Auto-Popup" to run the one-time setup.',
     };
@@ -373,10 +415,16 @@ async function stopRedirectServer() {
 //   2. Firewall rules for UDP 53, TCP 8080, TCP 4000
 ipcMain.handle('setup-captive-portal', async (event, hotspotIP) => {
   const ip = hotspotIP || '192.168.137.1'; // NOSONAR
+  // Delete any stale rules first so re-running the setup never fails on
+  // "entry already exists" errors. Use parentheses to keep cmd chaining robust.
   const cmds = [
+    `netsh interface portproxy delete v4tov4 listenaddress=${ip} listenport=80`,
     `netsh interface portproxy add v4tov4 listenaddress=${ip} listenport=80 connectaddress=${ip} connectport=8080`,
+    `netsh advfirewall firewall delete rule name="MeshNet DNS"`,
     `netsh advfirewall firewall add rule name="MeshNet DNS"  dir=in action=allow protocol=UDP localport=53`,
+    `netsh advfirewall firewall delete rule name="MeshNet HTTP"`,
     `netsh advfirewall firewall add rule name="MeshNet HTTP" dir=in action=allow protocol=TCP localport=8080`,
+    `netsh advfirewall firewall delete rule name="MeshNet API"`,
     `netsh advfirewall firewall add rule name="MeshNet API"  dir=in action=allow protocol=TCP localport=4000`,
   ].join(' & ');
   const escaped = cmds.replaceAll('"', String.raw`\"`);

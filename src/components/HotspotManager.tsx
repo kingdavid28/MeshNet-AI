@@ -207,12 +207,18 @@ export function HotspotManager() {
     try {
       const portalResult = await desktopWiFiService.startRedirectServer(ip || DEFAULT_HOTSPOT_IP);
       const method = portalResult?.method;
-      if (method === 'dns+http' || method === 'dns' || method === 'http') {
+      const proxied = portalResult?.proxied;
+      // Both DNS hijack and HTTP redirect must be running for the auto-popup to work.
+      const bothTiers = method === 'dns+http';
+      if (bothTiers && proxied) {
+        setCaptivePortalStatus('proxied');
+        console.log('[HotspotManager] Captive portal fully active (dns+http) — phones will auto-popup');
+      } else if (bothTiers) {
         setCaptivePortalStatus('auto');
-        console.log(`[HotspotManager] Captive portal active (${method}) — phones will auto-popup`);
+        console.warn('[HotspotManager] Captive portal servers running but portproxy missing — click Enable Auto-Popup');
       } else {
         setCaptivePortalStatus('manual');
-        console.warn('[HotspotManager] No captive portal available — victims must open URL manually');
+        console.warn('[HotspotManager] Captive portal unavailable — both DNS and HTTP redirect are required');
       }
     } catch (err) {
       setCaptivePortalStatus('manual');
@@ -328,8 +334,8 @@ export function HotspotManager() {
     );
   }
 
-  const portalAuto = captivePortalStatus === 'auto' || captivePortalStatus === 'proxied';
-  const portalManual = captivePortalStatus === 'manual';
+  const portalAuto = captivePortalStatus === 'proxied';
+  const portalNeedsSetup = captivePortalStatus === 'auto' || captivePortalStatus === 'manual';
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-gray-900 rounded-xl">
@@ -443,8 +449,8 @@ export function HotspotManager() {
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${portalAuto ? 'bg-green-400 animate-pulse' : 'bg-orange-400'}`} />
             <p className={`text-xs font-semibold ${portalAuto ? 'text-green-300' : 'text-orange-300'}`}>
-              {captivePortalStatus === 'auto'    && 'Auto captive portal — DNS active'}
               {captivePortalStatus === 'proxied' && 'Auto captive portal — active'}
+              {captivePortalStatus === 'auto'    && 'Auto captive portal — setup needed'}
               {captivePortalStatus === 'manual'  && 'Manual mode — auto-popup unavailable'}
               {!captivePortalStatus              && 'Captive portal starting…'}
             </p>
@@ -454,7 +460,7 @@ export function HotspotManager() {
           <p className="text-[11px] leading-relaxed text-gray-400">
             {portalAuto
               ? 'Phones that join MeshNet Wi-Fi will automatically receive a "Sign in to network" popup leading to the SOS page.'
-              : 'Phones must open the URL below in their browser to access the SOS page.'}
+              : 'Click Enable Auto-Popup and accept the UAC prompt so phones get the "Sign in to network" popup. Until then, victims must open the URL below manually.'}
           </p>
 
           {/* URL box */}
@@ -471,8 +477,8 @@ export function HotspotManager() {
             </button>
           </div>
 
-          {/* Enable auto-popup button (only in manual mode) */}
-          {portalManual && (
+          {/* Enable auto-popup button when the kernel portproxy is missing */}
+          {portalNeedsSetup && (
             <button
               onClick={async () => {
                 const eAPI = (globalThis as any).electronAPI;

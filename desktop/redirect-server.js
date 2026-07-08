@@ -3,67 +3,49 @@ const http = require('node:http');
 // Hotspot gateway IP — phones on the hotspot reach the backend at this address.
 // Passed in from main.js via ipcMain when startRedirectServer is invoked.
 const HOTSPOT_IP   = process.argv[2] || '192.168.137.1'; // NOSONAR
-const REDIRECT_PORT = 80;
+// Windows ICS (iphlpsvc) owns the hotspot IP on port 80 and resets unknown
+// connections. We therefore bind on port 8080 and rely on the kernel-level
+// portproxy rule 192.168.137.1:80 -> 192.168.137.1:8080 (set up via the
+// "Enable Auto-Popup" / setup-captive-portal IPC in the Electron app).
+const REDIRECT_PORT = 8080;
+const LISTEN_ADDR   = '0.0.0.0';
 const JOIN_URL      = `http://${HOTSPOT_IP}:4000/api/mesh/join`;
 
-// URLs that iOS, Android, and Windows use to detect a captive portal.
-// Responding to these with a non-200 / redirect triggers the "Sign in to network"
-// popup automatically — the victim never has to open a browser manually.
-const CAPTIVE_PROBE_PATHS = new Set([
-  '/generate_204',              // Android / Chrome
-  '/gen_204',                   // Android fallback
-  '/hotspot-detect.html',       // Apple iOS / macOS
-  '/library/test/success.html', // Apple fallback
-  '/ncsi.txt',                  // Windows NCSI
-  '/connecttest.txt',           // Windows 10+
-  '/redirect',                  // generic
-  '/canonical.html',            // Firefox
-]);
+function redirectBody(url) {
+  return `<!DOCTYPE html>
+<html><head><meta http-equiv="refresh" content="0;url=${url}">
+<title>MeshNet Emergency</title>
+</head>
+<body>
+<a href="${url}">Tap here to open MeshNet Emergency</a>
+</body></html>`;
+}
+
+function sendRedirect(res, url) {
+  const body = redirectBody(url);
+  res.writeHead(302, {
+    Location: url,
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Content-Length': Buffer.byteLength(body),
+  });
+  res.end(body);
+}
 
 const server = http.createServer((req, res) => {
   console.log(`[CaptivePortal] ${req.method} ${req.url} from ${req.socket.remoteAddress}`);
-
-  // Android connectivity check — must return 204 with a Location header to
-  // trigger the captive portal notification.
-  if (req.url === '/generate_204' || req.url === '/gen_204') {
-    res.writeHead(302, { Location: JOIN_URL });
-    res.end();
-    return;
-  }
-
-  // Apple captive portal check — must NOT return 200 "Success" to trigger popup.
-  if (req.url === '/hotspot-detect.html' || req.url === '/library/test/success.html') {
-    res.writeHead(302, { Location: JOIN_URL });
-    res.end();
-    return;
-  }
-
-  // Windows NCSI checks — redirect to trigger captive portal browser.
-  if (req.url === '/ncsi.txt' || req.url === '/connecttest.txt') {
-    res.writeHead(302, { Location: JOIN_URL });
-    res.end();
-    return;
-  }
-
-  // All other requests — redirect to the SOS join page.
-  res.writeHead(302, {
-    Location: JOIN_URL,
-    'Content-Type': 'text/html; charset=utf-8',
-  });
-  res.end(
-    `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${JOIN_URL}"></head>` +
-    `<body><a href="${JOIN_URL}">Tap here to open MeshNet Emergency</a></body></html>`
-  );
+  sendRedirect(res, JOIN_URL);
 });
 
-server.listen(REDIRECT_PORT, HOTSPOT_IP, () => {
-  console.log(`[CaptivePortal] Listening on http://${HOTSPOT_IP}:${REDIRECT_PORT}`);
+server.listen(REDIRECT_PORT, LISTEN_ADDR, () => {
+  console.log(`[CaptivePortal] Listening on http://${LISTEN_ADDR}:${REDIRECT_PORT}`);
+  console.log(`[CaptivePortal] Requires portproxy ${HOTSPOT_IP}:80 -> ${HOTSPOT_IP}:${REDIRECT_PORT}`);
   console.log(`[CaptivePortal] All traffic -> ${JOIN_URL}`);
 });
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`[CaptivePortal] Port 80 already in use — run as Administrator.`);
+    console.error(`[CaptivePortal] Port ${REDIRECT_PORT} already in use.`);
   } else {
     console.error(`[CaptivePortal] Error: ${err.message}`);
   }

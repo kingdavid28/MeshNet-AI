@@ -51,42 +51,55 @@ function encodeName(name) {
   return Buffer.concat([...bufs, Buffer.alloc(1)]); // trailing 0
 }
 
+const DNS_TTL_SECONDS = 30; // short TTL keeps the popup fresh across reconnects
+
 function buildResponse(queryBuf, gatewayIP) {
   // Parse query header
-  const txId   = queryBuf.slice(0, 2);
+  const txId    = queryBuf.slice(0, 2);
+  const flags   = queryBuf.readUInt16BE(2);
   const qdCount = queryBuf.readUInt16BE(4);
   if (qdCount === 0) return null;
 
-  // Parse question section
-  const { name, end: qEnd } = parseName(queryBuf, 12);
-  const qType  = queryBuf.readUInt16BE(qEnd);
-  const qClass = queryBuf.readUInt16BE(qEnd + 2);
+  // Parse question section (domain name is consumed; we only need the end offset)
+  const { end: qEnd } = parseName(queryBuf, 12);
+  const qType = queryBuf.readUInt16BE(qEnd);
 
-  // Only answer A (1) and ANY (255) queries
-  if (qType !== 1 && qType !== 255) return null;
+  // We answer A (1) and ANY (255) with the gateway IP.
+  // For AAAA (28) and other types we return NOERROR with an empty answer so
+  // the phone falls back to the IPv4 A record rather than treating the domain
+  // as non-existent.
+  const answerA = qType === 1 || qType === 255;
+  const anCount = answerA ? 1 : 0;
 
-  // Header: ID | QR=1 AA=1 RD=1 RA=1 | RCODE=0 | qdcount=1 | ancount=1 | 0 | 0
+  // Header: copy ID, set QR=1 AA=1 RD=1 RA=1, NOERROR
   const header = Buffer.alloc(12);
   txId.copy(header, 0);
-  header.writeUInt16BE(0x8480, 2); // QR=1, AA=1, RD=1, RA=1
+  // QR=1, OPCODE=0, AA=1, TC=0, RD=bit from query, RA=1, RCODE=0
+  const rd = flags & 0x0100;
+  header.writeUInt16BE(0x8400 | rd, 2);
   header.writeUInt16BE(1, 4);      // qdcount
-  header.writeUInt16BE(1, 6);      // ancount
-  header.writeUInt16BE(0, 8);
-  header.writeUInt16BE(0, 10);
+  header.writeUInt16BE(anCount, 6);
+  header.writeUInt16BE(0, 8);      // nscount
+  header.writeUInt16BE(0, 10);     // arcount (no OPT additional record)
 
   // Echo question
   const question = queryBuf.slice(12, qEnd + 4);
 
-  // Answer RR: name pointer (0xc00c → offset 12), type A, class IN, TTL 0, rdlength 4, ip
-  const answer = Buffer.alloc(16);
-  answer.writeUInt16BE(0xc00c, 0); // pointer to question name
-  answer.writeUInt16BE(1, 2);      // type A
-  answer.writeUInt16BE(1, 4);      // class IN
-  answer.writeUInt32BE(0, 6);      // TTL 0 (no caching — keep popup fresh)
-  answer.writeUInt16BE(4, 10);     // rdlength
-  gatewayIP.split('.').forEach((octet, i) => { answer[12 + i] = parseInt(octet, 10); });
+  const parts = [header, question];
 
-  return Buffer.concat([header, question, answer]);
+  if (answerA) {
+    // Answer RR: name pointer (0xc00c → offset 12), type A, class IN, TTL, rdlength 4, ip
+    const answer = Buffer.alloc(16);
+    answer.writeUInt16BE(0xc00c, 0); // pointer to question name
+    answer.writeUInt16BE(1, 2);      // type A
+    answer.writeUInt16BE(1, 4);      // class IN
+    answer.writeUInt32BE(DNS_TTL_SECONDS, 6);
+    answer.writeUInt16BE(4, 10);     // rdlength
+    gatewayIP.split('.').forEach((octet, i) => { answer[12 + i] = Number.parseInt(octet, 10); });
+    parts.push(answer);
+  }
+
+  return Buffer.concat(parts);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
