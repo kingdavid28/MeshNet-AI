@@ -209,14 +209,23 @@ export default function SosInputPortal({ onSend, bleService }: Readonly<Props>) 
       }
     };
 
-    if (navigator.geolocation) {
+    const tryBrowserGPS = () => {
+      if (!navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => setGpsCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => { tryElectronGPS(); },
+        () => { /* ignore — browser geolocation failed */ },
         { timeout: 8000, maximumAge: 30_000 },
       );
-    } else {
+    };
+
+    // In Electron, always use the Windows Location API IPC first. Browser
+    // geolocation in Chromium hits Google's network location service and
+    // returns 403 without an API key.
+    const api = (window as Record<string, any>).electronAPI;
+    if (api?.getLocation) {
       tryElectronGPS();
+    } else if (navigator.geolocation) {
+      tryBrowserGPS();
     }
   }, []);
 

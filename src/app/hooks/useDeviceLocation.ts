@@ -54,12 +54,30 @@ async function tryElectronLocation(): Promise<DeviceLocation | null> {
   return null;
 }
 
+function isElectronLocationAvailable(): boolean {
+  return !!(window as Record<string, any>).electronAPI?.getLocation;
+}
+
 export function useDeviceLocation(): DeviceLocation {
   const [loc, setLoc] = useState<DeviceLocation>(INITIAL);
 
   useEffect(() => {
+    // In the Electron desktop app, always use the Windows Location API IPC
+    // first. Chromium's browser geolocation hits Google's network location
+    // service and returns 403 without a Google API key.
+    if (isElectronLocationAvailable()) {
+      setLoc((prev) => ({ ...prev, status: "acquiring" }));
+      tryElectronLocation().then((elLoc) => {
+        setLoc(elLoc ?? {
+          lat: null, lng: null, accuracy: null,
+          status: "unavailable",
+          error: "Electron location unavailable",
+        });
+      });
+      return;
+    }
+
     if (!("geolocation" in navigator)) {
-      // No browser geolocation — try Electron IPC directly
       setLoc((prev) => ({ ...prev, status: "acquiring" }));
       tryElectronLocation().then((elLoc) => {
         setLoc(elLoc ?? {

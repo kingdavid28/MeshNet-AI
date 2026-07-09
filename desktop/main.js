@@ -39,6 +39,9 @@ const PROD_CSP = [
   "font-src    'self' https://fonts.gstatic.com",
   "img-src     'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
   `connect-src 'self' http://localhost:* ws://localhost:* https://tile.openstreetmap.org ${HOTSPOT_ORIGINS}`,
+  "object-src  'none'",
+  "base-uri    'self'",
+  "form-action 'self'",
 ].join('; ');
 
 function createWindow() {
