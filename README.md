@@ -1,6 +1,10 @@
 
   # Mobile App UI Design
 
+  <p align="center">
+    <img src="public/MeshnetLogo.png" alt="MeshNet AI" width="320" />
+  </p>
+
   This is a code bundle for Mobile App UI Design. The original project is available at https://www.figma.com/design/wB8QPHCwQU1tXKgbpFxHR9/Mobile-App-UI-Design.
 
   ## Running the code

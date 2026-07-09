@@ -28,7 +28,7 @@ import { WebRTCManager } from "../../components/WebRTCManager";
 import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
-import { Radio, Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, Home, Bell, Map, MessageCircle } from "lucide-react";
+import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, Home, Bell, Map, MessageCircle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 // ─── Activity log ─────────────────────────────────────────────────────────────
@@ -247,19 +247,14 @@ export default function DashboardLayout() {
         >
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#F97316] flex items-center justify-center">
-              <Radio size={16} className="text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <div
-                className="text-base font-black text-[#E8EEF7] tracking-wider uppercase leading-none"
-                style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-              >
-                MeshNet AI
-              </div>
-              <div className="text-[9px] font-mono text-[#7B9CC4] tracking-widest uppercase">
-                Emergency Routing · Command Dashboard
-              </div>
+            <img
+              src="/MeshnetLogo.png"
+              alt="MeshNet AI"
+              className="h-8 w-auto"
+              style={{ objectFit: "contain" }}
+            />
+            <div className="text-[9px] font-mono text-[#7B9CC4] tracking-widest uppercase">
+              Emergency Routing · Command Dashboard
             </div>
           </div>
 
