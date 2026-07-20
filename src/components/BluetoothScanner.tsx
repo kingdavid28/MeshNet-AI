@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { BluetoothMeshService, BLEDevice, MeshMessage } from '../services/bluetooth';
+import { meshDeviceEmitter } from './NetworkStatus';
 
 interface BluetoothScannerProps {
   // Optional externally-managed service instance. When provided, the scanner
@@ -27,8 +28,8 @@ export function BluetoothScanner({ service }: Readonly<BluetoothScannerProps>) {
   const [emergencyQueue, setEmergencyQueue] = useState(0);
 
   useEffect(() => {
-    const onConnected    = (d: BLEDevice)      => { setDevice(d); setConnected(true); setError(null); };
-    const onDisconnected = (_d: BLEDevice)     => { setConnected(false); setLastMsg(null); };
+    const onConnected    = (d: BLEDevice)      => { setDevice(d); setConnected(true); setError(null); meshDeviceEmitter.updateCount(1); };
+    const onDisconnected = (_d: BLEDevice)     => { setConnected(false); setLastMsg(null); meshDeviceEmitter.updateCount(0); };
     const onData         = (m: MeshMessage)    => setLastMsg(`${m.type} from ${m.deviceId}`);
     const onSos          = (m: MeshMessage)    => setLastMsg(`🆘 SOS from ${m.deviceId}`);
     const onEmergency    = (m: MeshMessage)    => {
@@ -59,6 +60,7 @@ export function BluetoothScanner({ service }: Readonly<BluetoothScannerProps>) {
       svc.off('emergency',    onEmergency);
       clearInterval(id);
       svc.disconnect();
+      meshDeviceEmitter.updateCount(0);
     };
   }, [svc]);
 

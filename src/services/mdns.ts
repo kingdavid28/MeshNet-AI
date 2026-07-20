@@ -1,3 +1,5 @@
+import { getApiBase, getMeshSecret } from '../utils/env';
+
 // Simplified mDNS/Bonjour discovery service for MeshNet
 // In a production environment, this would use native mDNS libraries
 // For now, we simulate discovery using periodic network scanning
@@ -12,7 +14,7 @@ interface MeshNetService {
 }
 
 class MDNSService {
-  private discoveryInterval: NodeJS.Timeout | null = null;
+  private discoveryInterval: ReturnType<typeof setInterval> | null = null;
   private discoveredServices: MeshNetService[] = [];
   private listeners: ((services: MeshNetService[]) => void)[] = [];
 
@@ -77,14 +79,16 @@ class MDNSService {
       '192.168.42.1',     // NOSONAR — Android hotspot gateway
       '10.42.0.1',        // NOSONAR — Linux (NetworkManager) hotspot gateway
     ];
+    const defaultBase = getApiBase();
 
     for (const host of commonHotspotIPs) {
       try {
-        const response = await fetch(`http://${host}:4000/api/mesh/join`, {
+        const base = host === 'localhost' ? defaultBase : `http://${host}:4000`;
+        const response = await fetch(`${base}/api/mesh/join`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'X-Mesh-Secret': localStorage.getItem('mesh-secret') || ''
+            'X-Mesh-Secret': getMeshSecret()
           },
           // Short timeout so unreachable IPs fail fast instead of blocking for 60s
           signal: AbortSignal.timeout(3_000),

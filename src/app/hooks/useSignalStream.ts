@@ -16,6 +16,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getApiBase, getMeshSecret } from "../../utils/env";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,9 +55,7 @@ const RECONNECT_MS = 3_000;
 export function useSignalStream(
   apiBase?: string
 ): UseSignalStreamResult {
-  const base = apiBase
-    ?? (import.meta.env.VITE_API_BASE_URL as string | undefined)
-    ?? "http://localhost:4000";
+  const base = apiBase ?? getApiBase();
 
   const [latestFlicker,  setLatestFlicker]  = useState<FlickerAlert | null>(null);
   const [flickerHistory, setFlickerHistory] = useState<FlickerAlert[]>([]);
@@ -74,7 +73,7 @@ export function useSignalStream(
     // EventSource cannot set request headers, so the shared secret is passed as
     // a query param instead.  Read it here (inside the callback) so it is always
     // the value baked into the current bundle, not a stale closure.
-    const secret = import.meta.env.VITE_MESH_SECRET as string | undefined;
+    const secret = getMeshSecret();
     const streamUrl = secret
       ? `${base}/api/signal/stream?secret=${encodeURIComponent(secret)}`
       : `${base}/api/signal/stream`;

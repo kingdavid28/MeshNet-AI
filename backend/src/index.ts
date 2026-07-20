@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 const envPath = path.resolve(process.cwd(), "config/.env");
 dotenv.config({ path: envPath });
 
+import http from "node:http";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -21,6 +22,7 @@ import { requireMeshAuth } from "./middleware/auth";
 import { startEvictionJob } from "./jobs/eviction";
 import { cloudantRouter }  from "./routes/cloudant";
 import { db } from "./db";
+import { setupSignalingServer } from "./signaling";
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -29,7 +31,7 @@ const PORT = process.env.PORT ?? 4000;
 // Restrict to known origins in production via CORS_ORIGINS env var.
 // Multiple origins are comma-separated: "https://app.example.com,http://10.0.0.5:5173"
 // Falls back to localhost dev server if not set — never wildcards in production.
-const rawOrigins = process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:4173";
+const rawOrigins = process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:4173,http://localhost:8081";
 const allowedOrigins = rawOrigins.split(",").map((o) => o.trim()).filter(Boolean);
 
 // Configure helmet with relaxed CSP for the join endpoint
@@ -81,7 +83,10 @@ app.use("/api/cloudant",  requireMeshAuth, cloudantRouter);
 // Evict stale nodes (last_seen > 5 min) from the topology every 30 s.
 startEvictionJob(db);
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+setupSignalingServer(server);
+
+server.listen(PORT, () => {
   console.log(`[MeshNet] Backend running on port ${PORT}`);
   console.log(`[MeshNet] Allowed CORS origins: ${allowedOrigins.join(", ")}`);
 });

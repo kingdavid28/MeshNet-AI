@@ -18,6 +18,8 @@
  * so the wire format is actually: { iv: "<12-byte base64>", ct: "<ct+tag base64>" }
  */
 
+import { getMeshSecret } from "../../utils/env";
+
 const ALGORITHM = "AES-GCM";
 const KEY_LENGTH = 256;
 
@@ -31,7 +33,7 @@ function getMeshKey(): Promise<CryptoKey> {
   if (_keyPromise) return _keyPromise;
 
   _keyPromise = (async () => {
-    const secret = (import.meta.env.VITE_MESH_SECRET as string | undefined) ?? "";
+    const secret = getMeshSecret();
 
     if (!secret) {
       // No shared secret — generate a random ephemeral key (messages are still
@@ -83,7 +85,7 @@ export async function encryptMessage(plaintext: string): Promise<string> {
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertextBuf), iv.byteLength);
 
-  return btoa(String.fromCharCode(...combined));
+  return btoa(String.fromCodePoint(...combined));
 }
 
 /**
@@ -93,7 +95,7 @@ export async function encryptMessage(plaintext: string): Promise<string> {
 export async function decryptMessage(ciphertext: string): Promise<string | null> {
   try {
     const key     = await getMeshKey();
-    const bytes   = Uint8Array.from(atob(ciphertext), (c) => c.charCodeAt(0));
+    const bytes   = Uint8Array.from(atob(ciphertext), (c) => c.codePointAt(0) ?? 0);
     const iv      = bytes.slice(0, 12);
     const payload = bytes.slice(12);
 

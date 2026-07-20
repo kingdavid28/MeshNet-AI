@@ -137,8 +137,8 @@ function applyTick(prev: CloudantNode[]): CloudantNode[] {
     const ble  = Math.random() < 0.03 ? !node.bluetooth_status : node.bluetooth_status;
     const wifi = Math.random() < 0.03 ? !node.wifi_status      : node.wifi_status;
 
-    const newLat  = node.latitude  + dLat;
-    const newLng  = node.longitude + dLng;
+    const newLat  = (node.latitude ?? 0)  + dLat;
+    const newLng  = (node.longitude ?? 0) + dLng;
     const newProto = deriveProtocol(ble, wifi);
 
     // Bail out early if nothing meaningful changed (avoids object allocation)

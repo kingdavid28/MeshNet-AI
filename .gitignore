@@ -1,6 +1,7 @@
 ﻿# Local environment variables (never commit)
 .env.local
 .env*.local
+backend/config/.env
 
 # Build output
 dist/

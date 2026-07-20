@@ -2,4 +2,6 @@ include ':app'
 
 // Capacitor Android library — bundled with @capacitor/android package
 def capacitorAndroid = new File(['node', '--print', "require.resolve('@capacitor/android/package.json')"].execute(null, rootDir).text.trim()).getParentFile()
-apply from: new File(capacitorAndroid, "capacitor.settings.gradle")
+// Manually include the capacitor-android project
+include ':capacitor-android'
+project(':capacitor-android').projectDir = new File(capacitorAndroid, 'capacitor')

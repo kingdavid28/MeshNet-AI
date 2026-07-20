@@ -40,6 +40,7 @@ export default defineConfig({
         // Use custom service worker instead of generated one
         // The sw-enhanced.js handles mesh-specific caching strategies
         globPatterns: ['**/*.{js,css,html,ico,svg,png}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // Runtime caching strategies for mesh networking
         runtimeCaching: [
           {

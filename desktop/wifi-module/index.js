@@ -212,26 +212,44 @@ class WiFiModule {
   async getConnectedDevicesARP() {
     try {
       console.log('[WiFi] Using ARP fallback method...');
-      
+
       // Get Mobile Hotspot interface details using PowerShell
       const psCommand = `
-        Get-NetAdapter | 
-        Where-Object { $_.Name -like '*Mobile*' -or $_.Name -like '*Hotspot*' } | 
+        Get-NetAdapter |
+        Where-Object { $_.Name -like '*Mobile*' -or $_.Name -like '*Hotspot*' } |
         Select-Object -ExpandProperty InterfaceAlias
       `;
-      
+
       let hotspotInterface = '';
+      let hotspotIP = '';
       try {
         const { stdout } = await execAsync(`powershell -Command "${psCommand}"`);
         const interfaces = stdout.trim().split('\n').filter(i => i.trim());
         if (interfaces.length > 0) {
           hotspotInterface = interfaces[0].trim();
           console.log('[WiFi] Hotspot interface:', hotspotInterface);
+
+          // Get the IP address of the hotspot interface
+          const ipCommand = `powershell -Command "Get-NetIPAddress -InterfaceAlias '${hotspotInterface}' -AddressFamily IPv4 | Select-Object -ExpandProperty IPAddress"`;
+          const { stdout: ipOutput } = await execAsync(ipCommand);
+          const ips = ipOutput.trim().split('\n').filter(ip => ip.trim());
+          if (ips.length > 0) {
+            hotspotIP = ips[0].trim();
+            console.log('[WiFi] Hotspot IP:', hotspotIP);
+
+            // Clear ARP cache for the hotspot interface to remove stale entries
+            try {
+              await execAsync(`arp -d ${hotspotIP}`);
+              console.log('[WiFi] Cleared ARP cache for hotspot interface');
+            } catch (error) {
+              // Ignore ARP clear errors - may not have permission or entries
+            }
+          }
         }
       } catch (error) {
         console.log('[WiFi] Could not get hotspot interface name');
       }
-      
+
       // Get ARP table
       const arpCommand = 'arp -a';
       const { stdout: arpOutput } = await execAsync(arpCommand);
@@ -282,9 +300,22 @@ class WiFiModule {
       // Get host MACs to filter out
       const hostMacs = await this.getHostMACAddresses();
       const clientDevices = devices.filter(device => !hostMacs.includes(device.mac));
-      
-      console.log(`[WiFi] Connected devices (ARP): ${clientDevices.length}, Devices: ${JSON.stringify(clientDevices)}`);
-      return clientDevices;
+
+      // Verify devices are actually reachable by pinging them
+      const activeDevices = [];
+      for (const device of clientDevices) {
+        try {
+          // Quick ping with 1 second timeout
+          await execAsync(`ping -n 1 -w 1000 ${device.ip}`);
+          activeDevices.push(device);
+        } catch (error) {
+          // Device not reachable, skip it
+          console.log(`[WiFi] Device ${device.ip} not reachable, skipping`);
+        }
+      }
+
+      console.log(`[WiFi] Connected devices (ARP + ping): ${activeDevices.length}, Devices: ${JSON.stringify(activeDevices)}`);
+      return activeDevices;
       
     } catch (error) {
       console.error('[WiFi] ARP fallback failed:', error.message);
@@ -526,15 +557,15 @@ class WiFiModule {
         throw new Error('Application is not running with administrator privileges. Please restart as administrator.');
       }
       
-      // Emergency best practice: No password for instant auto-connect
-      // Windows Mobile Hotspot requires password, but we set it to empty for open network
-      // This enables instant connection for emergency scenarios
+      // Windows Mobile Hotspot requires WPA2 security - cannot create open network
+      // Using simple password for emergency access
+      const password = config.password || '12345678'; // Simple password for easy entry
       console.log(`Creating emergency mobile hotspot with SSID: "${ssid}"`);
-      console.log(`Creating OPEN network (no password) for instant emergency access`);
+      console.log(`Using WPA2 security with simple password: "${password}"`);
       
       // Try to enable Mobile Hotspot using PowerShell
       try {
-        console.log('Attempting to enable Mobile Hotspot as open network...');
+        console.log('Attempting to enable Mobile Hotspot with WPA2 security...');
         
         // Set Mobile Hotspot SSID using registry
         const setSsidCommand = String.raw`powershell -Command "Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\WlanSvc\Parameters\HostedNetworkSettings' -Name 'SSID' -Value ([byte[]](char[]'${ssid}'))"`;
@@ -557,21 +588,21 @@ class WiFiModule {
           console.error(`Failed to open Mobile Hotspot settings: ${enableError.message}`);
         }
         
-        // Provide manual activation instructions for open network
+        // Provide manual activation instructions with password
         return {
           success: true,
           message: 'Mobile Hotspot settings opened for manual activation',
           manualInstructions: [
             '1. In the opened Mobile Hotspot settings window:',
             '2. Set Network name to "MeshNet"',
-            '3. Leave Network password EMPTY (open network)',
+            '3. Set Network password to: 12345678',
             '4. Toggle "Share my internet connection" to ON',
-            '5. Devices can now auto-connect instantly - no password needed',
+            '5. Victims can connect using this simple password',
             '6. Once activated, return to this app to continue'
           ],
-          password: null, // No password for open network
-          isOpen: true,
-          method: 'Windows Mobile Hotspot (Open Network - No Password)'
+          password: password,
+          isOpen: false,
+          method: 'Windows Mobile Hotspot (WPA2 Security)'
         };
         
       } catch (mobileHotspotError) {
@@ -585,9 +616,9 @@ class WiFiModule {
             '1. Open Windows Settings (Windows Key + I)',
             '2. Go to Network & Internet > Mobile Hotspot',
             '3. Set Network name to "MeshNet"',
-            '4. Leave Network password EMPTY (open network)',
+            '4. Set Network password to: 12345678',
             '5. Toggle "Share my internet connection" to ON',
-            '6. Devices can now auto-connect instantly - no password needed',
+            '6. Victims can connect using this simple password',
             '7. Return to this app to continue'
           ],
           error: mobileHotspotError.message,

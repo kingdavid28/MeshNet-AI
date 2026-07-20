@@ -19,6 +19,8 @@
 
 import { useState } from "react";
 import { Waves, ShieldAlert, Activity, Radio, Zap, CheckCircle2 } from "lucide-react";
+import { getApiBase } from "../../utils/env";
+import { meshHeaders } from "../constants";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,10 +90,10 @@ export default function DisasterControlPanel({
     // POST critical alert to the backend
     try {
       await fetch(
-        `${(import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000"}/api/alerts`,
+        `${getApiBase()}/api/alerts`,
         {
           method:  "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: meshHeaders(),
           body: JSON.stringify({
             type:     "sos",
             severity: "critical",

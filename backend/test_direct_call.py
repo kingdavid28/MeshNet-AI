@@ -10,7 +10,6 @@ url = "http://localhost:4000/api/mesh/topology"
 
 print(f"Secret: {secret[:20] if secret else 'None'}...")
 print(f"URL: {url}")
-print(f"Full secret: {secret}")
 
 headers = {"X-Mesh-Secret": secret} if secret else {}
 print(f"Headers: {headers}")

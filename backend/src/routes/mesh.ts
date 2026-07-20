@@ -78,233 +78,70 @@ function joinHandler(req: Request, res: Response) {
   // Derive gateway IP from the incoming request so this works on any hotspot subnet.
   // req.socket.localAddress is the interface IP the server accepted the connection on.
   const gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
-  const apiBase   = `http://${gatewayIp}:4000`;
+  const clientIp = req.socket.remoteAddress?.replace("::ffff:", "") ?? "127.0.0.1";
 
-  const html = `<!DOCTYPE html>
+  // Only redirect if request is coming from a hotspot client (not localhost)
+  // This prevents redirect loops when called from the desktop app itself
+  if (clientIp === "127.0.0.1" || clientIp === "::1" || clientIp === "localhost") {
+    // Called from localhost - serve the simple registration form
+    const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>MeshNet Emergency</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeshNet - Join Network</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --red:   #ef4444;
-      --green: #22c55e;
-      --bg:    #0d1117;
-      --card:  #161b22;
-      --text:  #e6edf3;
-      --muted: #8b949e;
-      --border:#30363d;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px 24px;
-      width: 100%;
-      max-width: 420px;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(239,68,68,0.15);
-      border: 1px solid rgba(239,68,68,0.4);
-      color: var(--red);
-      border-radius: 99px;
-      padding: 4px 12px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pulse 1s infinite; }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-    h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-    .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
-    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
-    input[type=text] {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 16px;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    input[type=text]:focus { border-color: var(--red); }
-    .gps-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 20px;
-      min-height: 20px;
-    }
-    .sos-btn {
-      width: 100%;
-      background: var(--red);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 20px;
-      font-weight: 800;
-      padding: 16px;
-      cursor: pointer;
-      letter-spacing: 0.05em;
-      transition: background 0.2s, transform 0.1s;
-    }
-    .sos-btn:active { transform: scale(0.98); }
-    .sos-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
-    .success {
-      display: none;
-      text-align: center;
-      padding: 20px 0 8px;
-    }
-    .success-icon { font-size: 56px; margin-bottom: 12px; }
-    .success h2 { font-size: 20px; margin-bottom: 8px; color: var(--green); }
-    .success p { color: var(--muted); font-size: 14px; line-height: 1.6; }
-    .error-box {
-      display: none;
-      background: rgba(239,68,68,0.1);
-      border: 1px solid rgba(239,68,68,0.3);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: #fca5a5;
-      margin-top: 12px;
-    }
+    body { font-family: system-ui; max-width: 500px; margin: 50px auto; padding: 20px; }
+    h1 { color: #f97316; }
+    .info { background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0; }
   </style>
 </head>
 <body>
-<div class="card">
-  <div id="form-view">
-    <div class="badge"><span class="dot"></span>Emergency Network Active</div>
-    <h1>You are connected to MeshNet</h1>
-    <p class="sub">No internet needed. This device will relay emergency messages to rescue teams. Press SOS to register your location.</p>
-
-    <label for="name">Your name (optional)</label>
-    <input type="text" id="name" placeholder="e.g. Maria Santos" autocomplete="name" maxlength="60">
-
-    <label for="msg">Short message (optional)</label>
-    <input type="text" id="msg" placeholder="e.g. Trapped on 3rd floor, need help" maxlength="120">
-
-    <div class="gps-row" id="gps-status">
-      <span>&#x1F4CD; Getting your location&hellip;</span>
-    </div>
-
-    <button class="sos-btn" id="sos-btn" disabled>&#x1F198; SEND SOS</button>
-    <div class="error-box" id="err"></div>
+  <h1>MeshNet Emergency Network</h1>
+  <div class="info">
+    <p><strong>Join from a device:</strong></p>
+    <ol>
+      <li>Connect to the MeshNet Wi-Fi hotspot</li>
+      <li>Open your browser - captive portal will redirect automatically</li>
+      <li>Or visit: <a href="http://${gatewayIp}:8080/">http://${gatewayIp}:8080/</a></li>
+    </ol>
   </div>
-
-  <div class="success" id="success-view">
-    <div class="success-icon">&#x2705;</div>
-    <h2>SOS Sent Successfully</h2>
-    <p>Rescue teams have been notified. Keep this page open — your phone is now a relay node helping others reach the mesh network.</p>
-    <p style="margin-top:14px;color:#4ade80;font-size:13px;" id="node-id-line"></p>
-  </div>
-</div>
-
-<script>
-(function () {
-  var API   = '${apiBase}';
-  var lat   = null;
-  var lng   = null;
-  var nodeId = 'victim-' + Math.random().toString(36).slice(2, 10);
-
-  var gpsEl  = document.getElementById('gps-status');
-  var btn    = document.getElementById('sos-btn');
-  var errEl  = document.getElementById('err');
-
-  // --- GPS ---
-  function setGps(text, ok) {
-    gpsEl.innerHTML = (ok ? '&#x1F4CD; ' : '&#x26A0;&#xFE0F; ') + text;
-  }
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      function (pos) {
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-        setGps('Location found (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')', true);
-        btn.disabled = false;
-      },
-      function () {
-        setGps('Location unavailable — SOS will send without GPS', false);
-        btn.disabled = false;
-      },
-      { timeout: 8000, enableHighAccuracy: true }
-    );
-  } else {
-    setGps('GPS not supported on this device', false);
-    btn.disabled = false;
-  }
-
-  // --- SOS submit ---
-  btn.addEventListener('click', function () {
-    btn.disabled = true;
-    btn.textContent = 'Sending\u2026';
-    errEl.style.display = 'none';
-
-    var name = (document.getElementById('name').value.trim() || 'Unknown victim');
-    var msg  = document.getElementById('msg').value.trim();
-
-    var body = {
-      id:                nodeId,
-      label:             name + (msg ? ' \u2014 ' + msg : ''),
-      name:              name,
-      device:            'smartphone',
-      role:              'peer',
-      signal:            80,
-      batteryPercentage: 100,
-      bluetoothStatus:   false,
-      wifiStatus:        true,
-      lat:               lat,
-      lng:               lng,
-    };
-
-    fetch(API + '/api/mesh/register', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body),
-    })
-    .then(function (r) {
-      if (!r.ok) throw new Error('Server error ' + r.status);
-      document.getElementById('form-view').style.display  = 'none';
-      document.getElementById('success-view').style.display = 'block';
-      document.getElementById('node-id-line').textContent = 'Node ID: ' + nodeId;
-    })
-    .catch(function (e) {
-      errEl.textContent = 'Could not reach the network. Please try again. (' + e.message + ')';
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.innerHTML = '&#x1F198; SEND SOS';
-    });
-  });
-})();
-</script>
+  <p>This endpoint is for captive portal redirection. Access the PWA directly at the URL above.</p>
 </body>
 </html>`;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+    return;
+  }
 
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.send(html);
+  // Serve the full PWA from captive portal - redirect to main app
+  // This allows users to install the PWA directly from the captive portal
+  res.redirect(`http://${gatewayIp}:8080/`);
 }
+
+// ─── GET /api/mesh/discover ─────────────────────────────────────────────────────
+// Discovery endpoint for PWA to find backend on local network
+// Returns backend info including API base URL
+publicMeshRouter.get("/discover", (req: Request, res: Response) => {
+  const gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  res.json({
+    meshnet: true,
+    version: "2.4.0",
+    apiBase: `http://${gatewayIp}:4000`,
+    webBase: `http://${gatewayIp}:8080`,
+    capabilities: ["wifi-hotspot", "captive-portal", "https"],
+  });
+});
+meshRouter.get("/discover", (req: Request, res: Response) => {
+  const gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  res.json({
+    meshnet: true,
+    version: "2.4.0",
+    apiBase: `http://${gatewayIp}:4000`,
+    webBase: `http://${gatewayIp}:8080`,
+    capabilities: ["wifi-hotspot", "captive-portal", "https"],
+  });
+});
 
 // ─── POST /api/mesh/device/register ─────────────────────────────────────────────
 // Simplified device registration for captive portal flow

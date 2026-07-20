@@ -1,1238 +1,54 @@
-import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useState, useEffect } from "react";
+import { Radio, Wifi, Download, RefreshCw } from "lucide-react";
 import DashboardLayout from "./components/DashboardLayout";
-import NodeMapCanvas from "./components/NodeMapCanvas";
-import SimPerfOverlay from "./components/SimPerfOverlay";
+import { StatusBar } from "./components/StatusBar";
+import { HomeTab } from "./components/HomeTab";
+import { AlertTab } from "./components/AlertTab";
+import { MapTab } from "./components/MapTab";
+import { CommsTab } from "./components/CommsTab";
+import { ProtocolsTab } from "./components/ProtocolsTab";
+import { BLEScanner } from "../components/BLEScanner";
 import { useCloudantNodes } from "./hooks/useCloudantNodes";
-import { useDeviceLocation } from "./hooks/useDeviceLocation";
-import { useMeshDiscovery } from "./hooks/useMeshDiscovery";
-import { useMockNodeSimulation } from "./hooks/useMockNodeSimulation";
-import { encryptMessage, decryptMessage } from "./hooks/useMeshCrypto";
-import { BluetoothScanner } from "../components/BluetoothScanner";
-import { WebRTCManager } from "../components/WebRTCManager";
-import { HotspotManager } from "../components/HotspotManager";
-import { NetworkStatus } from "../components/NetworkStatus";
-import { EmergencyMode } from "../components/EmergencyMode";
-import { MeshNetDiscovery } from "../components/MeshNetDiscovery";
-import {
-  AlertTriangle,
-  Heart,
-  MapPin,
-  Radio,
-  Wifi,
-  Users,
-  Send,
-  Battery,
-  Signal,
-  Clock,
-  CheckCircle2,
-  Home,
-  Map,
-  Bell,
-  MessageCircle,
-  Zap,
-  Navigation,
-  Shield,
-  Settings,
-} from "lucide-react";
-
-type Tab = "home" | "alert" | "map" | "comms" | "protocols";
-type DeviceKind = "self" | "smartphone" | "laptop";
-type Protocol = "wifi" | "bluetooth";
-
-interface Node {
-  id: string;
-  label: string;
-  name: string;
-  x: number;
-  y: number;
-  device: DeviceKind;
-  role: "self" | "peer" | "relay";
-  signal: number;
-  lastSeen: string;
-  os?: string;
-}
-
-interface Edge {
-  a: string;
-  b: string;
-  protocol: Protocol;
-}
-
-interface Message {
-  id: string;
-  from: string;
-  text: string;
-  time: string;
-  type: "alert" | "medical" | "info" | "gps";
-  read: boolean;
-}
-
-const NODES: Node[] = [
-  { id: "self",  label: "YOU",     name: "Your Device",    x: 50, y: 50, device: "self",       role: "self",  signal: 100, lastSeen: "now",  os: "Android 14" },
-  { id: "n1",    label: "Ramos",   name: "iPhone 15 Pro",  x: 22, y: 30, device: "smartphone", role: "relay", signal: 87,  lastSeen: "12s",  os: "iOS 17" },
-  { id: "n2",    label: "Chen",    name: "MacBook Air",    x: 75, y: 22, device: "laptop",     role: "relay", signal: 72,  lastSeen: "34s",  os: "macOS 14" },
-  { id: "n3",    label: "MED·01",  name: "Galaxy S24",     x: 80, y: 65, device: "smartphone", role: "peer",  signal: 91,  lastSeen: "8s",   os: "Android 14" },
-  { id: "n4",    label: "CMD·HQ",  name: "ThinkPad X1",   x: 30, y: 72, device: "laptop",     role: "relay", signal: 55,  lastSeen: "1m",   os: "Ubuntu 24" },
-  { id: "n5",    label: "Torres",  name: "Pixel 8",        x: 60, y: 82, device: "smartphone", role: "peer",  signal: 64,  lastSeen: "45s",  os: "Android 14" },
-];
-
-const EDGES: Edge[] = [
-  { a: "self", b: "n1", protocol: "bluetooth" },
-  { a: "self", b: "n2", protocol: "wifi" },
-  { a: "self", b: "n3", protocol: "wifi" },
-  { a: "n1",  b: "n4", protocol: "bluetooth" },
-  { a: "n3",  b: "n5", protocol: "bluetooth" },
-  { a: "n4",  b: "n5", protocol: "wifi" },
-  { a: "n2",  b: "n3", protocol: "wifi" },
-];
-
-const MESSAGES: Message[] = [
-  { id: "m1", from: "MED-2", text: "Need insulin supplies at sector 4B. 2 patients.", time: "14:23", type: "medical", read: false },
-  { id: "m2", from: "Alpha", text: "Route to shelter via Main St blocked. Use Oak Ave.", time: "14:18", type: "info", read: false },
-  { id: "m3", from: "Unit 7", text: "GPS: 37.7749° N, 122.4194° W — Safe zone confirmed.", time: "14:09", type: "gps", read: true },
-  { id: "m4", from: "Cmd", text: "ALERT: Gas leak reported near District 5. Evacuate.", time: "13:55", type: "alert", read: true },
-];
-
-const msgTypeStyle: Record<string, string> = {
-  alert: "border-l-[#EF4444] bg-[#EF4444]/10",
-  medical: "border-l-[#F97316] bg-[#F97316]/10",
-  info: "border-l-[#7B9CC4] bg-[#7B9CC4]/8",
-  gps: "border-l-[#22C55E] bg-[#22C55E]/10",
-};
-
-const msgTypeIcon: Record<string, ReactNode> = {
-  alert: <AlertTriangle size={13} className="text-[#EF4444]" />,
-  medical: <Heart size={13} className="text-[#F97316]" />,
-  info: <Radio size={13} className="text-[#7B9CC4]" />,
-  gps: <MapPin size={13} className="text-[#22C55E]" />,
-};
-
-// Draw a smartphone icon centered at (cx, cy)
-function drawSmartphone(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, fill: string, stroke: string) {
-  const w = size * 0.55;
-  const h = size;
-  const r = size * 0.12;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  // Screen
-  ctx.beginPath();
-  ctx.roundRect(x + size * 0.07, y + size * 0.1, w - size * 0.14, h - size * 0.25, r * 0.5);
-  ctx.fillStyle = "rgba(255,255,255,0.12)";
-  ctx.fill();
-  // Home button dot
-  ctx.beginPath();
-  ctx.arc(cx, y + h - size * 0.07, size * 0.05, 0, Math.PI * 2);
-  ctx.fillStyle = stroke;
-  ctx.fill();
-}
-
-// Draw a laptop icon centered at (cx, cy)
-function drawLaptop(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, fill: string, stroke: string) {
-  const sw = size * 0.95;
-  const sh = size * 0.65;
-  const sx = cx - sw / 2;
-  const sy = cy - sh / 2 - size * 0.05;
-  // Screen body
-  ctx.beginPath();
-  ctx.roundRect(sx, sy, sw, sh, size * 0.08);
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  // Screen inner
-  ctx.beginPath();
-  ctx.roundRect(sx + size * 0.07, sy + size * 0.06, sw - size * 0.14, sh - size * 0.14, size * 0.04);
-  ctx.fillStyle = "rgba(255,255,255,0.1)";
-  ctx.fill();
-  // Base
-  const bw = sw * 1.1;
-  const bh = size * 0.12;
-  ctx.beginPath();
-  ctx.roundRect(cx - bw / 2, sy + sh, bw, bh, [0, 0, size * 0.08, size * 0.08]);
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
-
-function MeshCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [pulse, setPulse] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setPulse((p) => (p + 1) % 60), 50);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const W = canvas.width;
-    const H = canvas.height;
-
-    ctx.clearRect(0, 0, W, H);
-
-    // Grid dots
-    ctx.fillStyle = "rgba(91, 141, 217, 0.07)";
-    for (let x = 0; x < W; x += 20) {
-      for (let y = 0; y < H; y += 20) {
-        ctx.beginPath();
-        ctx.arc(x, y, 1, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    const toXY = (node: Node) => ({
-      px: (node.x / 100) * W,
-      py: (node.y / 100) * H,
-    });
-
-    // Protocol colors
-    const WIFI_COLOR   = "rgba(56, 189, 248, 0.7)";   // sky blue
-    const BT_COLOR     = "rgba(168, 85, 247, 0.7)";   // violet
-    const WIFI_PACKET  = "#38BDF8";
-    const BT_PACKET    = "#A855F7";
-
-    // Draw edges
-    EDGES.forEach((edge) => {
-      const a = NODES.find((n) => n.id === edge.a)!;
-      const b = NODES.find((n) => n.id === edge.b)!;
-      const { px: ax, py: ay } = toXY(a);
-      const { px: bx, py: by } = toXY(b);
-
-      const isWifi = edge.protocol === "wifi";
-      const lineColor = isWifi ? WIFI_COLOR : BT_COLOR;
-      const packetColor = isWifi ? WIFI_PACKET : BT_PACKET;
-
-      ctx.strokeStyle = lineColor;
-      ctx.lineWidth = isWifi ? 2 : 1.5;
-      ctx.setLineDash(isWifi ? [] : [5, 4]);
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.lineTo(bx, by);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Traveling packet
-      const t = (pulse / 60 + (edge.a.charCodeAt(0) * 0.17)) % 1;
-      const dx = ax + (bx - ax) * t;
-      const dy = ay + (by - ay) * t;
-      ctx.beginPath();
-      ctx.arc(dx, dy, 3, 0, Math.PI * 2);
-      ctx.fillStyle = packetColor;
-      ctx.fill();
-
-      // Protocol label on edge midpoint
-      const mx = (ax + bx) / 2;
-      const my = (ay + by) / 2;
-      ctx.font = "bold 7px JetBrains Mono, monospace";
-      ctx.fillStyle = lineColor;
-      ctx.textAlign = "center";
-      ctx.fillText(isWifi ? "WiFi" : "BT", mx, my - 4);
-    });
-
-    // Draw nodes
-    NODES.forEach((node) => {
-      const { px, py } = toXY(node);
-      const isSelf = node.device === "self";
-      const isLaptop = node.device === "laptop";
-      const isRelay = node.role === "relay";
-
-      const nodeColor = isSelf ? "#F97316" : isRelay ? "#22C55E" : "#5B8DD9";
-      const fillColor = isSelf
-        ? "rgba(249,115,22,0.2)"
-        : isRelay
-        ? "rgba(34,197,94,0.15)"
-        : "rgba(91,141,217,0.15)";
-      const size = isSelf ? 20 : isLaptop ? 18 : 16;
-
-      // Pulse ring for self
-      if (isSelf) {
-        const ripple = (pulse / 60) * 30;
-        const alpha = 1 - pulse / 60;
-        ctx.beginPath();
-        ctx.arc(px, py, size + ripple, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(249,115,22,${alpha * 0.35})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      // Draw device icon
-      if (isSelf) {
-        drawSmartphone(ctx, px, py, size, "#F97316", "#ffffff");
-      } else if (isLaptop) {
-        drawLaptop(ctx, px, py, size, fillColor, nodeColor);
-      } else {
-        drawSmartphone(ctx, px, py, size, fillColor, nodeColor);
-      }
-
-      // Label below
-      const labelY = py + size / 2 + 13;
-      ctx.font = `bold 8px Barlow Condensed, sans-serif`;
-      ctx.fillStyle = "#E8EEF7";
-      ctx.textAlign = "center";
-      ctx.fillText(node.label, px, labelY);
-
-      // Device sub-label
-      ctx.font = "7px Inter, sans-serif";
-      ctx.fillStyle = nodeColor;
-      ctx.fillText(isLaptop ? "laptop" : isSelf ? "you" : "phone", px, labelY + 9);
-    });
-  }, [pulse]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={320}
-      height={290}
-      className="w-full h-full"
-    />
-  );
-}
-
-function StatusBar({ nodeCount }: { nodeCount: number }) {
-  const [time, setTime] = useState(new Date());
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const hh = time.getHours().toString().padStart(2, "0");
-  const mm = time.getMinutes().toString().padStart(2, "0");
-
-  return (
-    <div className="flex items-center justify-between px-4 py-2 text-xs font-mono text-[#7B9CC4]">
-      <span>{hh}:{mm}</span>
-      <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1 text-[#22C55E]">
-          <Radio size={11} />
-          MESH·{nodeCount}
-        </span>
-        <Battery size={13} />
-        <Signal size={13} />
-      </div>
-    </div>
-  );
-}
-
-function HomeTab({ liveNodes }: { liveNodes: import("./hooks/useCloudantNodes").CloudantNode[] }) {
-  const [sosActive, setSosActive] = useState(false);
-  const [sosCountdown, setSosCountdown] = useState<number | null>(null);
-
-  const handleSOS = () => {
-    if (sosActive) return;
-    setSosCountdown(3);
-    const id = setInterval(() => {
-      setSosCountdown((c) => {
-        if (c === null || c <= 1) {
-          clearInterval(id);
-          setSosActive(true);
-          setTimeout(() => setSosActive(false), 5000);
-          return null;
-        }
-        return c - 1;
-      });
-    }, 1000);
-  };
-
-  return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Network health */}
-      {(() => {
-        const onlineNodes = liveNodes.filter((n) => n.signal > 0);
-        const avgSignal = onlineNodes.length > 0
-          ? Math.round(onlineNodes.reduce((s, n) => s + n.signal, 0) / onlineNodes.length)
-          : 0;
-        const stats = [
-          { label: "Nodes",   value: String(onlineNodes.length), sub: "online" },
-          { label: "Signal",  value: `${avgSignal}%`,            sub: "avg" },
-          { label: "Latency", value: "—",                        sub: "p95" },
-        ];
-        return (
-      <div className="rounded-xl border border-[rgba(91,141,217,0.2)] bg-[#132B5A] p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-            <span className="text-xs font-medium text-[#22C55E] uppercase tracking-widest" style={{ fontFamily: "Barlow Condensed, sans-serif" }}>
-              Mesh Active
-            </span>
-          </div>
-          <span className="text-xs font-mono text-[#7B9CC4]">{onlineNodes.length} nodes online</span>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-lg bg-[#0B1D3A]/60 px-3 py-2 text-center">
-              <div
-                className="text-xl font-bold text-[#E8EEF7] leading-none"
-                style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-              >
-                {s.value}
-              </div>
-              <div className="text-[10px] text-[#7B9CC4] mt-0.5 uppercase tracking-wide">{s.sub}</div>
-              <div className="text-[9px] text-[#7B9CC4]/60 uppercase tracking-wider">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-        );
-      })()}
-
-      {/* SOS Button */}
-      <button
-        onClick={handleSOS}
-        className={`relative w-full rounded-2xl py-6 flex flex-col items-center gap-1 transition-all duration-200 active:scale-95 ${
-          sosActive
-            ? "bg-[#EF4444] shadow-[0_0_40px_rgba(239,68,68,0.6)]"
-            : sosCountdown !== null
-            ? "bg-[#F97316]/80"
-            : "bg-[#F97316] shadow-[0_0_24px_rgba(249,115,22,0.35)]"
-        }`}
-      >
-        <AlertTriangle
-          size={32}
-          strokeWidth={2.5}
-          className="text-white"
-        />
-        <span
-          className="text-2xl font-black text-white tracking-widest uppercase"
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          {sosActive
-            ? "SOS BROADCASTING"
-            : sosCountdown !== null
-            ? `SENDING IN ${sosCountdown}...`
-            : "SOS ALERT"}
-        </span>
-        <span className="text-xs text-white/70 font-medium">Hold to broadcast emergency</span>
-        {sosActive && (
-          <div className="absolute inset-0 rounded-2xl border-2 border-white/40 animate-ping" />
-        )}
-      </button>
-
-      {/* Action grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <button className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4 flex flex-col items-start gap-3 active:bg-[#1A3870] transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-[#F97316]/15 flex items-center justify-center">
-            <Heart size={20} className="text-[#F97316]" />
-          </div>
-          <div>
-            <div
-              className="text-base font-bold text-[#E8EEF7] leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              Medical
-            </div>
-            <div
-              className="text-base font-bold text-[#E8EEF7] leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              Request
-            </div>
-            <div className="text-[10px] text-[#7B9CC4] mt-1">Flag medical need</div>
-          </div>
-        </button>
-
-        <button className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4 flex flex-col items-start gap-3 active:bg-[#1A3870] transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-[#22C55E]/15 flex items-center justify-center">
-            <Navigation size={20} className="text-[#22C55E]" />
-          </div>
-          <div>
-            <div
-              className="text-base font-bold text-[#E8EEF7] leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              Share
-            </div>
-            <div
-              className="text-base font-bold text-[#E8EEF7] leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              GPS
-            </div>
-            <div className="text-[10px] text-[#7B9CC4] mt-1">Broadcast position</div>
-          </div>
-        </button>
-
-        <button className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4 flex flex-col items-start gap-3 active:bg-[#1A3870] transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-[#5B8DD9]/15 flex items-center justify-center">
-            <Users size={20} className="text-[#5B8DD9]" />
-          </div>
-          <div>
-            <div
-              className="text-base font-bold text-[#E8EEF7] leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              All Clear
-            </div>
-            <div className="text-[10px] text-[#7B9CC4] mt-1">Signal safe status</div>
-          </div>
-        </button>
-
-        <button className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4 flex flex-col items-start gap-3 active:bg-[#1A3870] transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-[#22C55E]/15 flex items-center justify-center">
-            <Zap size={20} className="text-[#22C55E]" />
-          </div>
-          <div>
-            <div
-              className="text-base font-bold text-[#E8EEF7] leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              Relay
-            </div>
-            <div
-              className="text-base font-bold text-[#E8EEF7] leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              Mode
-            </div>
-            <div className="text-[10px] text-[#7B9CC4] mt-1">Boost network range</div>
-          </div>
-        </button>
-      </div>
-
-      {/* Recent activity */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span
-            className="text-sm font-bold text-[#7B9CC4] uppercase tracking-widest"
-            style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-          >
-            Recent Activity
-          </span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {MESSAGES.slice(0, 2).map((msg) => (
-            <div
-              key={msg.id}
-              className={`rounded-lg border-l-2 px-3 py-2.5 flex items-start gap-2 ${msgTypeStyle[msg.type]}`}
-            >
-              <span className="mt-0.5">{msgTypeIcon[msg.type]}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-xs font-semibold text-[#E8EEF7]">{msg.from}</span>
-                  {!msg.read && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
-                  )}
-                </div>
-                <p className="text-xs text-[#7B9CC4] truncate">{msg.text}</p>
-              </div>
-              <span className="text-[10px] font-mono text-[#7B9CC4]/60 shrink-0">{msg.time}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000";
-
-// Attach X-Mesh-Secret to every backend call made from App.tsx
-function meshHeaders(extra?: Record<string, string>): HeadersInit {
-  const secret = import.meta.env.VITE_MESH_SECRET as string | undefined;
-  return {
-    "Content-Type": "application/json",
-    ...(secret ? { "X-Mesh-Secret": secret } : {}),
-    ...extra,
-  };
-}
-
-// Map mobile alert type IDs to the backend alert schema
-const ALERT_TYPE_MAP: Record<string, string> = {
-  sos:     "sos",
-  medical: "medical",
-  safe:    "safe",
-  hazard:  "hazard",
-  supply:  "supply",
-  locate:  "locate",
-};
-
-// Map alert type to message category for the messages table
-const ALERT_MSG_CATEGORY: Record<string, "alert" | "medical" | "info" | "gps"> = {
-  sos:     "alert",
-  medical: "medical",
-  safe:    "info",
-  hazard:  "alert",
-  supply:  "info",
-  locate:  "gps",
-};
-
-// Human-readable label shown in CommsTab for each alert type
-const ALERT_LABEL: Record<string, string> = {
-  sos:     "🆘 SOS ALERT",
-  medical: "🏥 MEDICAL EMERGENCY",
-  safe:    "✅ I AM SAFE",
-  hazard:  "⚠️ HAZARD REPORTED",
-  supply:  "📦 NEEDS SUPPLIES",
-  locate:  "📍 LOCATION BROADCAST",
-};
-
-function AlertTab({ nodeCount }: { nodeCount: number }) {
-  const [alertType, setAlertType] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [queued, setQueued] = useState(false);
-  const deviceLocation = useDeviceLocation();
-
-  const handleSend = useCallback(async () => {
-    if (!alertType || sending) return;
-    setSending(true);
-
-    const lat = deviceLocation.lat ?? undefined;
-    const lng = deviceLocation.lng ?? undefined;
-
-    const payload = {
-      type:    ALERT_TYPE_MAP[alertType] ?? "sos",
-      message: message.trim() || undefined,
-      lat,
-      lng,
-    };
-
-    let delivered = false;
-    try {
-      const res = await fetch(`${API_BASE}/api/alerts`, {
-        method:  "POST",
-        headers: meshHeaders(),
-        body:    JSON.stringify(payload),
-        signal:  AbortSignal.timeout(6_000),
-      });
-      delivered = res.ok || res.status === 201;
-    } catch {
-      // Backend unreachable — queue for retry
-    }
-
-    if (delivered) {
-      // Fan-out: broadcast an encrypted mesh message so every node's CommsTab receives it
-      try {
-        const label   = ALERT_LABEL[alertType] ?? alertType.toUpperCase();
-        const gpsLine = lat != null && lng != null
-          ? ` · GPS ${lat.toFixed(5)}°N ${lng.toFixed(5)}°E`
-          : "";
-        const details  = message.trim() ? ` · ${message.trim()}` : "";
-        const plaintext = `${label}${details}${gpsLine}`;
-        const ciphertext = await encryptMessage(plaintext);
-        await fetch(`${API_BASE}/api/messages`, {
-          method:  "POST",
-          headers: meshHeaders(),
-          body:    JSON.stringify({
-            fromNodeId: localStorage.getItem("meshnet_node_id") ?? "self",
-            fromLabel:  localStorage.getItem("meshnet_node_label") ?? "Node",
-            toNodeId:   "broadcast",
-            category:   ALERT_MSG_CATEGORY[alertType] ?? "alert",
-            ciphertext,
-            hops:       0,
-          }),
-          signal: AbortSignal.timeout(6_000),
-        });
-      } catch { /* non-fatal — alert already stored */ }
-    } else {
-      // Queue alert in localStorage for background retry
-      const queue = JSON.parse(localStorage.getItem("meshnet_alert_queue") ?? "[]") as unknown[];
-      queue.push({ ...payload, queuedAt: Date.now() });
-      localStorage.setItem("meshnet_alert_queue", JSON.stringify(queue));
-      setQueued(true);
-    }
-
-    setSending(false);
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      setQueued(false);
-      setAlertType(null);
-      setMessage("");
-    }, 3_000);
-  }, [alertType, sending, message, deviceLocation]);
-
-  const types = [
-    { id: "sos", label: "SOS Alert", icon: <AlertTriangle size={22} />, color: "#EF4444", bg: "#EF4444" },
-    { id: "medical", label: "Medical", icon: <Heart size={22} />, color: "#F97316", bg: "#F97316" },
-    { id: "safe", label: "I am Safe", icon: <CheckCircle2 size={22} />, color: "#22C55E", bg: "#22C55E" },
-    { id: "hazard", label: "Hazard", icon: <Zap size={22} />, color: "#FBBF24", bg: "#FBBF24" },
-    { id: "supply", label: "Need Supplies", icon: <Shield size={22} />, color: "#5B8DD9", bg: "#5B8DD9" },
-    { id: "locate", label: "Locate Me", icon: <MapPin size={22} />, color: "#22C55E", bg: "#22C55E" },
-  ];
-
-  if (sent) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 p-8 h-full min-h-[480px]">
-        <div className={`w-20 h-20 rounded-full flex items-center justify-center ${queued ? "bg-[#F97316]/20" : "bg-[#22C55E]/20"}`}>
-          <CheckCircle2 size={40} className={queued ? "text-[#F97316]" : "text-[#22C55E]"} />
-        </div>
-        <div
-          className={`text-3xl font-black tracking-widest uppercase ${queued ? "text-[#F97316]" : "text-[#22C55E]"}`}
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          {queued ? "Alert Queued" : "Alert Sent"}
-        </div>
-        <p className="text-sm text-[#7B9CC4] text-center">
-          {queued
-            ? "Backend unreachable — will retry automatically when connected"
-            : `Broadcast to ${nodeCount} node${nodeCount !== 1 ? "s" : ""} · Relayed across mesh network`}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-5 p-4">
-      <div>
-        <h2
-          className="text-lg font-bold text-[#E8EEF7] uppercase tracking-widest"
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          Select Alert Type
-        </h2>
-        <p className="text-xs text-[#7B9CC4] mt-0.5">Will broadcast to all reachable nodes</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {types.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setAlertType(t.id)}
-            className={`rounded-xl p-4 flex flex-col items-center gap-2 border-2 transition-all duration-150 active:scale-95 ${
-              alertType === t.id
-                ? "border-current bg-current/20 shadow-[0_0_20px_currentColor/30]"
-                : "border-[rgba(91,141,217,0.15)] bg-[#132B5A]"
-            }`}
-            style={{ color: t.color } as React.CSSProperties}
-          >
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ background: `${t.color}20` }}
-            >
-              {t.icon}
-            </div>
-            <span
-              className="text-sm font-bold text-[#E8EEF7] text-center leading-tight"
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              {t.label}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-3">
-        <textarea
-          className="w-full bg-transparent text-sm text-[#E8EEF7] placeholder-[#7B9CC4]/50 resize-none outline-none"
-          rows={3}
-          placeholder="Add details (optional) — location, number of people, severity..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-        />
-      </div>
-
-      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.18)] p-3 flex items-center gap-3">
-        <Navigation size={16} className={deviceLocation.status === "ok" ? "text-[#22C55E] shrink-0" : "text-[#7B9CC4] shrink-0"} />
-        <div className="flex-1">
-          {deviceLocation.status === "ok" && deviceLocation.lat !== null && deviceLocation.lng !== null ? (
-            <div className="text-xs font-mono text-[#22C55E]">
-              {Math.abs(deviceLocation.lat).toFixed(4)}° {deviceLocation.lat >= 0 ? "N" : "S"} · {Math.abs(deviceLocation.lng).toFixed(4)}° {deviceLocation.lng >= 0 ? "E" : "W"}
-            </div>
-          ) : (
-            <div className="text-xs font-mono text-[#7B9CC4]">
-              {deviceLocation.status === "acquiring" ? "Acquiring GPS…" : deviceLocation.error ?? "GPS unavailable"}
-            </div>
-          )}
-          <div className="text-[10px] text-[#7B9CC4]">
-            {deviceLocation.status === "ok" ? "GPS locked · Auto-attach to alert" : "Alert will send without coordinates"}
-          </div>
-        </div>
-        {deviceLocation.status === "ok"
-          ? <CheckCircle2 size={14} className="text-[#22C55E]" />
-          : <Navigation size={14} className="text-[#7B9CC4] animate-pulse" />}
-      </div>
-
-      <button
-        onClick={handleSend}
-        disabled={!alertType || sending}
-        className={`w-full rounded-xl py-4 flex items-center justify-center gap-2 font-bold text-white transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-          alertType
-            ? "bg-[#F97316] shadow-[0_0_20px_rgba(249,115,22,0.3)]"
-            : "bg-[#132B5A] text-[#7B9CC4]"
-        }`}
-        style={{ fontFamily: "Barlow Condensed, sans-serif", fontSize: "1.125rem", letterSpacing: "0.1em" }}
-      >
-        <Send size={18} className={sending ? "animate-pulse" : ""} />
-        {sending ? "SENDING…" : "BROADCAST ALERT"}
-      </button>
-    </div>
-  );
-}
-
-/**
- * SIM_MODE — set VITE_SIM_MODE=true in .env.local to replace the live backend
- * poll with the local mock simulation.  The interval fires every TICK_MS ms
- * (default 5 000).  A perf overlay in the map corner shows tick cost and
- * React render count so you can verify the dashboard stays performant.
- */
-const SIM_MODE  = import.meta.env.VITE_SIM_MODE === "true";
-const TICK_MS   = parseInt(import.meta.env.VITE_SIM_TICK_MS as string ?? "5000", 10);
-
-function MapTab() {
-  const deviceLocation = useDeviceLocation();
-
-  // ── Live data source — either mock simulation or real backend ───────────
-  const live = useCloudantNodes(10_000);
-  const sim  = useMockNodeSimulation(TICK_MS);
-
-  const nodes   = SIM_MODE ? sim.nodes   : live.nodes;
-  const loading = SIM_MODE ? false        : live.loading;
-  const error   = SIM_MODE ? null         : live.error;
-  const source  = SIM_MODE
-    ? ("seed" as const)
-    : live.source;
-  const refresh = SIM_MODE ? () => {}     : live.refresh;
-
-  // ── Real device mesh discovery (BLE + Wi-Fi Direct via Capacitor plugin) ──
-  // On a real Android device this starts BLE advertising + scanning and
-  // Wi-Fi Direct peer discovery.  In the browser it is a safe no-op.
-  const { status: discoveryStatus, isNative } =
-    useMeshDiscovery({
-      nodeId:  localStorage.getItem("meshnet_node_id") ?? "mobile-user",
-      label:   "You",
-      battery: 80,
-      signal:  75,
-      deviceLocation,
-    });
-
-  return (
-    <div style={{ flex: 1, minHeight: 0, padding: 12, display: "flex", flexDirection: "column" }}>
-
-      {/* ── Discovery status strip (native only) ──────────────────────────── */}
-      {isNative && discoveryStatus && (
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "6px 10px", marginBottom: 8,
-            borderRadius: 8, flexShrink: 0,
-            background: "rgba(20,184,166,0.08)",
-            border: "1px solid rgba(20,184,166,0.2)",
-          }}
-        >
-          {/* BLE indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <div style={{
-              width: 6, height: 6, borderRadius: "50%",
-              background: discoveryStatus.scanning ? "#22C55E" : "#4B5563",
-            }} />
-            <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7B9CC4", textTransform: "uppercase" }}>
-              BLE
-            </span>
-          </div>
-          {/* Wi-Fi indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <div style={{
-              width: 6, height: 6, borderRadius: "50%",
-              background: discoveryStatus.wifiDirect ? "#3B82F6" : "#4B5563",
-            }} />
-            <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7B9CC4", textTransform: "uppercase" }}>
-              WiFi
-            </span>
-          </div>
-          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#14B8A6", marginLeft: "auto" }}>
-            {discoveryStatus.peersFound} peer{discoveryStatus.peersFound !== 1 ? "s" : ""} found
-          </span>
-        </div>
-      )}
-
-      {/* ── Simulation mode banner ─────────────────────────────────────────── */}
-      {SIM_MODE && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "4px 10px", marginBottom: 6, borderRadius: 6, flexShrink: 0,
-          background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.22)",
-          fontSize: 9, fontFamily: "monospace", color: "#F97316",
-          textTransform: "uppercase", letterSpacing: "0.08em",
-        }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316" }} />
-          Simulation mode · {TICK_MS / 1000}s tick · {sim.nodes.length} mock nodes
-        </div>
-      )}
-
-      {/* ── Map canvas (wraps relative so SimPerfOverlay can be positioned) ─ */}
-      <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
-        <NodeMapCanvas
-          nodes={nodes}
-          loading={loading}
-          error={error}
-          source={source}
-          onRefresh={refresh}
-          deviceLocation={deviceLocation}
-        />
-
-        {/* Perf overlay — simulation mode only, zero cost when SIM_MODE=false */}
-        {SIM_MODE && (
-          <SimPerfOverlay
-            stats={sim.stats}
-            tickMs={TICK_MS}
-            nodeCount={sim.nodes.length}
-            isPaused={sim.isPaused}
-            onPause={sim.pause}
-            onResume={sim.resume}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface LocalMessage {
-  id: string;
-  from: string;
-  text: string;
-  time: string;
-  type: "alert" | "medical" | "info" | "gps";
-  read: boolean;
-}
-
-function CommsTab() {
-  const [input, setInput] = useState("");
-  const [msgs, setMsgs] = useState<LocalMessage[]>([]);
-  const [sending, setSending] = useState(false);
-  const seenIds = useRef<Set<string>>(new Set());
-
-  // Poll backend for incoming messages every 5 s and decrypt them
-  useEffect(() => {
-    const nodeId = localStorage.getItem("meshnet_node_id") ?? "";
-
-    async function fetchIncoming() {
-      const incoming: LocalMessage[] = [];
-
-      // ── 1. Poll encrypted mesh messages ────────────────────────────────────
-      try {
-        const url = nodeId
-          ? `${API_BASE}/api/messages?nodeId=${encodeURIComponent(nodeId)}`
-          : `${API_BASE}/api/messages`;
-        const res = await fetch(url, {
-          headers: meshHeaders(),
-          signal: AbortSignal.timeout(6_000),
-        });
-        if (res.ok) {
-          const data = (await res.json()) as Array<{
-            id: string; fromLabel: string; ciphertext: string;
-            category: string; createdAt: string; fromNodeId: string;
-          }>;
-          for (const item of data) {
-            if (seenIds.current.has(item.id)) continue;
-            seenIds.current.add(item.id);
-            const plain = await decryptMessage(item.ciphertext);
-            const d = new Date(item.createdAt);
-            incoming.push({
-              id:   item.id,
-              from: item.fromLabel || item.fromNodeId,
-              text: plain ?? "[encrypted]",
-              time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
-              type: (item.category as LocalMessage["type"]) ?? "info",
-              read: false,
-            });
-          }
-        }
-      } catch { /* offline */ }
-
-      // ── 2. Poll alerts — surfaces SOS / medical requests from all nodes ────
-      try {
-        const aRes = await fetch(`${API_BASE}/api/alerts`, {
-          headers: meshHeaders(),
-          signal: AbortSignal.timeout(6_000),
-        });
-        if (aRes.ok) {
-          const alerts = (await aRes.json()) as Array<{
-            id: string; type: string; fromLabel: string; fromNodeId: string;
-            message?: string; lat?: number; lng?: number;
-            createdAt: string; acknowledged: boolean;
-          }>;
-          for (const a of alerts) {
-            const msgId = `alert-${a.id}`;
-            if (seenIds.current.has(msgId)) continue;
-            seenIds.current.add(msgId);
-            const label = ALERT_LABEL[a.type] ?? a.type.toUpperCase();
-            const gpsLine = a.lat != null && a.lng != null
-              ? ` · GPS ${a.lat.toFixed(5)}°N ${a.lng.toFixed(5)}°E`
-              : "";
-            const details = a.message ? ` · ${a.message}` : "";
-            const d = new Date(a.createdAt);
-            incoming.push({
-              id:   msgId,
-              from: a.fromLabel || a.fromNodeId,
-              text: `${label}${details}${gpsLine}`,
-              time: `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`,
-              type: (ALERT_MSG_CATEGORY[a.type] as LocalMessage["type"]) ?? "alert",
-              read: a.acknowledged,
-            });
-          }
-        }
-      } catch { /* offline */ }
-
-      if (incoming.length > 0) {
-        // Sort oldest-first so newest ends up at top after prepend
-        incoming.sort((x, y) => x.time.localeCompare(y.time));
-        setMsgs((prev) => [...incoming.reverse(), ...prev]);
-      }
-    }
-
-    void fetchIncoming();
-    const id = setInterval(() => void fetchIncoming(), 5_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const handleSend = useCallback(async () => {
-    const trimmed = input.trim();
-    if (!trimmed || sending) return;
-    setSending(true);
-
-    try {
-      // SEC-4: encrypt before sending — ciphertext stored in DB, not plaintext
-      const ciphertext = await encryptMessage(trimmed);
-      const res = await fetch(`${API_BASE}/api/messages`, {
-        method:  "POST",
-        headers: meshHeaders(),
-        body:    JSON.stringify({
-          fromNodeId: localStorage.getItem("meshnet_node_id") ?? "self",
-          fromLabel:  "You",
-          toNodeId:   "broadcast",
-          category:   "info",
-          ciphertext,
-          hops:       0,
-        }),
-        signal: AbortSignal.timeout(6_000),
-      });
-      // Mark the server-assigned ID as seen so the poll doesn't duplicate it
-      if (res.ok) {
-        const saved = await res.json() as { id?: string };
-        if (saved.id) seenIds.current.add(saved.id);
-      }
-    } catch { /* offline — still append locally */ }
-
-    const now = new Date();
-    const hh  = now.getHours().toString().padStart(2, "0");
-    const mm  = now.getMinutes().toString().padStart(2, "0");
-    setMsgs((prev) => [
-      { id: `local-${Date.now()}`, from: "You", text: trimmed,
-        time: `${hh}:${mm}`, type: "info", read: true },
-      ...prev,
-    ]);
-    setInput("");
-    setSending(false);
-  }, [input, sending]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void handleSend();
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 pb-2">
-        <h2
-          className="text-lg font-bold text-[#E8EEF7] uppercase tracking-widest"
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          Mesh Comms
-        </h2>
-        <p className="text-xs text-[#7B9CC4]">Encrypted · offline · peer-to-peer</p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-3">
-        {msgs.map((msg) => (
-          <div
-            key={msg.id}
-            className={`rounded-xl border-l-2 p-3 ${msgTypeStyle[msg.type]}`}
-          >
-            <div className="flex items-start justify-between gap-2 mb-1.5">
-              <div className="flex items-center gap-2">
-                {msgTypeIcon[msg.type]}
-                <span className="text-xs font-bold text-[#E8EEF7]">{msg.from}</span>
-                {!msg.read && (
-                  <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[#F97316]/20 text-[#F97316]">
-                    New
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 text-[#7B9CC4]/60 shrink-0">
-                <Clock size={9} />
-                <span className="text-[10px] font-mono">{msg.time}</span>
-              </div>
-            </div>
-            <p className="text-sm text-[#C4D5EC] leading-snug">{msg.text}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="p-4 pt-2 border-t border-[rgba(91,141,217,0.15)]">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Broadcast a message…"
-            className="flex-1 rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] px-3 py-2.5 text-sm text-[#E8EEF7] placeholder-[#7B9CC4]/50 outline-none focus:border-[rgba(91,141,217,0.5)]"
-          />
-          <button
-            disabled={!input.trim() || sending}
-            className="w-11 h-11 rounded-xl bg-[#F97316] flex items-center justify-center shrink-0 active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
-            onClick={() => void handleSend()}
-          >
-            <Send size={16} className={`text-white ${sending ? "animate-pulse" : ""}`} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProtocolsTab() {
-  const [activeProtocol, setActiveProtocol] = useState<'ble' | 'webrtc' | 'hotspot' | null>(null);
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
-  const [isElectron, setIsElectron] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener("change", handler);
-    setIsDesktop(mq.matches);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  useEffect(() => {
-    // Check if running in Electron
-    setIsElectron(!!(window as any).electronAPI);
-  }, []);
-
-  return (
-    <div className="flex flex-col gap-4 p-4">
-      <div>
-        <h2
-          className="text-lg font-bold text-[#E8EEF7] uppercase tracking-widest"
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          Connection Protocols
-        </h2>
-        <p className="text-xs text-[#7B9CC4]">Select a protocol to manage mesh connections</p>
-      </div>
-
-      {/* MeshNet Discovery - Only on mobile devices (desktop/Electron is hotspot host) */}
-      {!isDesktop && !isElectron && <MeshNetDiscovery />}
-
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={() => setActiveProtocol('ble')}
-          className={`p-3 rounded-lg border-2 transition-all ${
-            activeProtocol === 'ble' 
-              ? 'bg-[#F97316] border-[#F97316]' 
-              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
-          }`}
-        >
-          <div className="text-2xl mb-1">📡</div>
-          <div className="text-xs font-bold text-[#E8EEF7]">BLE</div>
-        </button>
-        <button
-          onClick={() => setActiveProtocol('webrtc')}
-          className={`p-3 rounded-lg border-2 transition-all ${
-            activeProtocol === 'webrtc' 
-              ? 'bg-[#F97316] border-[#F97316]' 
-              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
-          }`}
-        >
-          <div className="text-2xl mb-1">🔗</div>
-          <div className="text-xs font-bold text-[#E8EEF7]">WebRTC</div>
-        </button>
-        <button
-          onClick={() => setActiveProtocol('hotspot')}
-          className={`p-3 rounded-lg border-2 transition-all ${
-            activeProtocol === 'hotspot' 
-              ? 'bg-[#F97316] border-[#F97316]' 
-              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
-          }`}
-        >
-          <div className="text-2xl mb-1">📶</div>
-          <div className="text-xs font-bold text-[#E8EEF7]">Hotspot</div>
-        </button>
-      </div>
-
-      {activeProtocol === 'ble' && (
-        <div className="animate-fadeIn">
-          <BluetoothScanner />
-        </div>
-      )}
-      {activeProtocol === 'webrtc' && (
-        <div className="animate-fadeIn">
-          <WebRTCManager />
-        </div>
-      )}
-      {activeProtocol === 'hotspot' && (
-        <div className="animate-fadeIn">
-          <HotspotManager />
-        </div>
-      )}
-
-      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4">
-        <h3
-          className="text-sm font-bold text-[#E8EEF7] uppercase tracking-widest mb-3"
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          Network Status
-        </h3>
-        <NetworkStatus />
-      </div>
-
-      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-4">
-        <h3
-          className="text-sm font-bold text-[#E8EEF7] uppercase tracking-widest mb-3"
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          Emergency Mode
-        </h3>
-        <EmergencyMode />
-      </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-const NAV = [
-  { id: "home" as Tab, label: "Home", icon: Home },
-  { id: "alert" as Tab, label: "Alert", icon: Bell },
-  { id: "map" as Tab, label: "Map", icon: Map },
-  { id: "comms" as Tab, label: "Comms", icon: MessageCircle },
-  { id: "protocols" as Tab, label: "Protocols", icon: Settings },
-];
+import { useNetworkDiscovery } from "./hooks/useNetworkDiscovery";
+import { NAV, MESSAGES } from "./constants";
+import type { Tab } from "./types";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("home");
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { backend, discovering, error, rediscover } = useNetworkDiscovery();
 
-  // ── Responsive: render full dashboard on wide screens, mobile on narrow ──
+  // PWA Install Prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallPrompt(false);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallPrompt(false);
+      }
+      setDeferredPrompt(null);
+    }
+  };
+
+  // Render the full desktop dashboard on wide screens; mobile shell on narrow.
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -1242,7 +58,6 @@ export default function App() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Live node data — shared by HomeTab, AlertTab, StatusBar
   const { nodes: liveNodes } = useCloudantNodes(10_000);
   const peerCount = liveNodes.length;
 
@@ -1258,7 +73,6 @@ export default function App() {
         fontFamily: "Inter, sans-serif",
       }}
     >
-      {/* Mobile frame */}
       <div
         className="relative w-full max-w-[390px] flex flex-col overflow-hidden"
         style={{
@@ -1272,8 +86,6 @@ export default function App() {
         {/* Top bar */}
         <div className="shrink-0 border-b border-[rgba(91,141,217,0.12)]">
           <StatusBar nodeCount={peerCount} />
-
-          {/* App header */}
           <div className="px-4 pb-3 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#F97316] flex items-center justify-center">
@@ -1298,28 +110,82 @@ export default function App() {
           </div>
         </div>
 
-        {/* Scrollable content — hidden when map tab is active (Leaflet needs a
-            non-scrolling, fixed-height parent; the map gets its own flex-1 slot). */}
+        {/* PWA Install Prompt */}
+        {showInstallPrompt && (
+          <div className="shrink-0 mx-4 mt-3 p-3 rounded-lg bg-[#F97316]/10 border border-[#F97316]/30 flex items-center gap-3">
+            <Download size={18} className="text-[#F97316] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-[#E8EEF7]">Install MeshNet</div>
+              <div className="text-[10px] text-[#7B9CC4]">Add to home screen for offline access</div>
+            </div>
+            <button
+              onClick={handleInstallClick}
+              className="px-3 py-1.5 rounded bg-[#F97316] text-white text-xs font-semibold"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstallPrompt(false)}
+              className="px-2 py-1.5 text-[#7B9CC4] text-xs"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Network Discovery Status */}
+        {!backend && !isDesktop && (
+          <div className="shrink-0 mx-4 mt-3 p-3 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/30 flex items-center gap-3">
+            {discovering ? (
+              <RefreshCw size={18} className="text-[#3B82F6] shrink-0 animate-spin" />
+            ) : (
+              <Wifi size={18} className="text-[#3B82F6] shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-[#E8EEF7]">
+                {discovering ? 'Discovering MeshNet...' : 'No MeshNet Found'}
+              </div>
+              <div className="text-[10px] text-[#7B9CC4]">
+                {discovering ? 'Scanning local network...' : error || 'Connect to Wi-Fi hotspot'}
+              </div>
+            </div>
+            {!discovering && (
+              <button
+                onClick={rediscover}
+                className="px-3 py-1.5 rounded bg-[#3B82F6] text-white text-xs font-semibold"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* BLE Scanner for credential exchange */}
+        {!backend && !isDesktop && (
+          <div className="shrink-0 mx-4 mt-3">
+            <BLEScanner />
+          </div>
+        )}
+
+        {/* Scrollable content — hidden when the map tab is active. */}
         <div
           className="flex-1 overflow-y-auto"
           style={{ scrollbarWidth: "none", display: tab === "map" ? "none" : undefined }}
         >
-          {tab === "home"  && <HomeTab  liveNodes={liveNodes} />}
+          {tab === "home" && <HomeTab liveNodes={liveNodes} />}
           {tab === "alert" && <AlertTab nodeCount={peerCount} />}
           {tab === "comms" && <CommsTab />}
           {tab === "protocols" && <ProtocolsTab />}
         </div>
 
-        {/* Map tab — rendered as a flex-1 sibling so it gets the full available
-            height between header and nav. Leaflet requires overflow:hidden and a
-            concrete pixel height — both are guaranteed here. */}
+        {/* Map tab is a flex sibling so Leaflet gets a fixed-height parent. */}
         {tab === "map" && (
           <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <MapTab />
           </div>
         )}
 
-        {/* Bottom nav */}
+        {/* Bottom navigation */}
         <div
           className="shrink-0 border-t border-[rgba(91,141,217,0.15)] bg-[#0A1526]"
           style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}

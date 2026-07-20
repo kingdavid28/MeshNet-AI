@@ -15,6 +15,8 @@
  */
 
 import { useState, useCallback } from "react";
+import { getApiBase } from "../../utils/env";
+import { meshHeaders } from "../constants";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,18 +57,15 @@ export function useRouting(): UseRoutingReturn {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
-  const apiBase =
-    (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000";
-
   const query = useCallback(async (req: RouteRequest) => {
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const res = await fetch(`${apiBase}/api/route`, {
+      const res = await fetch(`${getApiBase()}/api/route`, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: meshHeaders(),
         body:    JSON.stringify(req),
         signal:  AbortSignal.timeout(10_000),
       });
@@ -86,7 +85,7 @@ export function useRouting(): UseRoutingReturn {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   const clear = useCallback(() => {
     setResult(null);

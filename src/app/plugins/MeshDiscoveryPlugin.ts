@@ -113,7 +113,7 @@ const WebMeshDiscovery: MeshDiscoveryPlugin = {
   async registerSelf(): Promise<void> {
     console.info("[MeshDiscovery] Web stub — registerSelf is a no-op in browser");
   },
-  addListener() { return Promise.resolve({ remove: () => {} }); },
+  addListener() { return Promise.resolve({ remove: () => Promise.resolve() }); },
   removeAllListeners() { return Promise.resolve(); },
 };
 

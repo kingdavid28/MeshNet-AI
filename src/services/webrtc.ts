@@ -1,3 +1,5 @@
+import { getApiBase, getMeshSecret } from '../utils/env';
+
 // WebRTC Service for MeshNet PWA
 export interface MeshMessage {
   type: 'register' | 'data' | 'route' | 'heartbeat';
@@ -14,11 +16,11 @@ export interface WebRTCConnection {
 }
 
 export class WebRTCMeshService {
-  private peerConnections: Map<string, RTCPeerConnection> = new Map();
-  private dataChannels: Map<string, RTCDataChannel> = new Map();
-  private connections: Map<string, WebRTCConnection> = new Map();
+  private readonly peerConnections: Map<string, RTCPeerConnection> = new Map();
+  private readonly dataChannels: Map<string, RTCDataChannel> = new Map();
+  private readonly connections: Map<string, WebRTCConnection> = new Map();
   private signalingSocket: WebSocket | null = null;
-  private localDeviceId: string;
+  private readonly localDeviceId: string;
 
   readonly config = {
     iceServers: [
@@ -121,7 +123,7 @@ export class WebRTCMeshService {
     return pc;
   }
 
-  async offerConnection(remoteDeviceId: string): Promise<RTCSessionDescription> {
+  async offerConnection(remoteDeviceId: string): Promise<RTCSessionDescriptionInit> {
     console.log('[WebRTC] Initiating connection to:', remoteDeviceId);
     
     const pc = await this.createPeerConnection(remoteDeviceId);
@@ -132,7 +134,7 @@ export class WebRTCMeshService {
     return offer;
   }
 
-  async acceptConnection(remoteDeviceId: string, offer: RTCSessionDescription): Promise<RTCSessionDescription> {
+  async acceptConnection(remoteDeviceId: string, offer: RTCSessionDescriptionInit): Promise<RTCSessionDescriptionInit> {
     console.log('[WebRTC] Accepting connection from:', remoteDeviceId);
     
     const pc = await this.createPeerConnection(remoteDeviceId);
@@ -152,7 +154,7 @@ export class WebRTCMeshService {
     return answer;
   }
 
-  async finalizeConnection(remoteDeviceId: string, answer: RTCSessionDescription): Promise<void> {
+  async finalizeConnection(remoteDeviceId: string, answer: RTCSessionDescriptionInit): Promise<void> {
     console.log('[WebRTC] Finalizing connection with:', remoteDeviceId);
     
     const pc = this.peerConnections.get(remoteDeviceId);
@@ -204,7 +206,7 @@ export class WebRTCMeshService {
 
   sendMeshMessage(deviceId: string, message: MeshMessage): void {
     const channel = this.dataChannels.get(deviceId);
-    if (channel && channel.readyState === 'open') {
+    if (channel?.readyState === 'open') {
       channel.send(JSON.stringify(message));
       console.log('[WebRTC] Message sent to:', deviceId);
     } else {
@@ -303,8 +305,8 @@ export class WebRTCMeshService {
     }
   }
 
-  private sendSignalingMessage(message: any): void {
-    if (this.signalingSocket && this.signalingSocket.readyState === WebSocket.OPEN) {
+  sendSignalingMessage(message: any): void {
+    if (this.signalingSocket?.readyState === WebSocket.OPEN) {
       this.signalingSocket.send(JSON.stringify(message));
     }
   }
@@ -319,11 +321,11 @@ export class WebRTCMeshService {
 
   private async registerWithBackend(deviceId: string): Promise<void> {
     try {
-      const response = await fetch('/api/mesh/protocol/register', {
+      const response = await fetch(`${getApiBase()}/api/mesh/protocol/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Mesh-Secret': localStorage.getItem('mesh-secret') || ''
+          'X-Mesh-Secret': getMeshSecret()
         },
         body: JSON.stringify({
           device_id: this.localDeviceId,
@@ -384,21 +386,21 @@ export class WebRTCMeshService {
     return this.signalingSocket?.readyState === WebSocket.OPEN;
   }
 
-  private getLocalDeviceId(): string {
-    let deviceId = localStorage.getItem('mesh-device-id');
+  getLocalDeviceId(): string {
+    let deviceId = localStorage.getItem('meshnet_node_id');
     if (!deviceId) {
-      deviceId = this.generateDeviceId();
+      deviceId = localStorage.getItem('mesh-device-id');
+    }
+    if (!deviceId) {
+      deviceId = 'device-' + crypto.randomUUID();
+      localStorage.setItem('meshnet_node_id', deviceId);
       localStorage.setItem('mesh-device-id', deviceId);
     }
     return deviceId;
   }
 
-  private generateDeviceId(): string {
-    return 'device-' + Math.random().toString(36).substring(2, 11);
-  }
-
   // Simple event emitter
-  private listeners: Map<string, Function[]> = new Map();
+  private readonly listeners: Map<string, Function[]> = new Map();
 
   on(event: string, callback: Function): void {
     if (!this.listeners.has(event)) {

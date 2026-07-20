@@ -1,7 +1,10 @@
 const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('node:path');
 const http = require('node:http');
-const { exec } = require('node:child_process');
+const https = require('node:https');
+const fs = require('node:fs');
+const selfsigned = require('selfsigned');
+const { exec, execSync } = require('node:child_process');
 const { promisify } = require('node:util');
 const WiFiModule = require('./wifi-module/index');
 
@@ -9,6 +12,8 @@ const execAsync = promisify(exec);
 
 let mainWindow;
 let redirectServer = null;
+let httpsServer = null;
+let productionServer = null;
 
 const isDev = !app.isPackaged;
 
@@ -21,6 +26,10 @@ const HOTSPOT_ORIGINS = [
   'http://192.168.137.1:*',  // Windows Mobile Hotspot gateway
   'http://192.168.42.1:*',   // Android hotspot gateway
   'http://10.42.0.1:*',      // Linux (NetworkManager) hotspot gateway
+  'http://192.168.1.1:*',    // Common router gateway
+  'http://192.168.0.1:*',    // Common router gateway
+  'http://192.168.1.1:4000', // Common router gateway with explicit port
+  'http://192.168.0.1:4000', // Common router gateway with explicit port
 ].join(' ');
 
 const DEV_CSP = [
@@ -68,14 +77,23 @@ function createWindow() {
 
   // Block navigations to external origins (defence-in-depth)
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const allowed = ['http://localhost:5173', 'http://localhost:4000'];
+    const allowed = ['http://localhost:5173', 'http://localhost:4000', 'file://'];
     if (!allowed.some((base) => url.startsWith(base))) {
       event.preventDefault();
     }
   });
 
   // Load the existing web app
-  mainWindow.loadURL('http://localhost:5173');
+  if (isDev) {
+    // Try dev server first, fallback to production build
+    mainWindow.loadURL('http://localhost:5173').catch(() => {
+      console.log('[Desktop] Dev server not available, loading from production build');
+      startProductionServer(mainWindow);
+    });
+  } else {
+    // Load from production build
+    startProductionServer(mainWindow);
+  }
 
   // Open DevTools only in development
   if (isDev) {
@@ -84,7 +102,57 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    if (productionServer) {
+      productionServer.close();
+      productionServer = null;
+    }
   });
+}
+
+// Start a simple HTTP server to serve production build
+function startProductionServer(window) {
+  const distPath = path.join(__dirname, '../dist');
+  const server = http.createServer((req, res) => {
+    let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url);
+
+    // If file doesn't exist, serve index.html (SPA routing)
+    if (!fs.existsSync(filePath)) {
+      filePath = path.join(distPath, 'index.html');
+    }
+
+    // Serve the file
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+        return;
+      }
+
+      const ext = path.extname(filePath);
+      const contentType = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.png': 'image/png',
+        '.svg': 'image/svg+xml',
+        '.json': 'application/json',
+        '.webmanifest': 'application/manifest+json',
+      }[ext] || 'application/octet-stream';
+
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(data);
+    });
+  });
+
+  try {
+    server.listen(8081, 'localhost', () => {
+      console.log('[Desktop] Production server on http://localhost:8081');
+      window.loadURL('http://localhost:8081');
+    });
+    productionServer = server;
+  } catch (error) {
+    console.error('[Desktop] Failed to start production server:', error);
+  }
 }
 
 app.on('ready', createWindow);
@@ -330,22 +398,51 @@ async function checkPortproxy(hotspotIP) {
 async function startDNSHijack(ip) {
   const dns = createDNSServer(ip);
   try {
+    // Try binding to the specific hotspot IP first (more specific, preferred)
     await tryDNSListen(dns, 53, ip);
     dnsServer = dns;
     console.log(`[CaptivePortal] DNS hijack on ${ip}:53`);
     return true;
   } catch (error_) {
-    console.warn('[CaptivePortal] DNS bind failed:', error_.code);
-    return false;
+    console.warn('[CaptivePortal] DNS bind to specific IP failed:', error_.code);
+    // Fallback: bind to all interfaces (0.0.0.0) - less specific but may work
+    try {
+      await tryDNSListen(dns, 53, '0.0.0.0');
+      dnsServer = dns;
+      console.log(`[CaptivePortal] DNS hijack on 0.0.0.0:53 (fallback)`);
+      return true;
+    } catch (error2_) {
+      console.warn('[CaptivePortal] DNS bind to 0.0.0.0 also failed:', error2_.code);
+      return false;
+    }
   }
 }
 
 async function startHTTPRedirect(joinUrl) {
-  const server = http.createServer(makeProbeHandler(joinUrl));
+  // Serve the PWA static files from dist/ directory
+  const distPath = path.join(__dirname, '../dist');
+
+  console.log('[CaptivePortal] Starting HTTP redirect server on port 8080...');
+
+  const server = http.createServer((req, res) => {
+    console.log(`[CaptivePortal] ${req.method} ${req.url} from ${req.socket.remoteAddress}`);
+
+    // Serve captive portal redirect for ALL requests (standard captive portal behavior)
+    // This handles OS detection URLs and general web traffic
+    const body = redirectBody(joinUrl);
+    res.writeHead(302, {
+      Location: joinUrl,
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Content-Length': Buffer.byteLength(body),
+    });
+    res.end(body);
+  });
+
   try {
     await tryListen(server, 8080, '0.0.0.0');
     redirectServer = server;
-    console.log(`[CaptivePortal] HTTP server on 0.0.0.0:8080 -> ${joinUrl}`);
+    console.log(`[CaptivePortal] HTTP server on 0.0.0.0:8080 serving PWA from ${distPath}`);
     return true;
   } catch (error_) {
     console.warn('[CaptivePortal] Port 8080 bind failed:', error_.code);
@@ -353,10 +450,61 @@ async function startHTTPRedirect(joinUrl) {
   }
 }
 
-function portalMethod(dnsActive, httpActive) {
+// Generate self-signed certificate for HTTPS captive portal
+function generateSelfSignedCert() {
+  const certDir = path.join(__dirname, 'cert');
+  const keyPath = path.join(certDir, 'key.pem');
+  const certPath = path.join(certDir, 'cert.pem');
+
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    return { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) };
+  }
+
+  // Create cert directory if it doesn't exist
+  if (!fs.existsSync(certDir)) {
+    fs.mkdirSync(certDir, { recursive: true });
+  }
+
+  try {
+    // Generate self-signed certificate using selfsigned package
+    const attrs = [{ name: 'commonName', value: '192.168.137.1' }];
+    const pems = selfsigned.generate(attrs, { days: 365 });
+
+    fs.writeFileSync(keyPath, pems.private);
+    fs.writeFileSync(certPath, pems.cert);
+
+    return { key: pems.private, cert: pems.cert };
+  } catch (error) {
+    console.warn('[CaptivePortal] Failed to generate self-signed cert:', error.message);
+    return null;
+  }
+}
+
+async function startHTTPSRedirect(joinUrl) {
+  const cert = generateSelfSignedCert();
+  if (!cert) {
+    console.warn('[CaptivePortal] No certificate available, HTTPS server not started');
+    return false;
+  }
+
+  const server = https.createServer(cert, makeProbeHandler(joinUrl));
+  try {
+    await tryListen(server, 8443, '0.0.0.0');
+    httpsServer = server;
+    console.log(`[CaptivePortal] HTTPS server on 0.0.0.0:8443 -> ${joinUrl}`);
+    return true;
+  } catch (error_) {
+    console.warn('[CaptivePortal] Port 8443 bind failed:', error_.code);
+    return false;
+  }
+}
+
+function portalMethod(dnsActive, httpActive, httpsActive) {
+  if (dnsActive && httpActive && httpsActive) return 'dns+http+https';
   if (dnsActive && httpActive) return 'dns+http';
+  if (dnsActive && httpsActive) return 'dns+https';
   if (dnsActive) return 'dns';
-  if (httpActive) return 'http';
+  if (httpActive || httpsActive) return 'http';
   return 'manual';
 }
 
@@ -367,17 +515,19 @@ ipcMain.handle('start-redirect-server', async (event, hotspotIP) => {
 
     if (dnsServer)      { dnsServer.close();      dnsServer      = null; }
     if (redirectServer) { redirectServer.close();  redirectServer = null; }
+    if (httpsServer)    { httpsServer.close();     httpsServer     = null; }
 
-    const dnsActive  = await startDNSHijack(ip);
-    const httpActive = await startHTTPRedirect(joinUrl);
-    const proxied    = httpActive ? await checkPortproxy(ip) : false;
+    const dnsActive   = await startDNSHijack(ip);
+    const httpActive  = await startHTTPRedirect(joinUrl);
+    const httpsActive = await startHTTPSRedirect(joinUrl);
+    const proxied     = httpActive ? await checkPortproxy(ip) : false;
 
-    const method = portalMethod(dnsActive, httpActive);
+    const method = portalMethod(dnsActive, httpActive, httpsActive);
     if (method !== 'manual') {
       return {
         success: true,
         method,
-        port: httpActive ? 8080 : null,
+        port: httpActive ? 8080 : (httpsActive ? 8443 : null),
         proxied,
         manualUrl: proxied ? null : joinUrl,
         warning: proxied ? null : 'Click "Enable Auto-Popup" to run the one-time setup.',
@@ -411,11 +561,18 @@ async function stopRedirectServer() {
     });
     console.log('[CaptivePortal] HTTP server stopped');
   }
+  if (httpsServer) {
+    await new Promise((resolve) => {
+      httpsServer.close(() => { httpsServer = null; resolve(); });
+    });
+    console.log('[CaptivePortal] HTTPS server stopped');
+  }
 }
 
 // One-time elevated setup:
 //   1. netsh portproxy 80→8080   — kernel-level forwarding past ICS
-//   2. Firewall rules for UDP 53, TCP 8080, TCP 4000
+//   2. netsh portproxy 443→8443  — HTTPS forwarding for Android captive portal
+//   3. Firewall rules for UDP 53, TCP 8080, TCP 8443, TCP 4000
 ipcMain.handle('setup-captive-portal', async (event, hotspotIP) => {
   const ip = hotspotIP || '192.168.137.1'; // NOSONAR
   // Delete any stale rules first so re-running the setup never fails on
@@ -423,10 +580,14 @@ ipcMain.handle('setup-captive-portal', async (event, hotspotIP) => {
   const cmds = [
     `netsh interface portproxy delete v4tov4 listenaddress=${ip} listenport=80`,
     `netsh interface portproxy add v4tov4 listenaddress=${ip} listenport=80 connectaddress=${ip} connectport=8080`,
+    `netsh interface portproxy delete v4tov4 listenaddress=${ip} listenport=443`,
+    `netsh interface portproxy add v4tov4 listenaddress=${ip} listenport=443 connectaddress=${ip} connectport=8443`,
     `netsh advfirewall firewall delete rule name="MeshNet DNS"`,
     `netsh advfirewall firewall add rule name="MeshNet DNS"  dir=in action=allow protocol=UDP localport=53`,
     `netsh advfirewall firewall delete rule name="MeshNet HTTP"`,
     `netsh advfirewall firewall add rule name="MeshNet HTTP" dir=in action=allow protocol=TCP localport=8080`,
+    `netsh advfirewall firewall delete rule name="MeshNet HTTPS"`,
+    `netsh advfirewall firewall add rule name="MeshNet HTTPS" dir=in action=allow protocol=TCP localport=8443`,
     `netsh advfirewall firewall delete rule name="MeshNet API"`,
     `netsh advfirewall firewall add rule name="MeshNet API"  dir=in action=allow protocol=TCP localport=4000`,
   ].join(' & ');

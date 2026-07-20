@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { getApiBase, getMeshSecret } from '../utils/env';
+import { useCloudantNodes } from '../app/hooks/useCloudantNodes';
 import { WebRTCMeshService } from '../services/webrtc';
+import { meshDeviceEmitter } from './NetworkStatus';
 
 export function WebRTCManager() {
   const [connectedDevices, setConnectedDevices] = useState<string[]>([]);
@@ -9,8 +12,11 @@ export function WebRTCManager() {
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
 
-  const webrtcService = new WebRTCMeshService();
-  const SIGNALING_SERVER_URL = 'ws://localhost:4000/signaling';
+  const webrtcServiceRef = useRef<WebRTCMeshService | null>(null);
+  webrtcServiceRef.current ??= new WebRTCMeshService();
+  const webrtcService = webrtcServiceRef.current;
+
+  const { nodes: topologyNodes, source: nodesSource } = useCloudantNodes(10_000);
 
   useEffect(() => {
     // Check if WebRTC is supported
@@ -29,6 +35,7 @@ export function WebRTCManager() {
     webrtcService.on('answerReceived', handleAnswerReceived);
     webrtcService.on('iceCandidateReceived', handleIceCandidateReceived);
     webrtcService.on('deviceRegistered', handleDeviceRegistered);
+    webrtcService.on('deviceDisconnected', handleDeviceDisconnected);
 
     return () => {
       webrtcService.off('signalingConnected', handleSignalingConnected);
@@ -40,6 +47,7 @@ export function WebRTCManager() {
       webrtcService.off('answerReceived', handleAnswerReceived);
       webrtcService.off('iceCandidateReceived', handleIceCandidateReceived);
       webrtcService.off('deviceRegistered', handleDeviceRegistered);
+      webrtcService.off('deviceDisconnected', handleDeviceDisconnected);
       webrtcService.disconnectAll();
       webrtcService.disconnectSignaling();
     };
@@ -50,12 +58,17 @@ export function WebRTCManager() {
       // Probe the HTTP backend before attempting the WebSocket upgrade.
       // If the backend isn't running there is no signaling route, so skip
       // silently rather than logging a WebSocket error on every mount.
-      const probe = await fetch('http://localhost:4000/api/mesh/topology', {
+      const probe = await fetch(`${getApiBase()}/api/mesh/topology`, {
+        headers: { 'X-Mesh-Secret': getMeshSecret() },
         signal: AbortSignal.timeout(2_000),
       }).catch(() => null);
       if (!probe?.ok) return; // backend not reachable — skip signaling
 
-      const success = await webrtcService.connectToSignaling(SIGNALING_SERVER_URL);
+      const baseUrl = getApiBase().replace(/^http/, 'ws');
+      const url = new URL('/signaling', baseUrl);
+      url.searchParams.set('secret', getMeshSecret());
+
+      const success = await webrtcService.connectToSignaling(url.toString());
       if (!success) {
         setError('Failed to connect to signaling server');
       }
@@ -75,24 +88,36 @@ export function WebRTCManager() {
   };
 
   const handleSignalingError = (error: any) => {
+    setSignalingConnected(false);
     setError('Signaling error: ' + error.message);
   };
 
   const handlePeerConnected = (deviceId: string) => {
-    setConnectedDevices(prev => [...prev, deviceId]);
+    setConnectedDevices(prev => {
+      const newCount = prev.length + 1;
+      meshDeviceEmitter.updateCount(newCount);
+      return [...prev, deviceId];
+    });
     setError(null);
   };
 
   const handlePeerDisconnected = (deviceId: string) => {
-    setConnectedDevices(prev => prev.filter(id => id !== deviceId));
+    setConnectedDevices(prev => {
+      const newCount = prev.length - 1;
+      meshDeviceEmitter.updateCount(newCount);
+      return prev.filter(id => id !== deviceId);
+    });
   };
 
   const handleOfferReceived = async (message: any) => {
     console.log('Offer received from:', message.deviceId);
     try {
       const answer = await webrtcService.acceptConnection(message.deviceId, message.offer);
-      // Send answer via signaling server
-      // This would be handled by the signaling server
+      webrtcService.sendSignalingMessage({
+        type: 'answer',
+        deviceId: message.deviceId,
+        answer,
+      });
     } catch (error) {
       setError('Failed to accept connection: ' + (error as Error).message);
     }
@@ -117,18 +142,44 @@ export function WebRTCManager() {
   };
 
   const handleDeviceRegistered = (message: any) => {
+    if (message?.deviceId === webrtcService.getLocalDeviceId()) return;
     console.log('Device registered:', message.deviceId);
-    setAvailableDevices(prev => [...prev, message.deviceId]);
+    setAvailableDevices(prev => (prev.includes(message.deviceId) ? prev : [...prev, message.deviceId]));
   };
+
+  const handleDeviceDisconnected = (message: any) => {
+    if (message?.deviceId) {
+      setAvailableDevices(prev => prev.filter(id => id !== message.deviceId));
+    }
+  };
+
+  // Sync available peers with the backend topology (BLE/hotspot/mDNS all register here).
+  // Seed fallback nodes are ignored because they are not real peers.
+  useEffect(() => {
+    if (nodesSource === 'seed') return;
+
+    const selfId = webrtcService.getLocalDeviceId();
+    const discoveredIds = topologyNodes
+      .map((n) => n.node_id)
+      .filter((id) => id && id !== selfId);
+
+    setAvailableDevices((prev) => {
+      const next = [...new Set([...prev, ...discoveredIds])];
+      return next;
+    });
+  }, [topologyNodes, nodesSource, webrtcService]);
 
   const initiateConnection = async (remoteDeviceId: string) => {
     setConnecting(true);
     setError(null);
-    
+
     try {
       const offer = await webrtcService.offerConnection(remoteDeviceId);
-      // Send offer via signaling server
-      // This would be handled by the signaling server
+      webrtcService.sendSignalingMessage({
+        type: 'offer',
+        deviceId: remoteDeviceId,
+        offer,
+      });
       console.log('Connection initiated with:', remoteDeviceId);
     } catch (error) {
       setError('Failed to initiate connection: ' + (error as Error).message);
@@ -139,12 +190,17 @@ export function WebRTCManager() {
 
   const disconnectFrom = (deviceId: string) => {
     webrtcService.disconnectFrom(deviceId);
-    setConnectedDevices(prev => prev.filter(id => id !== deviceId));
+    setConnectedDevices(prev => {
+      const newCount = prev.length - 1;
+      meshDeviceEmitter.updateCount(newCount);
+      return prev.filter(id => id !== deviceId);
+    });
   };
 
   const disconnectAll = () => {
     webrtcService.disconnectAll();
     setConnectedDevices([]);
+    meshDeviceEmitter.updateCount(0);
   };
 
   if (!isSupported) {

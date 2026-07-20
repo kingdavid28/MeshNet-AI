@@ -1,5 +1,29 @@
 import { useState, useEffect } from 'react';
 
+// Simple event emitter for mesh device count updates
+class MeshDeviceEventEmitter {
+  private listeners: ((count: number) => void)[] = [];
+  private count = 0;
+
+  subscribe(listener: (count: number) => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  updateCount(count: number) {
+    this.count = count;
+    this.listeners.forEach(l => l(count));
+  }
+
+  getCount() {
+    return this.count;
+  }
+}
+
+export const meshDeviceEmitter = new MeshDeviceEventEmitter();
+
 export function NetworkStatus() {
   const [status, setStatus] = useState({
     online: navigator.onLine,
@@ -26,13 +50,18 @@ export function NetworkStatus() {
 
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
-    
+
     if ((navigator as any).connection) {
       (navigator as any).connection.addEventListener('change', updateStatus);
     }
-    
+
     const interval = setInterval(updateStatus, 5000);
     updateStatus();
+
+    // Subscribe to mesh device count updates
+    const unsubscribe = meshDeviceEmitter.subscribe((count) => {
+      setStatus(prev => ({ ...prev, devicesConnected: count }));
+    });
 
     return () => {
       window.removeEventListener('online', updateStatus);
@@ -41,6 +70,7 @@ export function NetworkStatus() {
         (navigator as any).connection.removeEventListener('change', updateStatus);
       }
       clearInterval(interval);
+      unsubscribe();
     };
   }, []);
 

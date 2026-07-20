@@ -28,8 +28,9 @@ import { WebRTCManager } from "../../components/WebRTCManager";
 import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
-import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, Home, Bell, Map, MessageCircle } from "lucide-react";
+import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { getApiBase, getMeshSecret } from "../../utils/env";
 
 // ─── Activity log ─────────────────────────────────────────────────────────────
 
@@ -91,8 +92,8 @@ export default function DashboardLayout() {
   const selfRegistered = useRef(false);
   useEffect(() => {
     if (deviceLocation.status !== "ok" || deviceLocation.lat == null || deviceLocation.lng == null) return;
-    const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000";
-    const secret  = (import.meta.env.VITE_MESH_SECRET as string | undefined) ?? localStorage.getItem("mesh-secret") ?? "";
+    const apiBase = getApiBase();
+    const secret  = getMeshSecret();
     const nodeId  = (() => {
       let id = localStorage.getItem("meshnet_node_id");
       if (!id) {
@@ -246,15 +247,20 @@ export default function DashboardLayout() {
           }}
         >
           {/* Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <img
               src="/MeshnetLogo.png"
               alt="MeshNet AI"
-              className="h-8 w-auto"
+              className="h-32 w-auto"
               style={{ objectFit: "contain" }}
             />
-            <div className="text-[9px] font-mono text-[#7B9CC4] tracking-widest uppercase">
-              Emergency Routing · Command Dashboard
+            <div className="flex flex-col">
+              <div className="text-[11px] font-bold text-white tracking-wider uppercase">
+                MeshNet AI
+              </div>
+              <div className="text-[9px] font-mono text-[#7B9CC4] tracking-widest uppercase leading-tight">
+                Emergency Routing · Command Dashboard
+              </div>
             </div>
           </div>
 

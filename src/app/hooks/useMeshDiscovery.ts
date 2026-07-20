@@ -33,6 +33,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Capacitor } from "@capacitor/core";
+import { getApiBase, getMeshSecret } from "../../utils/env";
 import {
   MeshDiscovery,
   type DiscoveryStatus,
@@ -100,7 +101,7 @@ function getOrCreateNodeId(): string {
 }
 
 function meshHeaders(): HeadersInit {
-  const secret = import.meta.env.VITE_MESH_SECRET as string | undefined;
+  const secret = getMeshSecret();
   return {
     "Content-Type": "application/json",
     ...(secret ? { "X-Mesh-Secret": secret } : {}),
@@ -123,9 +124,7 @@ export function useMeshDiscovery({
   const isNative = Capacitor.isNativePlatform();
 
   const nodeId = propNodeId || getOrCreateNodeId();
-  const apiBase = propApiBase
-    ?? (import.meta.env.VITE_API_BASE_URL as string | undefined)
-    ?? "http://localhost:4000";
+  const apiBase = propApiBase ?? getApiBase();
 
   const [status, setStatus]   = useState<DiscoveryStatus | null>(null);
   const [peers,  setPeers]    = useState<DiscoveredPeer[]>([]);

@@ -111,10 +111,11 @@ function createDNSServer(gatewayIP) {
     try {
       const resp = buildResponse(msg, gatewayIP);
       if (resp) {
+        console.log(`[DNS] Query from ${rinfo.address}:${rinfo.port} -> ${gatewayIP}`);
         server.send(resp, rinfo.port, rinfo.address);
       }
-    } catch {
-      // Malformed packet — ignore
+    } catch (err) {
+      console.error('[DNS] Failed to process query:', err);
     }
   });
 

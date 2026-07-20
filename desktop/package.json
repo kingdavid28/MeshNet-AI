@@ -17,13 +17,14 @@
   },
   "dependencies": {
     "node-wifi-scanner": "^1.0.0",
-    "bonjour": "^3.5.0"
+    "bonjour": "^3.5.0",
+    "selfsigned": "^2.4.1"
   },
   "build": {
     "appId": "com.meshnet.desktop",
     "productName": "MeshNet",
     "win": {
-      "target": "nsis",
+      "target": "dir",
       "requestedExecutionLevel": "requireAdministrator"
     },
     "files": [

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getApiBase, getMeshSecret } from '../utils/env';
 import { Wifi, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 export const MeshNetJoin: React.FC = () => {
@@ -26,11 +27,11 @@ export const MeshNetJoin: React.FC = () => {
 
     try {
       // Register device with backend
-      const response = await fetch('http://localhost:4000/api/mesh/device/register', {
+      const response = await fetch(`${getApiBase()}/api/mesh/device/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Mesh-Secret': localStorage.getItem('mesh-secret') || 'emergency-secret'
+          'X-Mesh-Secret': getMeshSecret()
         },
         body: JSON.stringify({
           device_id: generateDeviceId(),
@@ -97,7 +98,7 @@ export const MeshNetJoin: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Password:</span>
-              <span className="font-medium">12345678</span>
+              <span className="font-medium">Auto-generated</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Your Device:</span>

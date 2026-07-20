@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { getApiBase, getMeshSecret } from "../../utils/env";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,7 @@ function generateSeedNodes(centerLat: number | null, centerLng: number | null): 
 // ─── Shared fetch helper ──────────────────────────────────────────────────────
 
 function meshHeaders(): HeadersInit {
-  const secret = (import.meta.env.VITE_MESH_SECRET as string | undefined) || localStorage.getItem('mesh-secret') || '';
+  const secret = getMeshSecret();
   return secret ? { "Content-Type": "application/json", "X-Mesh-Secret": secret } : {};
 }
 
@@ -170,7 +171,7 @@ export function useCloudantNodes(
   const [error,   setError]   = useState<string | null>(null);
   const [source,  setSource]  = useState<UseCloudantNodesResult["source"]>("seed");
 
-  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000";
+  const apiBase = getApiBase();
 
   const load = useCallback(async () => {
     try {

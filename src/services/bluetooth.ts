@@ -17,6 +17,8 @@
 // auto-discovery channel; BLE is a supplementary direct-connect channel.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { getApiBase, getMeshSecret } from '../utils/env';
+
 // Must match MESH_SERVICE_UUID in MeshDiscoveryPlugin.kt and capacitor.config.ts.
 // The Kotlin plugin advertises 0000FEED; the desktop Central must filter on the same UUID.
 export const MESH_SERVICE_UUID      = '0000feed-0000-1000-8000-00805f9b34fb'; // NOSONAR
@@ -87,6 +89,7 @@ export class BluetoothMeshService extends TypedEmitter<EventMap> {
   private server: BluetoothRemoteGATTServer | null = null;
   private dataChar: BluetoothRemoteGATTCharacteristic | null = null;
   private readonly messageQueue: MeshMessage[] = [];
+  private readonly discoveredDevices = new Map<string, BluetoothDevice & { gatt?: BluetoothRemoteGATTServer }>();
   private _connected = false;
   private _reconnectAttempts = 0;
   private readonly boundOnDisconnect: () => void;
@@ -101,25 +104,83 @@ export class BluetoothMeshService extends TypedEmitter<EventMap> {
   // ── Public API ──────────────────────────────────────────────────────────────
 
   /**
-   * Opens the browser BLE device picker filtered to MeshNet service UUID.
-   * Returns the chosen device or null if the user cancelled.
+   * Scans for MeshNet BLE peripherals.
    *
-   * NOTE: Must be called from a user-gesture handler (button click).
+   * Best practice order:
+   * 1. Try Web Bluetooth Scanning API (navigator.bluetooth.requestLEScan) for
+   *    a short, active scan without forcing a modal picker. This is ideal for
+   *    discovering Android phones that are already advertising MeshNet.
+   * 2. Fall back to the standard requestDevice() picker on browsers that do not
+   *    support active scanning (most desktop Chromium builds).
+   *
+   * The user gesture requirement is enforced by the browser for both paths.
    */
-  async discoverDevices(): Promise<BLEDevice[]> {
+  async discoverDevices(scanDurationMs = 5_000): Promise<BLEDevice[]> {
     if (!BluetoothMeshService.isSupported()) {
       console.warn('[BLE] Web Bluetooth not supported in this context');
       return [];
     }
+
+    const bt = navigator.bluetooth as any;
+
+    // 1. Active scan (Chrome/Edge behind experimental-web-platform-features flag)
+    if (typeof bt.requestLEScan === 'function') {
+      let scan: { stop(): void } | null = null;
+      try {
+        scan = await bt.requestLEScan({
+          filters: [{ services: [MESH_SERVICE_UUID] }],
+          keepRepeatedDevices: false,
+        });
+
+        const foundDevices = new Map<string, BluetoothDevice & { gatt?: BluetoothRemoteGATTServer }>();
+        const rssiMap = new Map<string, number>();
+
+        const onAdvertisement = (event: any) => {
+          const device = event.device as BluetoothDevice & { gatt?: BluetoothRemoteGATTServer };
+          if (!device) return;
+          if (!foundDevices.has(device.id)) {
+            foundDevices.set(device.id, device);
+            rssiMap.set(device.id, event.rssi as number);
+          }
+        };
+
+        bt.addEventListener('advertisementreceived', onAdvertisement);
+        await this.sleep(scanDurationMs);
+        bt.removeEventListener('advertisementreceived', onAdvertisement);
+        scan?.stop();
+
+        if (foundDevices.size > 0) {
+          for (const [id, device] of foundDevices) {
+            this.discoveredDevices.set(id, device);
+          }
+          const first = foundDevices.values().next().value as BluetoothDevice & { gatt?: BluetoothRemoteGATTServer };
+          this.nativeDevice = first;
+          console.log('[BLE] Active scan found', foundDevices.size, 'device(s)');
+          return Array.from(foundDevices.values()).map((device) => ({
+            id: device.id,
+            name: device.name,
+            rssi: rssiMap.get(device.id),
+          }));
+        }
+      } catch (error) {
+        // User cancelled or scanning not allowed — fall back to picker silently
+        if ((error as DOMException).name !== 'NotFoundError') {
+          console.warn('[BLE] Active scan failed, falling back to device picker:', error);
+        }
+        if (scan?.stop) scan.stop();
+      }
+    }
+
+    // 2. Fallback: device picker
     try {
       console.log('[BLE] Opening device picker…');
-      const device = await navigator.bluetooth.requestDevice({
+      const device = await bt.requestDevice({
         filters: [{ services: [MESH_SERVICE_UUID] }],
         optionalServices: [MESH_CONTROL_CHAR_UUID],
       });
       console.log('[BLE] Device selected:', device.name ?? device.id);
-      this.nativeDevice = device;
-      device.addEventListener('gattserverdisconnected', this.boundOnDisconnect);
+      this.discoveredDevices.set(device.id, device as BluetoothDevice & { gatt?: BluetoothRemoteGATTServer });
+      this.nativeDevice = device as BluetoothDevice & { gatt?: BluetoothRemoteGATTServer };
       return [{ id: device.id, name: device.name }];
     } catch (error) {
       // DOMException: User cancelled the requestDevice() chooser → not an error
@@ -136,7 +197,8 @@ export class BluetoothMeshService extends TypedEmitter<EventMap> {
    * and auto-reconnects on unexpected disconnect up to MAX_RECONNECT_ATTEMPTS.
    */
   async connectToDevice(device: BLEDevice): Promise<boolean> {
-    if (this.nativeDevice?.id !== device.id) {
+    this.nativeDevice = this.discoveredDevices.get(device.id) ?? this.nativeDevice;
+    if (!this.nativeDevice || this.nativeDevice.id !== device.id) {
       console.error('[BLE] Device not found — call discoverDevices() first');
       return false;
     }
@@ -146,6 +208,9 @@ export class BluetoothMeshService extends TypedEmitter<EventMap> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
         console.log(`[BLE] Connecting to ${device.name ?? device.id} (attempt ${attempt + 1}/${MAX_RETRIES})`);
+
+        this.nativeDevice.removeEventListener('gattserverdisconnected', this.boundOnDisconnect);
+        this.nativeDevice.addEventListener('gattserverdisconnected', this.boundOnDisconnect);
 
         // GATT connect with 10 s timeout
         this.server = await this.withTimeout(
@@ -364,11 +429,11 @@ export class BluetoothMeshService extends TypedEmitter<EventMap> {
 
   private async registerWithBackend(deviceId: string): Promise<void> {
     try {
-      const res = await fetch('http://localhost:4000/api/mesh/register', {
+      const res = await fetch(`${getApiBase()}/api/mesh/register`, {
         method:  'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Mesh-Secret': localStorage.getItem('mesh-secret') ?? '',
+          'X-Mesh-Secret': getMeshSecret(),
         },
         body: JSON.stringify({
           id:      deviceId,

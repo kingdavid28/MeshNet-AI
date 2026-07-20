@@ -52,7 +52,7 @@ export default function NodeMapCanvas({
   broadcastActive = false,
   onNodeClick,
   deviceLocation,
-}: Props): JSX.Element {
+}: Props) {
   const [selected, setSelected] = useState<CloudantNode | null>(null);
   const leafletRef = useRef<LeafletMapHandle>(null);
 

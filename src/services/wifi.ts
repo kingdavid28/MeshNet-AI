@@ -1,3 +1,6 @@
+import { getApiBase, getMeshSecret } from '../utils/env';
+import { generateHotspotPassword } from '../utils/password';
+
 // WiFi Hotspot Service for MeshNet PWA
 export interface HotspotConfig {
   ssid: string;
@@ -64,7 +67,7 @@ export class WiFiHotspotService {
 
     const config: HotspotConfig = {
       ssid: 'MeshNet',
-      password: '12345678', // Standard emergency password
+      password: generateHotspotPassword(),
       security: 'WPA2-PSK', // Emergency standard
       channel: 'auto',
       maxConnections: 10,
@@ -82,11 +85,11 @@ export class WiFiHotspotService {
 
     try {
       // First, register the device with the backend if not already registered
-      await fetch('http://localhost:4000/api/mesh/register', {
+      await fetch(`${getApiBase()}/api/mesh/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Mesh-Secret': localStorage.getItem('mesh-secret') || ''
+          'X-Mesh-Secret': getMeshSecret()
         },
         body: JSON.stringify({
           id: this.localDeviceId,
@@ -102,11 +105,11 @@ export class WiFiHotspotService {
       });
 
       // Register hotspot with backend
-      const response = await fetch('http://localhost:4000/api/mesh/hotspot/create', {
+      const response = await fetch(`${getApiBase()}/api/mesh/hotspot/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Mesh-Secret': localStorage.getItem('mesh-secret') || ''
+          'X-Mesh-Secret': getMeshSecret()
         },
         body: JSON.stringify({
           device_id: this.localDeviceId,
@@ -129,7 +132,7 @@ export class WiFiHotspotService {
         
         this.isHotspotActive = true;
         this.emit('hotspotActivated', this.hotspotConfig);
-        
+
         return true;
       } else {
         console.error('[WiFi] Failed to register hotspot with backend');
@@ -147,11 +150,11 @@ export class WiFiHotspotService {
       this.connectedDevices = 0;
       
       // Notify backend of deactivation
-      await fetch(`http://localhost:4000/api/mesh/nodes/${this.localDeviceId}/heartbeat`, {
+      await fetch(`${getApiBase()}/api/mesh/nodes/${this.localDeviceId}/heartbeat`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'X-Mesh-Secret': localStorage.getItem('mesh-secret') || ''
+          'X-Mesh-Secret': getMeshSecret()
         },
         body: JSON.stringify({
           signal: 60,

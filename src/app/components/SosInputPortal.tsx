@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { getApiBase, getMeshSecret } from "../../utils/env";
 import { BluetoothMeshService, type EmergencyPacket } from "../../services/bluetooth";
 import {
   AlertTriangle,
@@ -176,9 +177,6 @@ function saveQueue(q: QueuedSos[]): void {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
 }
 
-const API_BASE: string =
-  ((import.meta as Record<string, any>).env?.VITE_API_BASE_URL as string | undefined)
-  ?? "http://localhost:4000";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -233,11 +231,11 @@ export default function SosInputPortal({ onSend, bleService }: Readonly<Props>) 
   const flushQueue = useCallback(async () => {
     const queue = loadQueue();
     if (queue.length === 0) return;
-    const secret = localStorage.getItem("mesh-secret") ?? "";
+    const secret = getMeshSecret();
     const remaining: QueuedSos[] = [];
     for (const item of queue) {
       try {
-        const res = await fetch(`${API_BASE}/api/alerts`, {
+        const res = await fetch(`${getApiBase()}/api/alerts`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Mesh-Secret": secret },
           body: JSON.stringify({
@@ -277,13 +275,13 @@ export default function SosInputPortal({ onSend, bleService }: Readonly<Props>) 
     };
 
     const backendType = BACKEND_TYPE_MAP[payload.type] ?? "sos";
-    const secret      = localStorage.getItem("mesh-secret") ?? "";
+    const secret      = getMeshSecret();
 
     let delivered = false;
     let bleDelivered = false;
     let bleAttempted = false;
     try {
-      const res = await fetch(`${API_BASE}/api/alerts`, {
+      const res = await fetch(`${getApiBase()}/api/alerts`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Mesh-Secret": secret },
         body: JSON.stringify({ type: backendType, message: payload.message, lat: payload.lat, lng: payload.lng }),

@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startRedirectServer: (hotspotIP) => ipcRenderer.invoke('start-redirect-server', hotspotIP),
   stopRedirectServer: () => ipcRenderer.invoke('stop-redirect-server'),
   setupCaptivePortal: (hotspotIP) => ipcRenderer.invoke('setup-captive-portal', hotspotIP),
-  
+
   // Device GPS via Windows Location API (bypasses Chromium's Google dependency)
   getLocation: () => ipcRenderer.invoke('get-location'),
 

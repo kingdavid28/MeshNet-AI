@@ -37,7 +37,7 @@ export default function SimPerfOverlay({
   isPaused,
   onPause,
   onResume,
-}: Props): JSX.Element {
+}: Props) {
   // Count how many times this component itself re-renders — a proxy for the
   // parent MapTab re-render count because it receives the same props chain.
   const renderCountRef = useRef(0);

@@ -5,8 +5,6 @@
     <img src="public/MeshnetLogo.png" alt="MeshNet AI" width="320" />
   </p>
 
-  This is a code bundle for Mobile App UI Design. The original project is available at https://www.figma.com/design/wB8QPHCwQU1tXKgbpFxHR9/Mobile-App-UI-Design.
-
   ## Running the code
 
   Run `npm i` to install the dependencies.
@@ -32,7 +30,8 @@ Once all three are running, open your browser at:
 
 http://localhost:4173
 
-
+PS C:\Users\reycel\Downloads\meshnetmerge\Mobile App UI Design\desktop>
+Start-Process powershell -Verb RunAs -ArgumentList "-NoExit", "-Command", "cd 'c:\Users\reycel\Downloads\meshnetmerge\Mobile App UI Design\desktop'; npm start"
 
 
 ----------------------------------------------------------------

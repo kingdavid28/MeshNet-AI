@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getApiBase, getMeshSecret } from '../utils/env';
 import { WiFiHotspotService, HotspotConfig } from '../services/wifi';
 import { DesktopWiFiService } from '../services/wifi-desktop';
 import mdnsService from '../services/mdns';
 import { useDeviceLocation } from '../app/hooks/useDeviceLocation';
+import { meshDeviceEmitter } from './NetworkStatus';
 
 const DEFAULT_HOTSPOT_IP = '192.168.137.1'; // NOSONAR — known Windows hotspot gateway, not a secret
-const MESH_API_BASE      = 'http://localhost:4000';
 
 export function HotspotManager() {
   const [hotspotConfig, setHotspotConfig] = useState<HotspotConfig | null>(null);
@@ -15,7 +16,6 @@ export function HotspotManager() {
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(true);
   const [showInstructions, setShowInstructions] = useState(false);
-  const [customHotspotName, setCustomHotspotName] = useState('');
   const [isDesktop, setIsDesktop] = useState(false);
   const [availableNetworks, setAvailableNetworks] = useState<any[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -31,6 +31,36 @@ export function HotspotManager() {
   useEffect(() => { deviceLocationRef.current = deviceLocation; }, [deviceLocation]);
   // Track last device list fingerprint to suppress unchanged-state logs
   const lastDeviceFingerprintRef = useRef<string>("");
+  const openSystemHotspotSettings = () => {
+    if (typeof window === 'undefined') return;
+    const ua = navigator.userAgent;
+    let url: string | null = null;
+    if (/Windows NT/.test(ua)) {
+      url = 'ms-settings:network-mobilehotspot';
+    } else if (/Android/.test(ua)) {
+      url = 'intent://#Intent;action=android.settings.TETHER_SETTINGS;end';
+    }
+    if (!url) return;
+
+    try {
+      // Open a blank popup in the same user gesture, then navigate it to the
+      // system settings URL. This avoids popup blockers and gives the OS a
+      // chance to launch the native Settings app.
+      const win = window.open('about:blank', '_blank');
+      if (win) {
+        win.location.href = url;
+      } else {
+        window.location.href = url;
+      }
+    } catch (err) {
+      console.warn('[HotspotManager] Could not open hotspot settings:', err);
+      try {
+        window.location.href = url;
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const wifiService = new WiFiHotspotService();
   const desktopWiFiService = new DesktopWiFiService();
@@ -75,8 +105,9 @@ export function HotspotManager() {
         lastDeviceFingerprintRef.current = fingerprint;
         console.log('[HotspotManager] Connected devices changed:', devices);
         setConnectedDevices(devices.length);
+        meshDeviceEmitter.updateCount(devices.length);
 
-        const meshSecret = localStorage.getItem('mesh-secret');
+        const meshSecret = getMeshSecret();
         if (!meshSecret) {
           console.warn('[HotspotManager] No mesh-secret found, skipping device registration');
           return;
@@ -97,14 +128,9 @@ export function HotspotManager() {
 
   const loadHotspotConfig = async () => {
     const config = await wifiService.createHotspotConfig();
-    // If user has set a custom hotspot name, use it
-    if (customHotspotName) {
-      config.ssid = customHotspotName;
-    }
-    // Set default password for emergency-friendly connections
-    if (!config.password) {
-      config.password = '12345678';
-    }
+    // Emergency network: simple password for Windows WPA2 requirement
+    config.ssid = 'MeshNet-Emergency';
+    config.password = '12345678'; // Simple password for easy emergency access
     setHotspotConfig(config);
   };
 
@@ -116,6 +142,11 @@ export function HotspotManager() {
 
   const handleHotspotDeactivated = () => {
     setIsHotspotActive(false);
+    // Clear registered devices when hotspot is deactivated
+    registeredDevicesRef.current = new Set();
+    registeredNoGpsRef.current = new Set();
+    setConnectedDevices(0);
+    meshDeviceEmitter.updateCount(0);
   };
 
   const handleDevicesUpdated = (count: number) => {
@@ -129,6 +160,9 @@ export function HotspotManager() {
       if (isDesktop) {
         await handleDesktopActivation();
       } else {
+        // Open the system settings synchronously before the async backend call
+        // so the browser treats it as a user-initiated popup/navigation.
+        openSystemHotspotSettings();
         const success = await wifiService.activateHotspot();
         if (success) { setShowInstructions(true); }
         else         { setError('Failed to activate hotspot'); }
@@ -182,8 +216,8 @@ export function HotspotManager() {
   // ── Extracted helper: desktop hotspot activation branch ───────────────────
   const handleDesktopActivation = async (): Promise<boolean> => {
     const config = {
-      ssid: customHotspotName || hotspotConfig?.ssid || 'MeshNet',
-      password: '',
+      ssid: 'MeshNet-Emergency', // Clear emergency SSID for easy identification
+      password: '12345678', // Simple password for Windows WPA2 requirement
       interface: 'wlan0',
     };
     console.log('[HotspotManager] Creating hotspot with config:', config);
@@ -250,7 +284,7 @@ export function HotspotManager() {
 
   // ── Extracted helper: register a single device as a mesh node ────────────────
   const registerDevice = async (device: { mac: string; ip: string }, meshSecret: string): Promise<void> => {
-    const deviceId  = `device-${device.mac.replaceAll('-', '')}`;
+    const deviceId  = `device-${device.mac.replace(/-/g, '')}`;
     // Use ref so we always get the latest GPS fix, not a stale closure value
     const loc       = deviceLocationRef.current;
     const hasCoords = loc.lat != null && loc.lng != null;
@@ -261,7 +295,7 @@ export function HotspotManager() {
     if (registeredNoGpsRef.current.has(deviceId) && !hasCoords) return;
 
     try {
-      const response = await fetch(`${MESH_API_BASE}/api/mesh/register`, {
+      const response = await fetch(`${getApiBase()}/api/mesh/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Mesh-Secret': meshSecret },
         body: JSON.stringify({
@@ -339,7 +373,6 @@ export function HotspotManager() {
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-gray-900 rounded-xl">
-
       {/* ── Header bar ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -413,27 +446,12 @@ export function HotspotManager() {
 
           <div className="flex items-center justify-between">
             <span className="text-gray-400 text-xs">Security</span>
-            {hotspotConfig.password ? (
-              <span className="text-white font-mono text-xs">{hotspotConfig.password}</span>
-            ) : (
-              <span className="text-green-400 text-xs font-semibold">Open (no password)</span>
-            )}
+            <span className="text-green-400 text-xs font-semibold">Open (no password)</span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-gray-400 text-xs">Max connections</span>
             <span className="text-white text-xs">{hotspotConfig.maxConnections ?? '—'}</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-xs">Hotspot name override</span>
-            <input
-              type="text"
-              value={customHotspotName}
-              onChange={(e) => setCustomHotspotName(e.target.value)}
-              placeholder="default"
-              className="bg-gray-700 border border-gray-600 text-white text-xs px-2 py-1 rounded w-32 focus:outline-none focus:border-blue-500"
-            />
           </div>
         </div>
       )}
