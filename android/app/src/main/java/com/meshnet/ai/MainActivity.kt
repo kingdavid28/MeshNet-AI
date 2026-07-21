@@ -2,6 +2,7 @@ package com.meshnet.ai
 
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import android.webkit.WebView
 import com.getcapacitor.BridgeActivity
 
@@ -13,39 +14,66 @@ import com.getcapacitor.BridgeActivity
  * automatically. No manual registration needed.
  */
 class MainActivity : BridgeActivity() {
+    companion object {
+        private const val TAG = "MeshNetMainActivity"
+    }
+
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
-        // Register our custom MeshDiscovery plugin before the bridge starts
-        registerPlugin(MeshDiscoveryPlugin::class.java)
-        
-        // Create notification channel for foreground service
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            MeshNetForegroundService.createNotificationChannel(this)
+        try {
+            // Register our custom MeshDiscovery plugin before the bridge starts
+            registerPlugin(MeshDiscoveryPlugin::class.java)
+            
+            // Create notification channel for foreground service
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    MeshNetForegroundService.createNotificationChannel(this)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to create notification channel", e)
+                }
+            }
+            
+            super.onCreate(savedInstanceState)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onCreate", e)
+            super.onCreate(savedInstanceState)
         }
-        
-        super.onCreate(savedInstanceState)
     }
 
     override fun load() {
-        // Configure WebView for better scrolling behavior
-        val webView = this.bridge?.webView
-        webView?.let {
-            it.isVerticalScrollBarEnabled = true
-            it.isHorizontalScrollBarEnabled = false
-            it.overScrollMode = WebView.OVER_SCROLL_ALWAYS
+        try {
+            // Configure WebView for better scrolling behavior
+            val webView = this.bridge?.webView
+            webView?.let {
+                it.isVerticalScrollBarEnabled = true
+                it.isHorizontalScrollBarEnabled = false
+                it.overScrollMode = WebView.OVER_SCROLL_ALWAYS
+            }
+            super.load()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in load", e)
+            super.load()
         }
-        super.load()
     }
 
     override fun onResume() {
         super.onResume()
-        // Start foreground service when app is resumed
-        val serviceIntent = Intent(this, MeshNetForegroundService::class.java)
-        serviceIntent.action = MeshNetForegroundService.ACTION_START
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
+        // Temporarily disable foreground service to debug app startup
+        // Uncomment after app opens successfully
+        /*
+        try {
+            // Start foreground service when app is resumed
+            val serviceIntent = Intent(this, MeshNetForegroundService::class.java)
+            serviceIntent.action = MeshNetForegroundService.ACTION_START
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start foreground service", e)
+            // Don't crash the app if service fails to start
         }
+        */
     }
 
     override fun onPause() {
@@ -56,9 +84,13 @@ class MainActivity : BridgeActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Stop foreground service when app is destroyed
-        val serviceIntent = Intent(this, MeshNetForegroundService::class.java)
-        serviceIntent.action = MeshNetForegroundService.ACTION_STOP
-        startService(serviceIntent)
+        try {
+            // Stop foreground service when app is destroyed
+            val serviceIntent = Intent(this, MeshNetForegroundService::class.java)
+            serviceIntent.action = MeshNetForegroundService.ACTION_STOP
+            startService(serviceIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop foreground service", e)
+        }
     }
 }
