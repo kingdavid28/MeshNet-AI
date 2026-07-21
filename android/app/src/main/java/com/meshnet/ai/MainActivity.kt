@@ -57,9 +57,6 @@ class MainActivity : BridgeActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Temporarily disable foreground service to debug app startup
-        // Uncomment after app opens successfully
-        /*
         try {
             // Start foreground service when app is resumed
             val serviceIntent = Intent(this, MeshNetForegroundService::class.java)
@@ -73,7 +70,6 @@ class MainActivity : BridgeActivity() {
             Log.e(TAG, "Failed to start foreground service", e)
             // Don't crash the app if service fails to start
         }
-        */
     }
 
     override fun onPause() {
