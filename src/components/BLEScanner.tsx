@@ -12,6 +12,7 @@
  */
 
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { bleService, MeshNetCredentials } from '../services/ble';
 
 export function BLEScanner() {
@@ -75,9 +76,18 @@ export function BLEScanner() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <span className="text-red-400 text-[10px] flex-shrink-0">⚠</span>
-          <p className="text-red-300 text-[10px] leading-relaxed">{error}</p>
+        <div className="relative p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <button
+            onClick={() => setError(null)}
+            className="absolute top-1 right-1 p-0.5 rounded hover:bg-red-500/20 transition-colors"
+            aria-label="Dismiss error"
+          >
+            <X size={12} className="text-red-400" />
+          </button>
+          <div className="flex items-start gap-2 pr-5 max-h-[60px] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+            <span className="text-red-400 text-[10px] flex-shrink-0 mt-0.5">⚠</span>
+            <p className="text-red-300 text-[10px] leading-relaxed">{error}</p>
+          </div>
         </div>
       )}
 
