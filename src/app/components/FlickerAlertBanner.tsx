@@ -22,9 +22,9 @@ import type { FlickerAlert } from "../hooks/useSignalStream";
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  alert:          FlickerAlert | null;
-  onDismiss:      () => void;
-  autoDismissMs?: number;
+  readonly alert:          FlickerAlert | null;
+  readonly onDismiss:      () => void;
+  readonly autoDismissMs?: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -65,11 +65,11 @@ export default function FlickerAlertBanner({
 
   if (!alert) return null;
 
-  const signalColor = alert.currSignal > 60
-    ? "#22C55E"
-    : alert.currSignal > 30
-    ? "#F97316"
-    : "#EF4444";
+  const signalColor = (() => {
+    if (alert.currSignal > 60) return "#22C55E";
+    if (alert.currSignal > 30) return "#F97316";
+    return "#EF4444";
+  })();
 
   return (
     <div
@@ -91,7 +91,7 @@ export default function FlickerAlertBanner({
       </div>
 
       {/* Content */}
-      <div className="flex items-start gap-4 px-5 py-3">
+      <div className="flex items-start gap-4 px-5 py-3 max-h-[40vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
 
         {/* Icon */}
         <div

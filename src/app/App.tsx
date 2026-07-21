@@ -160,18 +160,18 @@ export default function App() {
           </div>
         )}
 
-        {/* BLE Scanner for credential exchange */}
-        {!backend && !isDesktop && (
-          <div className="shrink-0 mx-4 mt-3">
-            <BLEScanner />
-          </div>
-        )}
-
         {/* Scrollable content — hidden when the map tab is active. */}
         <div
           className="flex-1 overflow-y-auto"
           style={{ scrollbarWidth: "none", display: tab === "map" ? "none" : undefined }}
         >
+          {/* BLE Scanner for credential exchange */}
+          {!backend && !isDesktop && (
+            <div className="mx-4 mt-3">
+              <BLEScanner />
+            </div>
+          )}
+
           {tab === "home" && <HomeTab liveNodes={liveNodes} />}
           {tab === "alert" && <AlertTab nodeCount={peerCount} />}
           {tab === "comms" && <CommsTab />}
