@@ -62,6 +62,13 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Foreground service for background monitoring -->
+        <service
+            android:name=".MeshNetForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location|connectedDevice"/>
     </application>
 
 </manifest>
