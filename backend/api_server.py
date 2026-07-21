@@ -181,7 +181,12 @@ def health():
     }
 
 
-@app.post("/api/route")
+@app.post(
+    "/api/route",
+    responses={
+        422: {"description": "Invalid scenario parameter"},
+    },
+)
 def compute_route(body: RouteRequest):
     """
     IBM Bob AI Core Routing Logic entry point.
@@ -211,7 +216,12 @@ def compute_route(body: RouteRequest):
     return result.to_dict()
 
 
-@app.get("/api/simulation/topology")
+@app.get(
+    "/api/simulation/topology",
+    responses={
+        422: {"description": "Invalid scenario parameter"},
+    },
+)
 def simulation_topology(scenario: str = "earthquake"):
     """
     Return the live weighted topology graph as JSON for the frontend map.
@@ -331,7 +341,12 @@ def rescue_path(source_id: int, max_range_meters: float = 100.0):
     return ana.rescue_path(source_id)
 
 
-@app.post("/api/simulation/ai-route")
+@app.post(
+    "/api/simulation/ai-route",
+    responses={
+        404: {"description": "No path found to rescue camp"},
+    },
+)
 def ai_route(body: AIRouteRequest):
     """
     Battery-prioritised Dijkstra path-finding with AES-256-GCM hop encryption.
@@ -389,11 +404,6 @@ def simulation_seed(body: SimSeedRequest):
 
     import math
 
-    def _lat_lng_offset(metres: float) -> tuple[float, float]:
-        """Convert metres to approximate degree offsets near the equator."""
-        deg_per_m = 1 / 111_320
-        return metres * deg_per_m, metres * deg_per_m
-
     # OPS-4: aligned to Cebu City (matches frontend seed data and map centre)
     base_lat = 10.3157
     base_lng = 123.8854
@@ -403,9 +413,11 @@ def simulation_seed(body: SimSeedRequest):
     for i in range(body.node_count):
         nid   = f"sim-node-{i:03d}"
         label = f"SIM·{i:03d}"
+        # Pseudorandom number generator is acceptable here for simulation/test data
         lat   = base_lat + random.uniform(-spread * 3, spread * 3)
         lng   = base_lng + random.uniform(-spread * 3, spread * 3)
 
+        # Pseudorandom number generator is acceptable here for simulation/test data
         payload = {
             "id":                nid,
             "label":             label,
@@ -432,6 +444,7 @@ def simulation_seed(body: SimSeedRequest):
             log.warning("Failed to register %s: %s", nid, exc)
 
     # Register edges between nodes within range
+    # Pseudorandom number generator is acceptable here for simulation/test data
     edges_registered = 0
     for i, a in enumerate(node_ids):
         for b in node_ids[i + 1:]:

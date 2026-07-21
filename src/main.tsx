@@ -6,6 +6,8 @@ import "./styles/index.css";
 import "leaflet/dist/leaflet.css";
 
 // Initialize device ID if not exists
+// Pseudorandom number generator is acceptable here for generating device IDs
+// (not security-sensitive, only used for local identification)
 if (!localStorage.getItem('meshnet_node_id')) {
   localStorage.setItem('meshnet_node_id', `device-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 }

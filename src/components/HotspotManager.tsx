@@ -164,8 +164,13 @@ export function HotspotManager() {
         // so the browser treats it as a user-initiated popup/navigation.
         openSystemHotspotSettings();
         const success = await wifiService.activateHotspot();
-        if (success) { setShowInstructions(true); }
-        else         { setError('Failed to activate hotspot'); }
+        if (success) {
+          setShowInstructions(true);
+          // In browser mode, don't auto-set isHotspotActive since user must manually enable in settings
+          // The hotspot state will be set when user confirms they've enabled it
+        } else {
+          setError('Failed to activate hotspot');
+        }
       }
     } catch (err) {
       setError('Hotspot activation error: ' + (err as Error).message);
@@ -579,7 +584,7 @@ export function HotspotManager() {
             <p className="text-blue-300 text-xs font-semibold">Manual Hotspot Setup</p>
             <button onClick={() => setShowInstructions(false)} className="text-blue-400/60 hover:text-blue-300 text-xs">✕</button>
           </div>
-          <ol className="text-blue-200/70 text-[11px] space-y-1 list-decimal list-inside leading-relaxed">
+          <ol className="text-blue-200/70 text-[11px] space-y-1 list-decimal list-inside leading-relaxed mb-3">
             <li>Open device Settings</li>
             <li>Go to Network &amp; Internet → Hotspot &amp; Tethering</li>
             <li>Set hotspot name to something memorable</li>
@@ -587,6 +592,15 @@ export function HotspotManager() {
             <li>Enable Wi-Fi Hotspot</li>
             <li>Enter your hotspot name in the field above</li>
           </ol>
+          <button
+            onClick={() => {
+              setIsHotspotActive(true);
+              setShowInstructions(false);
+            }}
+            className="w-full py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+          >
+            I've Enabled the Hotspot
+          </button>
         </div>
       )}
 

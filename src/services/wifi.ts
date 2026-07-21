@@ -122,16 +122,21 @@ export class WiFiHotspotService {
       if (response.ok) {
         const data = await response.json();
         console.log('[WiFi] Hotspot registered with backend:', data);
-        
+
         // Note: Actual hotspot activation requires user intervention
         // Browsers cannot directly enable WiFi hotspots
         // This would require:
         // 1. User manual activation
         // 2. Native bridge (Android/iOS)
         // 3. System-level permissions
-        
-        this.isHotspotActive = true;
-        this.emit('hotspotActivated', this.hotspotConfig);
+
+        // In browser mode, don't auto-activate since user must manually enable in system settings
+        // Only emit hotspotActivated when running in desktop/native mode
+        const isDesktop = typeof (globalThis as any).electronAPI !== 'undefined';
+        if (isDesktop) {
+          this.isHotspotActive = true;
+          this.emit('hotspotActivated', this.hotspotConfig);
+        }
 
         return true;
       } else {

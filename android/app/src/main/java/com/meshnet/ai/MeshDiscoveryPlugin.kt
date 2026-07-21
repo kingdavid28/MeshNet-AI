@@ -199,7 +199,7 @@ class MeshDiscoveryPlugin : Plugin() {
         selfSignal        = call.getInt("signal",               80)!!
         heartbeatInterval = call.getLong("heartbeatIntervalMs", 5_000L)!!
 
-        if (!hasRequiredPermissions()) {
+        if (!checkRequiredPermissions()) {
             requestAllPermissions(call, "onPermissionsResult")
             return
         }
@@ -755,7 +755,7 @@ class MeshDiscoveryPlugin : Plugin() {
 
     @PermissionCallback
     fun onPermissionsResult(call: PluginCall) {
-        if (hasRequiredPermissions()) {
+        if (checkRequiredPermissions()) {
             startBleAdvertise()
             startBleScan()
             startWifiDirect()
@@ -766,7 +766,7 @@ class MeshDiscoveryPlugin : Plugin() {
         }
     }
 
-    private fun hasRequiredPermissions(): Boolean {
+    private fun checkRequiredPermissions(): Boolean {
         val required = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.CHANGE_WIFI_STATE,

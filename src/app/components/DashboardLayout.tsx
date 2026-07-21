@@ -42,6 +42,8 @@ interface LogEntry {
 }
 
 function makeEntry(type: string, message: string): LogEntry {
+  // Pseudorandom number generator is acceptable here for generating unique log entry IDs
+  // (not security-sensitive, only used for React key uniqueness)
   const id = (typeof crypto !== "undefined" && crypto.randomUUID)
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -64,9 +66,7 @@ export default function DashboardLayout() {
   // Shared BLE service instance — used by the SOS portal as an emergency fallback
   // and by the BluetoothScanner UI for direct connect/scans.
   const bleServiceRef = useRef<BluetoothMeshService | null>(null);
-  if (!bleServiceRef.current) {
-    bleServiceRef.current = new BluetoothMeshService();
-  }
+  bleServiceRef.current ??= new BluetoothMeshService();
   const bleService = bleServiceRef.current;
 
   const [log, setLog] = useState<LogEntry[]>([
@@ -97,6 +97,8 @@ export default function DashboardLayout() {
     const nodeId  = (() => {
       let id = localStorage.getItem("meshnet_node_id");
       if (!id) {
+        // Pseudorandom number generator is acceptable here for generating device IDs
+        // (not security-sensitive, only used for local identification)
         id = `device-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         localStorage.setItem("meshnet_node_id", id);
         localStorage.setItem("meshnet_node_label", "You");
@@ -145,9 +147,10 @@ export default function DashboardLayout() {
   // ── SOS sent ──────────────────────────────────────────────────────────────
 
   const handleSosSent = (payload: SosPayload) => {
+    const message = payload.message ? `: "${payload.message}"` : '';
     appendLog(
       payload.type,
-      `SOS [${payload.type.toUpperCase()}] sent${payload.message ? `: "${payload.message}"` : ""}`
+      `SOS [${payload.type.toUpperCase()}] sent${message}`
     );
 
     // Auto-query AI route: clicked node → last relay; fallback to first→last relay
@@ -304,38 +307,41 @@ export default function DashboardLayout() {
               }}
             >
               <Database size={9} />
-              {source === "cloudant"
-                ? "IBM Cloudant"
-                : source === "local-backend"
-                ? "Local API"
-                : "Seed Data"}
+              {(() => {
+                if (source === "cloudant") return "IBM Cloudant";
+                if (source === "local-backend") return "Local API";
+                return "Seed Data";
+              })()}
             </div>
 
             {/* AI Routing status pill */}
             <div
               className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-mono uppercase border"
               style={{
-                background: routeResult?.found
-                  ? "rgba(34,197,94,0.1)"
-                  : routeLoading
-                  ? "rgba(249,115,22,0.1)"
-                  : "rgba(91,141,217,0.1)",
-                borderColor: routeResult?.found
-                  ? "rgba(34,197,94,0.25)"
-                  : routeLoading
-                  ? "rgba(249,115,22,0.25)"
-                  : "rgba(91,141,217,0.25)",
-                color: routeResult?.found ? "#22C55E" : routeLoading ? "#F97316" : "#7B9CC4",
+                background: (() => {
+                  if (routeResult?.found) return "rgba(34,197,94,0.1)";
+                  if (routeLoading) return "rgba(249,115,22,0.1)";
+                  return "rgba(91,141,217,0.1)";
+                })(),
+                borderColor: (() => {
+                  if (routeResult?.found) return "rgba(34,197,94,0.25)";
+                  if (routeLoading) return "rgba(249,115,22,0.25)";
+                  return "rgba(91,141,217,0.25)";
+                })(),
+                color: (() => {
+                  if (routeResult?.found) return "#22C55E";
+                  if (routeLoading) return "#F97316";
+                  return "#7B9CC4";
+                })(),
               }}
             >
               <Route size={9} />
-              {routeLoading
-                ? "Routing…"
-                : routeResult?.found
-                ? `${routeResult.hops} hop route`
-                : routeError
-                ? "Router offline"
-                : "AI Router"}
+              {(() => {
+                if (routeLoading) return "Routing…";
+                if (routeResult?.found) return `${routeResult.hops} hop route`;
+                if (routeError) return "Router offline";
+                return "AI Router";
+              })()}
             </div>
 
             {/* Nodes online */}
@@ -425,7 +431,7 @@ export default function DashboardLayout() {
                   className="ml-auto text-[#7B9CC4] hover:text-[#E8EEF7]"
                   title="Clear selection"
                 >
-                  ✕
+                  <X size={10} />
                 </button>
               </div>
             )}
@@ -523,24 +529,17 @@ export default function DashboardLayout() {
                     <span
                       className="uppercase shrink-0"
                       style={{
-                        color:
-                          entry.type === "sos" || entry.type === "war_zone"
-                            ? "#EF4444"
-                            : entry.type === "flicker"
-                            ? "#EF4444"
-                            : entry.type === "broadcast"
-                            ? "#F97316"
-                            : entry.type === "medical"
-                            ? "#F97316"
-                            : entry.type === "flood"
-                            ? "#38BDF8"
-                            : entry.type === "route"
-                            ? "#22C55E"
-                            : entry.type === "node"
-                            ? "#7B9CC4"
-                            : entry.type === "scenario"
-                            ? "#A855F7"
-                            : "#7B9CC4",
+                        color: (() => {
+                          if (entry.type === "sos" || entry.type === "war_zone") return "#EF4444";
+                          if (entry.type === "flicker") return "#EF4444";
+                          if (entry.type === "broadcast") return "#F97316";
+                          if (entry.type === "medical") return "#F97316";
+                          if (entry.type === "flood") return "#38BDF8";
+                          if (entry.type === "route") return "#22C55E";
+                          if (entry.type === "node") return "#7B9CC4";
+                          if (entry.type === "scenario") return "#A855F7";
+                          return "#7B9CC4";
+                        })(),
                       }}
                     >
                       [{entry.type}]
