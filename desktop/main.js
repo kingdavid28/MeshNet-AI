@@ -33,6 +33,9 @@ const HOTSPOT_ORIGINS = [
   'http://192.168.1.1:4000', // Common router gateway with explicit port
   'http://192.168.0.1:4000', // Common router gateway with explicit port
   'http://10.0.0.1:4000',   // Common router gateway with explicit port
+  'http://192.168.1.1',      // Common router gateway without port
+  'http://192.168.0.1',      // Common router gateway without port
+  'http://10.0.0.1',        // Common router gateway without port
 ].join(' ');
 
 const DEV_CSP = [
