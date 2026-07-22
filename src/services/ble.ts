@@ -27,8 +27,8 @@ export interface MeshNetDevice {
   credentials?: MeshNetCredentials;
 }
 
-const MESHNET_SERVICE_UUID = '0000FEED-0000-1000-8000-00805F9B34FB';
-const CREDENTIALS_CHARACTERISTIC_UUID = '0000FEED-0000-1000-8000-00805F9B34FB';
+const MESHNET_SERVICE_UUID = '0000feed-0000-1000-8000-00805f9b34fb';
+const CREDENTIALS_CHARACTERISTIC_UUID = '0000feed-0000-1000-8000-00805f9b34fb';
 
 export class BLEService {
   private device: BluetoothDevice | null = null;
