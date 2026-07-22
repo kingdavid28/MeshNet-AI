@@ -6,6 +6,7 @@ A desktop version of MeshNet with native WiFi capabilities, allowing for WiFi sc
 
 - **Native WiFi Scanning**: Scan for available WiFi networks using system-level APIs
 - **Hotspot Creation**: Create WiFi hotspots programmatically with elevated privileges
+- **BLE Advertising**: Broadcast WiFi credentials via BLE for automatic device discovery
 - **Cross-Platform**: Supports Windows, macOS, and Linux
 - **Elevated Privileges**: Detects and requires administrator privileges for WiFi operations
 - **Integrated UI**: Uses the existing React web application interface
@@ -15,6 +16,8 @@ A desktop version of MeshNet with native WiFi capabilities, allowing for WiFi sc
 - Node.js (v18 or higher)
 - npm or yarn
 - Administrator privileges (for WiFi operations)
+- **USB Bluetooth 4.0+ adapter** (for BLE advertising on Windows)
+- **Zadig tool** (for WinUSB driver installation - required for BLE advertising on Windows)
 
 ## Installation
 
@@ -61,6 +64,7 @@ This will create an installer in the `dist` directory.
 - Requires Windows 10 or higher
 - Must run as Administrator for WiFi operations
 - Uses `netsh` commands for WiFi management
+- **BLE Advertising requires USB Bluetooth 4.0+ adapter with WinUSB driver**
 
 ### macOS
 - Requires macOS 10.15 or higher
@@ -117,6 +121,64 @@ Run with `sudo` or configure sudoers for passwordless execution
 - Check that your WiFi adapter is working
 - Verify that the application has elevated privileges
 - Try restarting the application
+
+## BLE Advertising Setup (Windows Only)
+
+BLE peripheral advertising on Windows requires a USB Bluetooth 4.0+ adapter with WinUSB driver. This is because Windows' native Bluetooth stack only supports BLE central mode (scanning/connecting), not peripheral mode (advertising).
+
+### Hardware Requirements
+
+- **USB Bluetooth 4.0+ adapter** (must be USB, not built-in)
+- Adapter must support BLE (Bluetooth Low Energy)
+- Recommended: CSR8510, CSR8510A10, or similar CSR-based adapters
+
+### Driver Setup with Zadig
+
+**IMPORTANT**: This process will replace the adapter's driver with WinUSB, making it unavailable for normal Bluetooth use in Windows. The adapter will be dedicated to this application.
+
+1. **Download Zadig**
+   - Download from: https://zadig.akeo.ie/
+   - Extract and run `zadig.exe` as Administrator
+
+2. **Install WinUSB Driver**
+   - Plug in your USB Bluetooth adapter
+   - Open Zadig and click "Options" > "List All Devices"
+   - Select your Bluetooth adapter from the dropdown (e.g., "CSR8510 A10")
+   - In the target driver box, select "WinUSB" (not libusb-win32)
+   - Click "Install Driver" or "Replace Driver"
+   - Wait for installation to complete
+
+3. **Verify Installation**
+   - The adapter should now show "WinUSB" as the driver
+   - The adapter will no longer appear in Windows Bluetooth settings
+   - This is normal - the adapter is now dedicated to raw hardware access
+
+4. **Revert Driver (if needed)**
+   - To restore normal Bluetooth functionality:
+   - Open Device Manager
+   - Find the Bluetooth adapter
+   - Right-click > Update Driver > Browse my computer
+   - Let me pick from available drivers > select the original Bluetooth driver
+
+### Troubleshooting BLE Advertising
+
+**"Bluetooth adapter not found" error**
+- Verify the USB adapter is plugged in
+- Check Device Manager to ensure WinUSB driver is installed
+- Try unplugging and replugging the adapter
+
+**"Permission denied" error**
+- Run the application as Administrator
+- Ensure the WinUSB driver is properly installed
+
+**Advertising starts but devices can't discover**
+- Check that the adapter supports BLE 4.0+
+- Verify the adapter is not in use by another application
+- Try restarting the application
+
+**To restore normal Bluetooth functionality**
+- Use Device Manager to reinstall the original Bluetooth driver
+- The adapter will then work normally with Windows Bluetooth stack
 
 ## Development
 

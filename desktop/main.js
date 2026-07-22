@@ -7,6 +7,7 @@ const selfsigned = require('selfsigned');
 const { exec, execSync } = require('node:child_process');
 const { promisify } = require('node:util');
 const WiFiModule = require('./wifi-module/index');
+const BLEModule = require('./ble-module/index');
 
 const execAsync = promisify(exec);
 
@@ -219,6 +220,50 @@ ipcMain.handle('mdns-stop', async () => {
     return { success: true };
   } catch (error) {
     console.error('mDNS stop error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// BLE initialization IPC handler
+ipcMain.handle('ble-initialize', async () => {
+  try {
+    await BLEModule.initialize();
+    return { success: true };
+  } catch (error) {
+    console.error('BLE initialization error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// BLE start advertising IPC handler
+ipcMain.handle('ble-start-advertising', async (event, credentials) => {
+  try {
+    const result = await BLEModule.startAdvertising(credentials);
+    return result;
+  } catch (error) {
+    console.error('BLE start advertising error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// BLE stop advertising IPC handler
+ipcMain.handle('ble-stop-advertising', async () => {
+  try {
+    const result = await BLEModule.stopAdvertising();
+    return result;
+  } catch (error) {
+    console.error('BLE stop advertising error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// BLE check advertising status IPC handler
+ipcMain.handle('ble-is-advertising', async () => {
+  try {
+    const isAdvertising = BLEModule.isAdvertising();
+    return { success: true, isAdvertising };
+  } catch (error) {
+    console.error('BLE check advertising error:', error);
     return { success: false, error: error.message };
   }
 });

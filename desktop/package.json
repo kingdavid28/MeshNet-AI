@@ -8,7 +8,11 @@
     "build": "electron-builder",
     "dev": "electron . --dev"
   },
-  "keywords": ["meshnet", "wifi", "p2p"],
+  "keywords": [
+    "meshnet",
+    "wifi",
+    "p2p"
+  ],
   "author": "MeshNet",
   "license": "MIT",
   "devDependencies": {
@@ -16,8 +20,9 @@
     "electron-builder": "^24.9.1"
   },
   "dependencies": {
-    "node-wifi-scanner": "^1.0.0",
+    "@stoprocent/bleno": "^0.12.5",
     "bonjour": "^3.5.0",
+    "node-wifi-scanner": "^1.0.0",
     "selfsigned": "^2.4.1"
   },
   "build": {
@@ -30,7 +35,8 @@
     "files": [
       "main.js",
       "preload.js",
-      "wifi-module/**/*"
+      "wifi-module/**/*",
+      "ble-module/**/*"
     ]
   }
 }

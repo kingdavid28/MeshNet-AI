@@ -4,6 +4,9 @@
  * This module handles BLE advertising for the MeshNet desktop app.
  * It advertises the MeshNet service with hotspot credentials (SSID + password).
  * 
+ * IMPORTANT: This requires a USB Bluetooth 4.0+ adapter with WinUSB driver.
+ * See README for Zadig driver setup instructions.
+ * 
  * Phone Flow:
  * 1. Phone scans for BLE devices with MeshNet service UUID
  * 2. Phone connects to BLE peripheral
@@ -11,18 +14,16 @@
  * 4. Phone displays credentials for manual WiFi connection
  */
 
-const noble = require('@abandonware/noble');
+const bleno = require('@stoprocent/bleno');
 
 const MESHNET_SERVICE_UUID = '0000FEED-0000-1000-8000-00805F9B34FB';
 const CREDENTIALS_CHARACTERISTIC_UUID = '0000FEED-0000-1000-8000-00805F9B34FB';
 
 class BLEModule {
   constructor() {
-    this.peripheral = null;
-    this.service = null;
-    this.characteristic = null;
     this.advertising = false;
     this.credentials = null;
+    this.characteristic = null;
   }
 
   /**
@@ -30,7 +31,7 @@ class BLEModule {
    */
   async initialize() {
     return new Promise((resolve, reject) => {
-      noble.on('stateChange', (state) => {
+      bleno.on('stateChange', (state) => {
         console.log('[BLE] State changed to:', state);
         if (state === 'poweredOn') {
           resolve();
@@ -39,7 +40,7 @@ class BLEModule {
         }
       });
 
-      noble.on('error', (error) => {
+      bleno.on('error', (error) => {
         console.error('[BLE] Error:', error);
       });
     });
@@ -58,33 +59,30 @@ class BLEModule {
         await this.stopAdvertising();
       }
 
-      // Create service and characteristic
-      const service = new noble.Service({
-        uuid: MESHNET_SERVICE_UUID,
-        characteristics: [
-          new noble.Characteristic({
-            uuid: CREDENTIALS_CHARACTERISTIC_UUID,
-            properties: ['read'],
-            value: this.encodeCredentials(credentials),
-            onReadRequest: (offset, callback) => {
-              console.log('[BLE] Credentials read request');
-              const data = this.encodeCredentials(credentials);
-              callback(this.Result.SUCCESS, data.slice(offset, offset + 20));
-            }
-          })
-        ]
-      });
+      // Create characteristic with onReadRequest handler
+      this.characteristic = {
+        uuid: CREDENTIALS_CHARACTERISTIC_UUID,
+        properties: ['read'],
+        onReadRequest: (offset, callback) => {
+          console.log('[BLE] Credentials read request, offset:', offset);
+          const data = this.encodeCredentials(credentials);
+          const chunk = data.slice(offset, offset + bleno.maxMTU);
+          callback(bleno.Characteristic.RESULT_SUCCESS, chunk);
+        }
+      };
+
+      // Set up service
+      bleno.setServices([
+        {
+          uuid: MESHNET_SERVICE_UUID,
+          characteristics: [this.characteristic]
+        }
+      ]);
 
       // Start advertising
-      noble.startAdvertising(service, (error) => {
-        if (error) {
-          console.error('[BLE] Advertising error:', error);
-          throw error;
-        }
-        console.log('[BLE] Advertising started');
-        this.advertising = true;
-        this.service = service;
-      });
+      await bleno.startAdvertisingAsync('MeshNet Emergency', [MESHNET_SERVICE_UUID]);
+      console.log('[BLE] Advertising started');
+      this.advertising = true;
 
       return { success: true };
     } catch (error) {
@@ -99,11 +97,10 @@ class BLEModule {
   async stopAdvertising() {
     try {
       if (this.advertising) {
-        noble.stopAdvertising(() => {
-          console.log('[BLE] Advertising stopped');
-          this.advertising = false;
-          this.service = null;
-        });
+        await bleno.stopAdvertisingAsync();
+        console.log('[BLE] Advertising stopped');
+        this.advertising = false;
+        this.characteristic = null;
       }
       return { success: true };
     } catch (error) {
