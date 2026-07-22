@@ -13,6 +13,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getHotspotIP: () => ipcRenderer.invoke('wifi-get-hotspot-ip'),
   broadcastMDNSService: (config) => ipcRenderer.invoke('mdns-broadcast', config),
   stopMDNSService: () => ipcRenderer.invoke('mdns-stop'),
+
+  // BLE operations
+  initializeBLE: () => ipcRenderer.invoke('ble-initialize'),
+  startBLEAdvertising: (credentials) => ipcRenderer.invoke('ble-start-advertising', credentials),
+  stopBLEAdvertising: () => ipcRenderer.invoke('ble-stop-advertising'),
+  isBLEAdvertising: () => ipcRenderer.invoke('ble-is-advertising'),
   
   // Redirect server for automatic device discovery
   startRedirectServer: (hotspotIP) => ipcRenderer.invoke('start-redirect-server', hotspotIP),

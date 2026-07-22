@@ -8,7 +8,11 @@ import { meshDeviceEmitter } from './NetworkStatus';
 
 const DEFAULT_HOTSPOT_IP = '192.168.137.1'; // NOSONAR — known Windows hotspot gateway, not a secret
 
-export function HotspotManager() {
+interface HotspotManagerProps {
+  onCredentialsChange?: (credentials: { ssid: string; password: string } | null) => void;
+}
+
+export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
   const [hotspotConfig, setHotspotConfig] = useState<HotspotConfig | null>(null);
   const [isHotspotActive, setIsHotspotActive] = useState(false);
   const [connectedDevices, setConnectedDevices] = useState(0);
@@ -138,6 +142,8 @@ export function HotspotManager() {
     setIsHotspotActive(true);
     setHotspotConfig(config);
     setError(null);
+    // Notify parent of credentials for BLE advertising
+    onCredentialsChange?.({ ssid: config.ssid, password: config.password });
   };
 
   const handleHotspotDeactivated = () => {
@@ -147,6 +153,8 @@ export function HotspotManager() {
     registeredNoGpsRef.current = new Set();
     setConnectedDevices(0);
     meshDeviceEmitter.updateCount(0);
+    // Clear credentials for BLE advertising
+    onCredentialsChange?.(null);
   };
 
   const handleDevicesUpdated = (count: number) => {

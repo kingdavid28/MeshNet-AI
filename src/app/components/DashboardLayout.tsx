@@ -28,6 +28,7 @@ import { WebRTCManager } from "../../components/WebRTCManager";
 import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
+import { BLEControls } from "../../components/BLEControls";
 import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { getApiBase, getMeshSecret } from "../../utils/env";
@@ -83,6 +84,10 @@ export default function DashboardLayout() {
   const [activeTab,        setActiveTab]        = useState<"dashboard" | "protocols">("dashboard");
   // Protocol selection
   const [activeProtocol,   setActiveProtocol]   = useState<'ble' | 'webrtc' | 'hotspot' | null>(null);
+  // Hotspot credentials for BLE advertising
+  const [hotspotCredentials, setHotspotCredentials] = useState<{ ssid: string; password: string } | null>(null);
+  // BLE advertising status
+  const [bleAdvertising, setBleAdvertising] = useState(false);
 
   const appendLog = (type: string, message: string) => {
     setLog((prev) => [makeEntry(type, message), ...prev].slice(0, 40));
@@ -407,6 +412,18 @@ export default function DashboardLayout() {
             {/* Divider */}
             <div className="border-t" style={{ borderColor: "rgba(91,141,217,0.12)" }} />
 
+            {/* BLE Controls */}
+            <BLEControls
+              hotspotCredentials={hotspotCredentials}
+              onStatusChange={(isAdvertising) => {
+                setBleAdvertising(isAdvertising);
+                appendLog("ble", isAdvertising ? "BLE advertising started" : "BLE advertising stopped");
+              }}
+            />
+
+            {/* Divider */}
+            <div className="border-t" style={{ borderColor: "rgba(91,141,217,0.12)" }} />
+
             {/* SOS Input Portal */}
             <SosInputPortal onSend={handleSosSent} bleService={bleService} />
           </aside>
@@ -698,7 +715,7 @@ export default function DashboardLayout() {
                   )}
                   {activeProtocol === 'hotspot' && (
                     <div style={{ marginTop: "20px" }}>
-                      <HotspotManager />
+                      <HotspotManager onCredentialsChange={setHotspotCredentials} />
                     </div>
                   )}
                 </div>
