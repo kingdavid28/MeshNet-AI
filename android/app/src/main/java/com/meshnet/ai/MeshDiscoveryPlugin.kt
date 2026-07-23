@@ -421,13 +421,10 @@ class MeshDiscoveryPlugin : Plugin() {
                 this.port = port
 
                 // Add TXT records with WiFi credentials
-                val txtRecord = mapOf(
-                    "ssid" to ssid,
-                    "password" to password,
-                    "version" to "1.0",
-                    "path" to "/api/mesh/join"
-                )
-                setAttribute(txtRecord)
+                setAttribute("ssid", ssid)
+                setAttribute("password", password)
+                setAttribute("version", "1.0")
+                setAttribute("path", "/api/mesh/join")
             }
 
             mdnsListener = object : NsdManager.RegistrationListener {
