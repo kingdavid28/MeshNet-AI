@@ -51,6 +51,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.wifi.WifiConfiguration
+import android.net.wifi.WifiManager
 import android.net.wifi.p2p.*
 import android.os.Build
 import android.os.Handler
@@ -65,6 +68,7 @@ import com.getcapacitor.annotation.PermissionCallback
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.io.OutputStreamWriter
+import java.lang.reflect.Method
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -159,6 +163,10 @@ class MeshDiscoveryPlugin : Plugin() {
     private var wifiP2pChannel:  WifiP2pManager.Channel? = null
     private var wifiReceiver:    BroadcastReceiver? = null
 
+    // Wi-Fi Hotspot
+    private var wifiManager:     WifiManager? = null
+    private var isHotspotActive: Boolean = false
+
     // Heartbeat coroutine
     private var heartbeatJob: Job? = null
 
@@ -169,6 +177,7 @@ class MeshDiscoveryPlugin : Plugin() {
         bluetoothAdapter = bluetoothManager?.adapter
         wifiP2pManager   = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
         wifiP2pChannel   = wifiP2pManager?.initialize(context, Looper.getMainLooper(), null)
+        wifiManager     = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
     }
 
     // ── Plugin methods (called from JavaScript) ───────────────────────────────
@@ -245,6 +254,59 @@ class MeshDiscoveryPlugin : Plugin() {
                 bluetoothEnabled(), wifiDirect = isWifiDirect, device, role)
             if (ok) call.resolve() else call.reject("Registration failed — backend unreachable")
         }
+    }
+
+    /**
+     * Start WiFi hotspot with given SSID and password.
+     * Note: This requires system-level permissions and may not work on all devices.
+     * Android 10+ restricts hotspot creation to system apps.
+     */
+    @PluginMethod
+    fun startHotspot(call: PluginCall) {
+        val ssid = call.getString("ssid", "MeshNet-Emergency") ?: "MeshNet-Emergency"
+        val password = call.getString("password", "12345678") ?: "12345678"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ requires system app privileges
+            call.reject("WiFi hotspot creation requires system app privileges on Android 11+")
+            return
+        }
+
+        try {
+            val success = setWifiHotspotEnabled(ssid, password)
+            if (success) {
+                isHotspotActive = true
+                call.resolve()
+            } else {
+                call.reject("Failed to start WiFi hotspot")
+            }
+        } catch (e: Exception) {
+            call.reject("WiFi hotspot error: ${e.message}")
+        }
+    }
+
+    /**
+     * Stop WiFi hotspot.
+     */
+    @PluginMethod
+    fun stopHotspot(call: PluginCall) {
+        try {
+            setWifiHotspotEnabled(null, null)
+            isHotspotActive = false
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("Failed to stop WiFi hotspot: ${e.message}")
+        }
+    }
+
+    /**
+     * Check if WiFi hotspot is active.
+     */
+    @PluginMethod
+    fun isHotspotActive(call: PluginCall) {
+        call.resolve(JSObject().apply {
+            put("active", isHotspotActive)
+        })
     }
 
     // ── BLE Advertise ─────────────────────────────────────────────────────────
@@ -799,10 +861,48 @@ class MeshDiscoveryPlugin : Plugin() {
         isScanning          = false
         isAdvertising       = false
         isWifiDirect        = false
+        isHotspotActive     = false
         knownPeers.clear()
         bleVerifiedAddresses.clear()
         gattReadState.clear()
         notifyStatusChange()
+    }
+
+    // ── WiFi Hotspot Helper ─────────────────────────────────────────────────────
+
+    @SuppressLint("PrivateApi")
+    private fun setWifiHotspotEnabled(ssid: String?, password: String?): Boolean {
+        try {
+            val wifiManager = wifiManager ?: return false
+
+            // Use reflection to access hidden setWifiApEnabled method
+            val wifiConfigClass = Class.forName("android.net.wifi.WifiConfiguration")
+            val setWifiApEnabledMethod = wifiManager.javaClass.getMethod(
+                "setWifiApEnabled",
+                wifiConfigClass,
+                Boolean::class.javaPrimitiveType
+            )
+
+            if (ssid == null || password == null) {
+                // Disable hotspot
+                setWifiApEnabledMethod.invoke(wifiManager, null, false)
+                return true
+            }
+
+            // Create WiFi configuration for hotspot
+            val wifiConfig = WifiConfiguration().apply {
+                this.SSID = ssid
+                this.preSharedKey = password
+                this.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK)
+            }
+
+            // Enable hotspot
+            setWifiApEnabledMethod.invoke(wifiManager, wifiConfig, true)
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "setWifiHotspotEnabled failed: ${e.message}")
+            return false
+        }
     }
 
     @SuppressLint("MissingPermission")

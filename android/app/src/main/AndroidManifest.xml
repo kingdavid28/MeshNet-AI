@@ -22,6 +22,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
 
+    <!-- Wi-Fi hotspot creation requires WRITE_SETTINGS and TETHERING -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+    <uses-permission android:name="android.permission.TETHER_PRIVILEGED"/>
+
     <!-- Wi-Fi Direct group creation requires NEARBY_WIFI_DEVICES on API 33+ -->
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation"/>
