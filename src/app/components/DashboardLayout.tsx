@@ -259,7 +259,7 @@ export default function DashboardLayout() {
             <img
               src="/MeshnetLogo.png"
               alt="MeshNet AI"
-              style={{ objectFit: "contain" }}
+              style={{ objectFit: "contain", width: "50%" }}
             />
             <div className="flex flex-col">
               <div className="text-[11px] font-bold text-white tracking-wider uppercase">
