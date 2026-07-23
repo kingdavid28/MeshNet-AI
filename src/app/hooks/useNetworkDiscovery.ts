@@ -20,6 +20,8 @@ export function useNetworkDiscovery() {
   // Try common hotspot gateway IPs
   // These are standard gateway IPs for local network discovery - not security-sensitive
   const GATEWAY_IPS = [
+    'localhost',     // Development backend
+    '127.0.0.1',     // Development backend
     '192.168.137.1', // Windows Mobile Hotspot
     '192.168.42.1',  // Android hotspot
     '10.42.0.1',     // Linux NetworkManager hotspot
