@@ -73,6 +73,27 @@ def get_active_nodes(network: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     ]
 
 
+def get_high_priority_nodes(network: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Filter network to return high-priority nodes for critical routing.
+    
+    Args:
+        network: List of node dictionaries with is_active, battery_level, and has_weather_hq_signal keys
+        
+    Returns:
+        List of nodes where is_active is True AND battery_level > 50 AND has_weather_hq_signal is True
+        
+    High-priority nodes are well-powered devices with HQ signal capability,
+    making them ideal for critical routing decisions and anchor points in the mesh.
+    """
+    return [
+        node for node in network
+        if node.get("is_active", False) 
+        and node.get("battery_level", 0) > 50 
+        and node.get("has_weather_hq_signal", False)
+    ]
+
+
 if __name__ == "__main__":
     print(f"Successfully loaded {len(simulated_network)} test nodes into the Mesh environment.")
     print("\nNode Summary:")
@@ -98,3 +119,15 @@ if __name__ == "__main__":
         for node in filtered_out:
             reason = "inactive" if not node["is_active"] else f"low battery ({node['battery_level']}%)"
             print(f"  ✗ {node['node_id']}: {node['device_type']} - {reason}")
+    
+    # Test high priority filtering
+    print("\n" + "="*60)
+    print("Testing get_high_priority_nodes() filter:")
+    print("="*60)
+    high_priority_nodes = get_high_priority_nodes(simulated_network)
+    print(f"\nFiltered to {len(high_priority_nodes)} high-priority nodes (battery > 50% + HQ signal):")
+    for node in high_priority_nodes:
+        print(f"  ⭐ {node['node_id']}: {node['device_type']} | Battery: {node['battery_level']}% | 📡 HQ Signal")
+    
+    if not high_priority_nodes:
+        print("  No high-priority nodes found in current network.")
