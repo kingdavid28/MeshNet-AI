@@ -114,9 +114,79 @@ function joinHandler(req: Request, res: Response) {
     return;
   }
 
-  // Serve the full PWA from captive portal - redirect to main app
-  // This allows users to install the PWA directly from the captive portal
-  res.redirect(`http://${gatewayIp}:8080/`);
+  // Serve the full PWA from captive portal - serve content directly instead of redirecting
+  // This prevents redirect loops on iOS devices
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MeshNet Emergency Network</title>
+  <style>
+    body { 
+      font-family: system-ui; 
+      max-width: 500px; 
+      margin: 50px auto; 
+      padding: 20px; 
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      color: white;
+      min-height: 100vh;
+    }
+    h1 { color: #f97316; margin-bottom: 20px; }
+    .info { 
+      background: rgba(255,255,255,0.1); 
+      padding: 20px; 
+      border-radius: 12px; 
+      margin: 20px 0; 
+      backdrop-filter: blur(10px);
+    }
+    .btn {
+      display: inline-block;
+      background: #f97316;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .status {
+      background: rgba(34, 197, 94, 0.2);
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      border: 1px solid rgba(34, 197, 94, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <h1>🚨 MeshNet Emergency Network</h1>
+  <div class="status">
+    ✅ Connected to MeshNet Hotspot
+  </div>
+  <div class="info">
+    <p><strong>You are connected to the MeshNet Emergency Network.</strong></p>
+    <p>This network allows you to send emergency SOS alerts with your GPS location to rescue teams.</p>
+    <p><strong>To send an SOS:</strong></p>
+    <ol>
+      <li>Allow location access when prompted</li>
+      <li>Tap the "SEND SOS" button below</li>
+      <li>Your location will be shared with rescue teams</li>
+    </ol>
+  </div>
+  <div class="info">
+    <p><strong>Network Information:</strong></p>
+    <p>Gateway: ${gatewayIp}</p>
+    <p>Status: Active</p>
+  </div>
+  <a href="http://${gatewayIp}:8080/" class="btn">Open MeshNet App</a>
+  <p style="margin-top: 30px; font-size: 12px; opacity: 0.7;">
+    MeshNet Emergency Network v2.4.0
+  </p>
+</body>
+</html>`;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
 }
 
 // ─── GET /api/mesh/discover ─────────────────────────────────────────────────────
