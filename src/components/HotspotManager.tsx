@@ -29,6 +29,7 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
   const [hotspotIP, setHotspotIP] = useState<string>('');
   const [captivePortalStatus, setCaptivePortalStatus] = useState<'auto'|'proxied'|'manual'|null>(null);
   const [desktopBackendIP, setDesktopBackendIP] = useState<string>('192.168.1.100'); // Default desktop backend IP
+  const [networkMode, setNetworkMode] = useState<'manual' | 'auto' | 'bluetooth'>('auto'); // Network connection mode
   const registeredDevicesRef    = useRef<Set<string>>(new Set()); // registered WITH coords
   const registeredNoGpsRef       = useRef<Set<string>>(new Set()); // registered WITHOUT coords
   const deviceLocation = useDeviceLocation();
@@ -251,13 +252,31 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
       await MeshDiscovery.startHotspot({ ssid, password });
       console.log('[HotspotManager] Phone hotspot started');
       
-      // Start captive portal redirect server with desktop backend IP
+      // Determine backend URL based on network mode
+      let backendIP: string | undefined = undefined;
       const hotspotIP = '192.168.43.1'; // Android hotspot default
+      
+      if (networkMode === 'manual') {
+        // Manual mode: use configured desktop backend IP
+        backendIP = desktopBackendIP;
+        console.log('[HotspotManager] Manual mode: redirecting to desktop backend:', desktopBackendIP);
+      } else if (networkMode === 'auto') {
+        // Auto mode: detect if desktop is on phone's network
+        // Try to discover desktop via mDNS or use default
+        backendIP = '192.168.43.1'; // Default to desktop being on same network
+        console.log('[HotspotManager] Auto mode: assuming desktop on phone network');
+      } else if (networkMode === 'bluetooth') {
+        // Bluetooth mode: use Bluetooth tethering IP
+        backendIP = '192.168.44.1'; // Typical Bluetooth tethering gateway
+        console.log('[HotspotManager] Bluetooth mode: redirecting via Bluetooth');
+      }
+      
+      // Start captive portal redirect server
       await MeshDiscovery.startRedirectServer({ 
         hotspotIP, 
-        backendIP: desktopBackendIP 
+        backendIP 
       });
-      console.log('[HotspotManager] Phone redirect server started, redirecting to desktop backend:', desktopBackendIP);
+      console.log('[HotspotManager] Phone redirect server started, redirecting to:', backendIP || 'local');
       
       // Start mDNS broadcasting
       await MeshDiscovery.startMdnsBroadcast({
@@ -665,25 +684,87 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
         </details>
       )}
 
-      {/* ── Desktop Backend IP Configuration (phone mode only) ── */}
+      {/* ── Network Mode Selection (phone mode only) ── */}
       {!isDesktop && (
         <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-purple-300 text-xs font-semibold">Desktop Backend IP</p>
+            <p className="text-purple-300 text-xs font-semibold">Network Connection Mode</p>
             <span className="text-purple-400/60 text-[10px]">Phone Mode</span>
           </div>
-          <p className="text-purple-200/70 text-[11px] mb-2">
-            Enter the IP address of the desktop running the MeshNet backend
+          <p className="text-purple-200/70 text-[11px] mb-3">
+            Choose how the phone connects to the desktop backend
           </p>
-          <input
-            type="text"
-            value={desktopBackendIP}
-            onChange={(e) => setDesktopBackendIP(e.target.value)}
-            placeholder="192.168.1.100"
-            className="w-full px-3 py-2 text-xs bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-          />
-          <p className="text-purple-300/50 text-[10px] mt-2">
-            Captive portal will redirect to: http://{desktopBackendIP}:4000/api/mesh/join
+          <div className="space-y-2">
+            <button
+              onClick={() => setNetworkMode('auto')}
+              className={`w-full px-3 py-2 text-xs rounded-lg border transition-colors ${
+                networkMode === 'auto'
+                  ? 'bg-purple-600 border-purple-500 text-white'
+                  : 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-750'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span>🔄 Auto (Desktop on Phone Network)</span>
+                {networkMode === 'auto' && <span className="text-purple-300">✓</span>}
+              </div>
+              <p className="text-[10px] text-left mt-1 opacity-70">
+                Desktop connects to phone hotspot (192.168.43.x)
+              </p>
+            </button>
+            <button
+              onClick={() => setNetworkMode('manual')}
+              className={`w-full px-3 py-2 text-xs rounded-lg border transition-colors ${
+                networkMode === 'manual'
+                  ? 'bg-purple-600 border-purple-500 text-white'
+                  : 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-750'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span>📡 Manual (Same Network)</span>
+                {networkMode === 'manual' && <span className="text-purple-300">✓</span>}
+              </div>
+              <p className="text-[10px] text-left mt-1 opacity-70">
+                Phone and desktop on same WiFi network
+              </p>
+            </button>
+            <button
+              onClick={() => setNetworkMode('bluetooth')}
+              className={`w-full px-3 py-2 text-xs rounded-lg border transition-colors ${
+                networkMode === 'bluetooth'
+                  ? 'bg-purple-600 border-purple-500 text-white'
+                  : 'bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-750'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span>🔵 Bluetooth Tethering</span>
+                {networkMode === 'bluetooth' && <span className="text-purple-300">✓</span>}
+              </div>
+              <p className="text-[10px] text-left mt-1 opacity-70">
+                Desktop connects via Bluetooth (192.168.44.x)
+              </p>
+            </button>
+          </div>
+          
+          {/* Manual IP input (only shown in manual mode) */}
+          {networkMode === 'manual' && (
+            <div className="mt-3 pt-3 border-t border-purple-500/30">
+              <p className="text-purple-200/70 text-[11px] mb-2">
+                Enter desktop backend IP address
+              </p>
+              <input
+                type="text"
+                value={desktopBackendIP}
+                onChange={(e) => setDesktopBackendIP(e.target.value)}
+                placeholder="192.168.1.100"
+                className="w-full px-3 py-2 text-xs bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+          )}
+          
+          <p className="text-purple-300/50 text-[10px] mt-3">
+            {networkMode === 'auto' && 'Desktop must connect to phone hotspot first'}
+            {networkMode === 'manual' && 'Ensure phone and desktop are on same network'}
+            {networkMode === 'bluetooth' && 'Enable Bluetooth tethering on phone'}
           </p>
         </div>
       )}
