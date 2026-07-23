@@ -149,3 +149,56 @@ You now know Pedro exists even though
 his phone never directly reached your laptop.
 Summary in one sentence
 Any phone within Wi-Fi range connects, gets a popup, taps SEND SOS, and appears on your rescue map — in under 10 seconds, with no app install, no internet, no cell signal.
+
+
+How MeshNet enables device communication without regular networks:
+
+The system uses a hybrid approach combining BLE for discovery and WiFi for data transfer:
+
+1. BLE (Bluetooth Low Energy) for Initial Discovery
+Desktop (Electron app):
+
+Acts as BLE peripheral, advertising with MeshNet service UUID (0000FEED-0000-1000-8000-00805F9B34FB)
+Broadcasts WiFi credentials (SSID, password) via BLE characteristics
+Phone (Browser):
+
+Scans for BLE devices with MeshNet service UUID
+Connects to desktop via BLE
+Retrieves WiFi credentials from BLE characteristic
+User manually connects to WiFi using retrieved credentials
+2. WiFi Hotspot for Data Transfer
+Desktop creates emergency hotspot:
+
+Uses Windows Mobile Hotspot (or equivalent on other platforms)
+Creates local network (e.g., 192.168.137.x)
+Acts as gateway for all connected devices
+Phone connects to hotspot:
+
+Uses credentials from BLE
+Joins local WiFi network
+Can now communicate with backend and other devices
+3. Captive Portal for Automatic Discovery
+Desktop runs DNS hijacking:
+
+Intercepts DNS queries on hotspot gateway IP
+Redirects all HTTP requests to MeshNet app
+Uses netsh portproxy for kernel-level forwarding
+This ensures:
+
+Devices automatically see "Sign in to network" popup
+Tapping opens MeshNet emergency app
+No manual URL entry required
+4. Backend Communication
+Once on same WiFi:
+
+All devices communicate via backend on gateway IP
+Backend runs on 192.168.137.1:4000 (or similar)
+Supports emergency alerts, medical requests, GPS sharing
+Uses SSE (Server-Sent Events) for real-time updates
+5. Disaster Protocol Activation
+When disaster protocol is triggered:
+
+All devices forced into active BLE scanning mode
+Maximum device discovery for emergency connectivity
+Prioritizes emergency communication over normal operations
+Key advantage: This works without cellular towers, internet, or traditional infrastructure - only requires devices with BLE and WiFi capabilities.
