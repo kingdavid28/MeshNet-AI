@@ -97,6 +97,24 @@ export interface MeshDiscoveryPlugin extends Plugin {
   getStatus(): Promise<DiscoveryStatus>;
   /** POST this device's own record to the Express backend immediately. */
   registerSelf(options: RegisterSelfOptions): Promise<void>;
+  /** Start WiFi hotspot with given SSID and password. */
+  startHotspot(options: { ssid: string; password: string }): Promise<void>;
+  /** Stop WiFi hotspot. */
+  stopHotspot(): Promise<void>;
+  /** Check if WiFi hotspot is active. */
+  isHotspotActive(): Promise<{ active: boolean }>;
+  /** Start captive portal redirect server. */
+  startRedirectServer(options: { hotspotIP: string; backendIP?: string }): Promise<{ success: boolean; port: number; joinUrl: string; backendIP?: string }>;
+  /** Stop captive portal redirect server. */
+  stopRedirectServer(): Promise<void>;
+  /** Check if redirect server is active. */
+  isRedirectActive(): Promise<{ active: boolean }>;
+  /** Start mDNS service broadcasting. */
+  startMdnsBroadcast(options: { serviceName: string; port: number; ssid: string; password: string }): Promise<{ success: boolean; serviceName: string; port: number }>;
+  /** Stop mDNS service broadcasting. */
+  stopMdnsBroadcast(): Promise<void>;
+  /** Check if mDNS broadcast is active. */
+  isMdnsActive(): Promise<{ active: boolean }>;
 }
 
 // ── Web stub — used when running in a browser (no native layer) ──────────────
@@ -112,6 +130,35 @@ const WebMeshDiscovery: MeshDiscoveryPlugin = {
   },
   async registerSelf(): Promise<void> {
     console.info("[MeshDiscovery] Web stub — registerSelf is a no-op in browser");
+  },
+  async startHotspot(): Promise<void> {
+    console.info("[MeshDiscovery] Web stub — hotspot not available in browser");
+  },
+  async stopHotspot(): Promise<void> {
+    console.info("[MeshDiscovery] Web stub — hotspot not available in browser");
+  },
+  async isHotspotActive(): Promise<{ active: boolean }> {
+    return { active: false };
+  },
+  async startRedirectServer(): Promise<{ success: boolean; port: number; joinUrl: string; backendIP?: string }> {
+    console.info("[MeshDiscovery] Web stub — redirect server not available in browser");
+    return { success: false, port: 0, joinUrl: "" };
+  },
+  async stopRedirectServer(): Promise<void> {
+    console.info("[MeshDiscovery] Web stub — redirect server not available in browser");
+  },
+  async isRedirectActive(): Promise<{ active: boolean }> {
+    return { active: false };
+  },
+  async startMdnsBroadcast(): Promise<{ success: boolean; serviceName: string; port: number }> {
+    console.info("[MeshDiscovery] Web stub — mDNS not available in browser");
+    return { success: false, serviceName: "", port: 0 };
+  },
+  async stopMdnsBroadcast(): Promise<void> {
+    console.info("[MeshDiscovery] Web stub — mDNS not available in browser");
+  },
+  async isMdnsActive(): Promise<{ active: boolean }> {
+    return { active: false };
   },
   addListener() { return Promise.resolve({ remove: () => Promise.resolve() }); },
   removeAllListeners() { return Promise.resolve(); },

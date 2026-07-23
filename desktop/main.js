@@ -558,10 +558,10 @@ function portalMethod(dnsActive, httpActive, httpsActive) {
   return 'manual';
 }
 
-ipcMain.handle('start-redirect-server', async (event, hotspotIP) => {
+ipcMain.handle('start-redirect-server', async (event, hotspotIP, backendUrl) => {
   try {
     const ip      = hotspotIP || '192.168.137.1'; // NOSONAR
-    const joinUrl = `http://${ip}:4000/api/mesh/join`;
+    const joinUrl = backendUrl || `http://${ip}:4000/api/mesh/join`;
 
     if (dnsServer)      { dnsServer.close();      dnsServer      = null; }
     if (redirectServer) { redirectServer.close();  redirectServer = null; }

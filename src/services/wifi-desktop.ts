@@ -163,13 +163,13 @@ export class DesktopWiFiService {
     }
   }
 
-  async startRedirectServer(hotspotIP: string): Promise<{ port?: number | null; method?: string; proxied?: boolean; manualUrl?: string | null } | null> {
+  async startRedirectServer(hotspotIP: string, backendUrl?: string): Promise<{ port?: number | null; method?: string; proxied?: boolean; manualUrl?: string | null } | null> {
     if (!this.isElectron || !this.electronAPI) {
       console.warn('[Desktop WiFi] Redirect server only available in Electron app');
       return null;
     }
     try {
-      const result = await this.electronAPI.startRedirectServer(hotspotIP);
+      const result = await this.electronAPI.startRedirectServer(hotspotIP, backendUrl);
       if (!result.success) {
         console.error('[Desktop WiFi] Redirect server start failed:', result.error);
         return null;

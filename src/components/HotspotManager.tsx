@@ -5,6 +5,7 @@ import { DesktopWiFiService } from '../services/wifi-desktop';
 import mdnsService from '../services/mdns';
 import { useDeviceLocation } from '../app/hooks/useDeviceLocation';
 import { meshDeviceEmitter } from './NetworkStatus';
+import { MeshDiscovery } from '../app/plugins/MeshDiscoveryPlugin';
 
 const DEFAULT_HOTSPOT_IP = '192.168.137.1'; // NOSONAR — known Windows hotspot gateway, not a secret
 
@@ -27,6 +28,7 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
   const [manualInstructions, setManualInstructions] = useState<string[] | null>(null);
   const [hotspotIP, setHotspotIP] = useState<string>('');
   const [captivePortalStatus, setCaptivePortalStatus] = useState<'auto'|'proxied'|'manual'|null>(null);
+  const [desktopBackendIP, setDesktopBackendIP] = useState<string>('192.168.1.100'); // Default desktop backend IP
   const registeredDevicesRef    = useRef<Set<string>>(new Set()); // registered WITH coords
   const registeredNoGpsRef       = useRef<Set<string>>(new Set()); // registered WITHOUT coords
   const deviceLocation = useDeviceLocation();
@@ -168,16 +170,21 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
       if (isDesktop) {
         await handleDesktopActivation();
       } else {
-        // Open the system settings synchronously before the async backend call
-        // so the browser treats it as a user-initiated popup/navigation.
-        openSystemHotspotSettings();
-        const success = await wifiService.activateHotspot();
-        if (success) {
-          setShowInstructions(true);
-          // In browser mode, don't auto-set isHotspotActive since user must manually enable in settings
-          // The hotspot state will be set when user confirms they've enabled it
+        // Check if running in Capacitor (Android app)
+        const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+        
+        if (isCapacitor) {
+          // Use Android native plugin for phone mode
+          await handlePhoneActivation();
         } else {
-          setError('Failed to activate hotspot');
+          // Browser mode - open system settings
+          openSystemHotspotSettings();
+          const success = await wifiService.activateHotspot();
+          if (success) {
+            setShowInstructions(true);
+          } else {
+            setError('Failed to activate hotspot');
+          }
         }
       }
     } catch (err) {
@@ -210,7 +217,15 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
     setActivating(true);
     setError(null);
     try {
-      if (isDesktop) await stopDesktopServices();
+      const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+      
+      if (isDesktop) {
+        await stopDesktopServices();
+      } else if (isCapacitor) {
+        // Stop phone services
+        await handlePhoneDeactivation();
+      }
+      
       const success = await wifiService.deactivateHotspot();
       if (success) {
         setIsHotspotActive(false);
@@ -223,6 +238,59 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
       setError('Hotspot deactivation error: ' + (error as Error).message);
     } finally {
       setActivating(false);
+    }
+  };
+
+  // ── Extracted helper: phone hotspot activation branch ────────────────────
+  const handlePhoneActivation = async (): Promise<boolean> => {
+    try {
+      const ssid = 'MeshNet-Emergency';
+      const password = '12345678';
+      
+      // Start WiFi hotspot using Android native plugin
+      await MeshDiscovery.startHotspot({ ssid, password });
+      console.log('[HotspotManager] Phone hotspot started');
+      
+      // Start captive portal redirect server with desktop backend IP
+      const hotspotIP = '192.168.43.1'; // Android hotspot default
+      await MeshDiscovery.startRedirectServer({ 
+        hotspotIP, 
+        backendIP: desktopBackendIP 
+      });
+      console.log('[HotspotManager] Phone redirect server started, redirecting to desktop backend:', desktopBackendIP);
+      
+      // Start mDNS broadcasting
+      await MeshDiscovery.startMdnsBroadcast({
+        serviceName: 'MeshNet Emergency Network',
+        port: 4000,
+        ssid,
+        password
+      });
+      console.log('[HotspotManager] Phone mDNS broadcast started');
+      
+      setIsHotspotActive(true);
+      onCredentialsChange?.({ ssid, password });
+      return true;
+    } catch (error) {
+      console.error('[HotspotManager] Phone activation failed:', error);
+      setError('Phone hotspot activation failed: ' + (error as Error).message);
+      return false;
+    }
+  };
+
+  // ── Extracted helper: phone hotspot deactivation branch ──────────────────
+  const handlePhoneDeactivation = async (): Promise<void> => {
+    try {
+      await MeshDiscovery.stopHotspot();
+      console.log('[HotspotManager] Phone hotspot stopped');
+      
+      await MeshDiscovery.stopRedirectServer();
+      console.log('[HotspotManager] Phone redirect server stopped');
+      
+      await MeshDiscovery.stopMdnsBroadcast();
+      console.log('[HotspotManager] Phone mDNS broadcast stopped');
+    } catch (error) {
+      console.error('[HotspotManager] Phone deactivation failed:', error);
     }
   };
 
@@ -251,8 +319,14 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
 
     const ip = await desktopWiFiService.getHotspotIP();
     setHotspotIP(ip || DEFAULT_HOTSPOT_IP);
+    
+    // Determine backend URL based on mode
+    const backendUrl = isDesktop 
+      ? `http://${ip || DEFAULT_HOTSPOT_IP}:4000`
+      : `http://${desktopBackendIP}:4000`;
+    
     try {
-      const portalResult = await desktopWiFiService.startRedirectServer(ip || DEFAULT_HOTSPOT_IP);
+      const portalResult = await desktopWiFiService.startRedirectServer(ip || DEFAULT_HOTSPOT_IP, backendUrl);
       const method = portalResult?.method;
       const proxied = portalResult?.proxied;
       // HTTP redirect is sufficient for captive portal functionality
@@ -289,7 +363,13 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
       await mdnsService.broadcastService({
         name: 'MeshNet Emergency Network',
         port: 4000,
-        txt: { ssid: hotspotConfig.ssid, password: hotspotConfig.password || '', version: '1.0', path: '/api/mesh/join' },
+        txt: { 
+          ssid: hotspotConfig.ssid, 
+          password: hotspotConfig.password || '', 
+          version: '1.0', 
+          path: '/api/mesh/join',
+          backend: backendUrl // Include backend URL in mDNS for discovery
+        },
       });
     }
     return true;
@@ -583,6 +663,29 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
             )}
           </div>
         </details>
+      )}
+
+      {/* ── Desktop Backend IP Configuration (phone mode only) ── */}
+      {!isDesktop && (
+        <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-purple-300 text-xs font-semibold">Desktop Backend IP</p>
+            <span className="text-purple-400/60 text-[10px]">Phone Mode</span>
+          </div>
+          <p className="text-purple-200/70 text-[11px] mb-2">
+            Enter the IP address of the desktop running the MeshNet backend
+          </p>
+          <input
+            type="text"
+            value={desktopBackendIP}
+            onChange={(e) => setDesktopBackendIP(e.target.value)}
+            placeholder="192.168.1.100"
+            className="w-full px-3 py-2 text-xs bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+          />
+          <p className="text-purple-300/50 text-[10px] mt-2">
+            Captive portal will redirect to: http://{desktopBackendIP}:4000/api/mesh/join
+          </p>
+        </div>
       )}
 
       {/* ── Manual browser instructions (non-desktop) ──────────── */}

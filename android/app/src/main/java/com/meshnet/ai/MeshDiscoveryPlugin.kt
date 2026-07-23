@@ -332,7 +332,12 @@ class MeshDiscoveryPlugin : Plugin() {
     @PluginMethod
     fun startRedirectServer(call: PluginCall) {
         val hotspotIP = call.getString("hotspotIP", "192.168.43.1") ?: "192.168.43.1"
-        val joinUrl = "http://$hotspotIP:4000/api/mesh/join"
+        val backendIP = call.getString("backendIP", null)
+        val joinUrl = if (backendIP != null) {
+            "http://$backendIP:4000/api/mesh/join"
+        } else {
+            "http://$hotspotIP:4000/api/mesh/join"
+        }
 
         try {
             redirectServer = ServerSocket()
@@ -359,6 +364,7 @@ class MeshDiscoveryPlugin : Plugin() {
                 put("success", true)
                 put("port", 8080)
                 put("joinUrl", joinUrl)
+                put("backendIP", backendIP)
             })
         } catch (e: Exception) {
             call.reject("Failed to start redirect server: ${e.message}")
