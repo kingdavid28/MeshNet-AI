@@ -171,6 +171,15 @@ BLE peripheral advertising on Windows requires a USB Bluetooth 4.0+ adapter with
 - Run the application as Administrator
 - Ensure the WinUSB driver is properly installed
 
+**"LIBUSB_ERROR_NOT_SUPPORTED" error**
+- This means the USB device cannot be opened by the library
+- Try reinstalling the WinUSB driver with Zadig
+- In Zadig, try selecting "libusb-win32" instead of "WinUSB"
+- Some adapters work better with libusb-win32 driver
+- Restart the application after driver change
+- Try a different USB port (some ports have compatibility issues)
+- Verify the adapter is a CSR-based adapter (CSR8510, CSR8510A10)
+
 **Advertising starts but devices can't discover**
 - Check that the adapter supports BLE 4.0+
 - Verify the adapter is not in use by another application
