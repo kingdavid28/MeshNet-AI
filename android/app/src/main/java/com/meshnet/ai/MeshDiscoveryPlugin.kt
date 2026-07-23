@@ -52,6 +52,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.net.nsd.NsdManager
+import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.net.wifi.p2p.*
@@ -70,6 +72,9 @@ import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.lang.reflect.Method
 import java.net.HttpURLConnection
+import java.net.InetSocketAddress
+import java.net.ServerSocket
+import java.net.Socket
 import java.net.URL
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -167,6 +172,16 @@ class MeshDiscoveryPlugin : Plugin() {
     private var wifiManager:     WifiManager? = null
     private var isHotspotActive: Boolean = false
 
+    // Captive Portal Redirect Server
+    private var redirectServer:  ServerSocket? = null
+    private var redirectJob:    Job? = null
+    private var isRedirectActive: Boolean = false
+
+    // mDNS Service Discovery
+    private var nsdManager:     NsdManager? = null
+    private var isMdnsActive:   Boolean = false
+    private var mdnsListener:   NsdManager.RegistrationListener? = null
+
     // Heartbeat coroutine
     private var heartbeatJob: Job? = null
 
@@ -178,6 +193,7 @@ class MeshDiscoveryPlugin : Plugin() {
         wifiP2pManager   = context.getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
         wifiP2pChannel   = wifiP2pManager?.initialize(context, Looper.getMainLooper(), null)
         wifiManager     = context.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        nsdManager      = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
     }
 
     // ── Plugin methods (called from JavaScript) ───────────────────────────────
@@ -306,6 +322,171 @@ class MeshDiscoveryPlugin : Plugin() {
     fun isHotspotActive(call: PluginCall) {
         call.resolve(JSObject().apply {
             put("active", isHotspotActive)
+        })
+    }
+
+    /**
+     * Start captive portal redirect server.
+     * Redirects all HTTP traffic to the MeshNet join endpoint.
+     */
+    @PluginMethod
+    fun startRedirectServer(call: PluginCall) {
+        val hotspotIP = call.getString("hotspotIP", "192.168.43.1") ?: "192.168.43.1"
+        val joinUrl = "http://$hotspotIP:4000/api/mesh/join"
+
+        try {
+            redirectServer = ServerSocket()
+            redirectServer?.reuseAddress = true
+            redirectServer?.bind(InetSocketAddress("0.0.0.0", 8080))
+
+            isRedirectActive = true
+            redirectJob = scope.launch {
+                while (isActive && isRedirectActive) {
+                    try {
+                        val client = redirectServer?.accept()
+                        if (client != null) {
+                            handleRedirectRequest(client, joinUrl)
+                        }
+                    } catch (e: Exception) {
+                        if (isRedirectActive) {
+                            Log.e(TAG, "Redirect server error: ${e.message}")
+                        }
+                    }
+                }
+            }
+
+            call.resolve(JSObject().apply {
+                put("success", true)
+                put("port", 8080)
+                put("joinUrl", joinUrl)
+            })
+        } catch (e: Exception) {
+            call.reject("Failed to start redirect server: ${e.message}")
+        }
+    }
+
+    /**
+     * Stop captive portal redirect server.
+     */
+    @PluginMethod
+    fun stopRedirectServer(call: PluginCall) {
+        try {
+            isRedirectActive = false
+            redirectJob?.cancel()
+            redirectJob = null
+            redirectServer?.close()
+            redirectServer = null
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("Failed to stop redirect server: ${e.message}")
+        }
+    }
+
+    /**
+     * Check if redirect server is active.
+     */
+    @PluginMethod
+    fun isRedirectActive(call: PluginCall) {
+        call.resolve(JSObject().apply {
+            put("active", isRedirectActive)
+        })
+    }
+
+    /**
+     * Start mDNS service broadcasting.
+     * Broadcasts MeshNet service on local network for discovery.
+     */
+    @PluginMethod
+    fun startMdnsBroadcast(call: PluginCall) {
+        val serviceName = call.getString("serviceName", "MeshNet Emergency Network") ?: "MeshNet Emergency Network"
+        val port = call.getInt("port", 4000) ?: 4000
+        val ssid = call.getString("ssid", "MeshNet-Emergency") ?: "MeshNet-Emergency"
+        val password = call.getString("password", "12345678") ?: "12345678"
+
+        try {
+            val nsdManager = nsdManager ?: run {
+                call.reject("mDNS service not available")
+                return
+            }
+
+            val serviceInfo = NsdServiceInfo().apply {
+                this.serviceName = serviceName
+                this.serviceType = "_http._tcp."
+                this.port = port
+
+                // Add TXT records with WiFi credentials
+                val txtRecord = mapOf(
+                    "ssid" to ssid,
+                    "password" to password,
+                    "version" to "1.0",
+                    "path" to "/api/mesh/join"
+                )
+                setAttribute(txtRecord)
+            }
+
+            mdnsListener = object : NsdManager.RegistrationListener {
+                override fun onRegistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
+                    Log.e(TAG, "mDNS registration failed: $errorCode")
+                    isMdnsActive = false
+                }
+
+                override fun onUnregistrationFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
+                    Log.e(TAG, "mDNS unregistration failed: $errorCode")
+                }
+
+                override fun onServiceRegistered(serviceInfo: NsdServiceInfo) {
+                    Log.i(TAG, "mDNS service registered: ${serviceInfo.serviceName}")
+                    isMdnsActive = true
+                }
+
+                override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) {
+                    Log.i(TAG, "mDNS service unregistered: ${serviceInfo.serviceName}")
+                    isMdnsActive = false
+                }
+            }
+
+            nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, mdnsListener)
+            call.resolve(JSObject().apply {
+                put("success", true)
+                put("serviceName", serviceName)
+                put("port", port)
+            })
+        } catch (e: Exception) {
+            call.reject("Failed to start mDNS broadcast: ${e.message}")
+        }
+    }
+
+    /**
+     * Stop mDNS service broadcasting.
+     */
+    @PluginMethod
+    fun stopMdnsBroadcast(call: PluginCall) {
+        try {
+            val nsdManager = nsdManager ?: run {
+                call.reject("mDNS service not available")
+                return
+            }
+            val listener = mdnsListener ?: run {
+                call.resolve()
+                return
+            }
+
+            nsdManager.unregisterService(listener)
+            mdnsListener = null
+            isMdnsActive = false
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("Failed to stop mDNS broadcast: ${e.message}")
+        }
+    }
+
+    /**
+     * Check if mDNS broadcast is active.
+     */
+    @PluginMethod
+    fun isMdnsActive(call: PluginCall) {
+        call.resolve(JSObject().apply {
+            put("active", isMdnsActive)
         })
     }
 
@@ -856,6 +1037,14 @@ class MeshDiscoveryPlugin : Plugin() {
         stopBleAdvertise()
         stopGattServer()
         stopWifiDirect()
+        isRedirectActive = false
+        redirectJob?.cancel()
+        redirectJob = null
+        redirectServer?.close()
+        redirectServer = null
+        isMdnsActive = false
+        mdnsListener?.let { nsdManager?.unregisterService(it) }
+        mdnsListener = null
         heartbeatJob?.cancel()
         heartbeatJob        = null
         isScanning          = false
@@ -902,6 +1091,54 @@ class MeshDiscoveryPlugin : Plugin() {
         } catch (e: Exception) {
             Log.e(TAG, "setWifiHotspotEnabled failed: ${e.message}")
             return false
+        }
+    }
+
+    // ── Captive Portal Helper ────────────────────────────────────────────────────
+
+    private fun handleRedirectRequest(client: Socket, joinUrl: String) {
+        scope.launch {
+            try {
+                val input = client.getInputStream()
+                val output = client.getOutputStream()
+
+                // Read the HTTP request (we don't need to parse it, just consume it)
+                val buffer = ByteArray(1024)
+                while (input.read(buffer) > 0) {
+                    // Consume the request
+                }
+
+                // Send HTTP redirect response
+                val html = """
+                    <!DOCTYPE html>
+                    <html><head><meta http-equiv="refresh" content="0;url=$joinUrl">
+                    <title>MeshNet Emergency</title>
+                    </head><body>
+                    <a href="$joinUrl">Tap here to open MeshNet Emergency</a>
+                    </body></html>
+                """.trimIndent()
+
+                val response = """
+                    HTTP/1.1 302 Found
+                    Location: $joinUrl
+                    Content-Type: text/html; charset=utf-8
+                    Cache-Control: no-store, no-cache, must-revalidate
+                    Content-Length: ${html.toByteArray().size}
+                    
+                    $html
+                """.trimIndent()
+
+                output.write(response.toByteArray())
+                output.flush()
+            } catch (e: Exception) {
+                Log.e(TAG, "Handle redirect request error: ${e.message}")
+            } finally {
+                try {
+                    client.close()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Close client error: ${e.message}")
+                }
+            }
         }
     }
 
