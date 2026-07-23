@@ -259,7 +259,7 @@ export default function DashboardLayout() {
             <img
               src="/MeshnetLogo.png"
               alt="MeshNet AI"
-              style={{ objectFit: "contain", width: "50%" }}
+              style={{ objectFit: "contain", width: "30%" }}
             />
             <div className="flex flex-col">
               <div className="text-[11px] font-bold text-white tracking-wider uppercase">
@@ -523,7 +523,7 @@ export default function DashboardLayout() {
               style={{
                 borderColor: "rgba(91,141,217,0.12)",
                 background: "rgba(6,14,28,0.7)",
-                height: 120,
+                height: "30vh",
               }}
             >
               <div className="flex items-center gap-2 px-4 py-1.5 border-b" style={{ borderColor: "rgba(91,141,217,0.1)" }}>
@@ -537,7 +537,7 @@ export default function DashboardLayout() {
               </div>
               <div
                 className="overflow-y-auto px-4 py-1.5 flex flex-col gap-1"
-                style={{ height: 84, scrollbarWidth: "none" }}
+                style={{ height: "calc(30vh - 30px)", scrollbarWidth: "none" }}
               >
                 {log.map((entry) => (
                   <div key={entry.id} className="flex items-baseline gap-2 text-[10px] font-mono">
