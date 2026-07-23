@@ -255,17 +255,17 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
       const portalResult = await desktopWiFiService.startRedirectServer(ip || DEFAULT_HOTSPOT_IP);
       const method = portalResult?.method;
       const proxied = portalResult?.proxied;
-      // Both DNS hijack and HTTP redirect must be running for the auto-popup to work.
-      const bothTiers = method === 'dns+http';
-      if (bothTiers && proxied) {
+      // HTTP redirect is sufficient for captive portal functionality
+      const hasRedirect = method === 'http' || method === 'dns+http' || method === 'dns+http+https' || method === 'dns+https';
+      if (hasRedirect && proxied) {
         setCaptivePortalStatus('proxied');
-        console.log('[HotspotManager] Captive portal fully active (dns+http) — phones will auto-popup');
-      } else if (bothTiers) {
+        console.log('[HotspotManager] Captive portal fully active — phones will auto-popup');
+      } else if (hasRedirect) {
         setCaptivePortalStatus('auto');
         console.warn('[HotspotManager] Captive portal servers running but portproxy missing — click Enable Auto-Popup');
       } else {
         setCaptivePortalStatus('manual');
-        console.warn('[HotspotManager] Captive portal unavailable — both DNS and HTTP redirect are required');
+        console.warn('[HotspotManager] Captive portal unavailable — HTTP redirect is required');
       }
     } catch (err) {
       setCaptivePortalStatus('manual');

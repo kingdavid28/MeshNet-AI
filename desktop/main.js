@@ -553,8 +553,8 @@ function portalMethod(dnsActive, httpActive, httpsActive) {
   if (dnsActive && httpActive && httpsActive) return 'dns+http+https';
   if (dnsActive && httpActive) return 'dns+http';
   if (dnsActive && httpsActive) return 'dns+https';
+  if (httpActive || httpsActive) return 'http'; // HTTP-only mode is still useful
   if (dnsActive) return 'dns';
-  if (httpActive || httpsActive) return 'http';
   return 'manual';
 }
 

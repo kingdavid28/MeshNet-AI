@@ -302,6 +302,10 @@ export class WebRTCMeshService {
       case 'device-disconnected':
         this.emit('deviceDisconnected', message);
         break;
+      case 'error':
+        console.warn('[WebRTC] Signaling server error:', message);
+        this.emit('signalingError', message);
+        break;
     }
   }
 
