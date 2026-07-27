@@ -109,54 +109,120 @@ function meshHeaders(): HeadersInit {
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 
 async function fetchFromCloudantProxy(apiBase: string): Promise<CloudantNode[]> {
-  const res = await fetch(`${apiBase}/api/cloudant/nodes`, {
-    headers: meshHeaders(),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!res.ok) throw new Error(`Cloudant proxy HTTP ${res.status}`);
-  const data = await res.json() as { nodes: CloudantNode[] };
-  if (!Array.isArray(data.nodes)) throw new Error("Unexpected response shape");
-  return data.nodes;
+  let retryCount = 0;
+  const maxRetries = 0;
+
+  while (retryCount <= maxRetries) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20_000);
+
+    try {
+      const res = await fetch(`${apiBase}/api/cloudant/nodes`, {
+        headers: meshHeaders(),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.status === 429) {
+        // Rate limited - wait and retry with exponential backoff
+        const waitTime = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`[Cloudant] Rate limited, retrying in ${waitTime}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        retryCount++;
+        continue;
+      }
+
+      if (!res.ok) throw new Error(`Cloudant proxy HTTP ${res.status}`);
+      const data = await res.json() as { nodes: CloudantNode[] };
+      if (!Array.isArray(data.nodes)) throw new Error("Unexpected response shape");
+      return data.nodes;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (retryCount === maxRetries) {
+        console.error("[Cloudant] fetch failed:", error);
+        throw error;
+      }
+      retryCount++;
+      const waitTime = Math.pow(2, retryCount) * 1000;
+      console.log(`[Cloudant] Request failed, retrying in ${waitTime}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+
+  throw new Error("Max retries exceeded");
 }
 
 async function fetchFromLocalBackend(apiBase: string): Promise<CloudantNode[]> {
-  const res = await fetch(`${apiBase}/api/mesh/topology`, {
-    headers: meshHeaders(),
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!res.ok) throw new Error(`Backend HTTP ${res.status}`);
+  let retryCount = 0;
+  const maxRetries = 0;
 
-  const data = await res.json() as {
-    nodes: Array<{
-      id: string; label: string; lat?: number; lng?: number;
-      battery?: number; signal: number; device: string; role: string;
-      lastSeen: string; bluetoothStatus?: boolean; wifiStatus?: boolean;
-      protocol?: string[];
-    }>;
-  };
+  while (retryCount <= maxRetries) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
-  return data.nodes.map((n) => {
-    const ble  = Array.isArray(n.protocol)
-      ? n.protocol.includes("bluetooth")
-      : Boolean(n.bluetoothStatus ?? true);
-    const wifi = Array.isArray(n.protocol)
-      ? n.protocol.includes("wifi")
-      : Boolean(n.wifiStatus ?? false);
-    return {
-      node_id:            n.id,
-      label:              n.label,
-      latitude:           n.lat  ?? null,
-      longitude:          n.lng  ?? null,
-      battery_percentage: n.battery ?? 80,
-      bluetooth_status:   ble,
-      wifi_status:        wifi,
-      protocol_active:    deriveProtocol(ble, wifi),
-      signal:             n.signal,
-      device:             (n.device as "smartphone" | "laptop") ?? "smartphone",
-      role:               (n.role as "peer" | "relay") ?? "peer",
-      last_seen:          n.lastSeen,
-    };
-  });
+    try {
+      const res = await fetch(`${apiBase}/api/mesh/topology`, {
+        headers: meshHeaders(),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.status === 429) {
+        // Rate limited - wait and retry with exponential backoff
+        const waitTime = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`[LocalBackend] Rate limited, retrying in ${waitTime}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        retryCount++;
+        continue;
+      }
+
+      if (!res.ok) throw new Error(`Backend HTTP ${res.status}`);
+
+      const data = await res.json() as {
+        nodes: Array<{
+          id: string; label: string; lat?: number; lng?: number;
+          battery?: number; signal: number; device: string; role: string;
+          lastSeen: string; bluetoothStatus?: boolean; wifiStatus?: boolean;
+          protocol?: string[];
+        }>;
+      };
+
+      return data.nodes.map((n) => {
+        const ble  = Array.isArray(n.protocol)
+          ? n.protocol.includes("bluetooth")
+          : Boolean(n.bluetoothStatus ?? true);
+        const wifi = Array.isArray(n.protocol)
+          ? n.protocol.includes("wifi")
+          : Boolean(n.wifiStatus ?? false);
+        return {
+          node_id:            n.id,
+          label:              n.label,
+          latitude:           n.lat  ?? null,
+          longitude:          n.lng  ?? null,
+          battery_percentage: n.battery ?? 80,
+          bluetooth_status:   ble,
+          wifi_status:        wifi,
+          protocol_active:    deriveProtocol(ble, wifi),
+          signal:             n.signal,
+          device:             (n.device as "smartphone" | "laptop") ?? "smartphone",
+          role:               (n.role as "peer" | "relay") ?? "peer",
+          last_seen:          n.lastSeen,
+        };
+      });
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (retryCount === maxRetries) {
+        console.error("[LocalBackend] fetch failed:", error);
+        throw error;
+      }
+      retryCount++;
+      const waitTime = Math.pow(2, retryCount) * 1000;
+      console.log(`[LocalBackend] Request failed, retrying in ${waitTime}ms (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+
+  throw new Error("Max retries exceeded");
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -174,6 +240,37 @@ export function useCloudantNodes(
   const apiBase = getApiBase();
 
   const load = useCallback(async () => {
+    // Check if emergency mode is active - use offline-first approach
+    const isEmergencyMode = localStorage.getItem('emergency_mode') === 'true';
+    
+    // In emergency mode, use cached data or seed nodes immediately
+    if (isEmergencyMode) {
+      const cachedNodes = localStorage.getItem('cached_nodes');
+      if (cachedNodes) {
+        try {
+          const parsed = JSON.parse(cachedNodes);
+          setNodes(parsed);
+          setSource("seed"); // Use seed source for cached data
+          setError(null);
+          setLoading(false);
+          return;
+        } catch {
+          // If cache is invalid, fall through to seed generation
+        }
+      }
+      
+      // Generate seed nodes for immediate offline access
+      const seedNodes = generateSeedNodes(deviceLat, deviceLng);
+      setNodes(seedNodes);
+      setSource("seed");
+      setError(null);
+      setLoading(false);
+      
+      // Cache the seed nodes for offline use
+      localStorage.setItem('cached_nodes', JSON.stringify(seedNodes));
+      return;
+    }
+
     try {
       // Priority 1 — backend Cloudant proxy (Cloudant credentials stay server-side)
       try {
@@ -185,6 +282,8 @@ export function useCloudantNodes(
         setNodes(data);
         setSource("cloudant");
         setError(null);
+        // Cache successful data for emergency mode
+        localStorage.setItem('cached_nodes', JSON.stringify(data));
         return;
       } catch {
         // Cloudant not configured on backend — fall through to local topology
@@ -195,6 +294,8 @@ export function useCloudantNodes(
       setNodes(data);
       setSource("local-backend");
       setError(null);
+      // Cache successful data for emergency mode
+      localStorage.setItem('cached_nodes', JSON.stringify(data));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setError(msg);
@@ -202,14 +303,29 @@ export function useCloudantNodes(
       const seedNodes = generateSeedNodes(deviceLat, deviceLng);
       setNodes((prev) => (prev.length === 0 ? seedNodes : prev));
       setSource((prev) => (prev === "seed" ? "seed" : prev));
+      // Cache seed nodes for emergency mode
+      localStorage.setItem('cached_nodes', JSON.stringify(seedNodes));
     } finally {
       setLoading(false);
     }
   }, [apiBase, deviceLat, deviceLng]);
 
   useEffect(() => {
-    load();
-    const id = setInterval(load, pollIntervalMs);
+    // In emergency mode, reduce polling frequency to save battery
+    const isEmergencyMode = localStorage.getItem('emergency_mode') === 'true';
+    const emergencyPollInterval = isEmergencyMode ? 60_000 : pollIntervalMs; // 1 minute in emergency mode
+
+    // Guard against overlapping runs when a fetch + retries takes longer than the interval.
+    let running = false;
+    const run = async () => {
+      if (running) return;
+      running = true;
+      await load();
+      running = false;
+    };
+
+    run();
+    const id = setInterval(run, emergencyPollInterval);
     return () => clearInterval(id);
   }, [load, pollIntervalMs]);
 

@@ -31,6 +31,14 @@ export function startEvictionJob(db: Database): void {
     WHERE datetime(last_seen) < datetime('now', ?)
   `);
 
+  const evictMessages = db.prepare(`
+    DELETE FROM messages
+    WHERE from_node_id IN (
+      SELECT id FROM nodes
+      WHERE datetime(last_seen) < datetime('now', ?)
+    )
+  `);
+
   const evictEdges = db.prepare(`
     DELETE FROM edges
     WHERE node_a NOT IN (SELECT id FROM nodes)
@@ -43,6 +51,7 @@ export function startEvictionJob(db: Database): void {
       const evictArg  = `-${Math.floor(EVICT_THRESHOLD_MS  / 1000)} seconds`;
 
       const staleInfo = markStale.run(staleArg);
+      evictMessages.run(evictArg);
       const evictInfo = evict.run(evictArg);
       evictEdges.run();
 

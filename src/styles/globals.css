@@ -33,3 +33,57 @@
 .leaflet-tooltip-pane     { z-index: 650 !important; }
 .leaflet-popup-pane       { z-index: 700 !important; }
 .leaflet-control          { z-index: 800 !important; }
+
+/* ── Emergency Mode Styles ──────────────────────────────────────────────────── */
+/* Optimized for battery saving and quick emergency access                      */
+
+body.emergency-mode {
+  /* Disable animations for battery saving */
+  animation: none !important;
+  transition: none !important;
+}
+
+body.emergency-mode * {
+  animation: none !important;
+  transition: none !important;
+}
+
+body.emergency-mode .leaflet-marker-icon {
+  /* Simplified marker rendering */
+  filter: brightness(1.2) contrast(1.1);
+}
+
+body.emergency-mode .leaflet-container {
+  /* Reduced map refresh rate */
+  background: #0B1D3A;
+}
+
+/* Emergency mode high contrast for visibility */
+body.emergency-mode {
+  background: #0B1D3A !important;
+}
+
+/* Emergency button pulse animation */
+@keyframes emergency-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.6);
+  }
+}
+
+.emergency-pulse {
+  animation: emergency-pulse 2s ease-in-out infinite;
+}
+
+/* Emergency mode simplified UI */
+body.emergency-mode .non-essential {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+body.emergency-mode .essential-only {
+  opacity: 1;
+  pointer-events: auto;
+}

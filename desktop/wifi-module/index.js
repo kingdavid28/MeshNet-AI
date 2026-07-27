@@ -30,9 +30,7 @@ class WiFiModule {
         console.log('[WiFi] Getting connected devices...');
         
         // Method: Get all network adapters and their connections to identify hotspot
-        const adaptersCommand = `
-          Get-NetAdapter | Select-Object Name, InterfaceDescription, Status | ConvertTo-Json
-        `;
+        const adaptersCommand = 'Get-NetAdapter | Select-Object Name, InterfaceDescription, Status | ConvertTo-Json';
         
         try {
           const { stdout } = await execAsync(`powershell -Command "${adaptersCommand}"`);
@@ -51,7 +49,8 @@ class WiFiModule {
             adapter.Name && (
               adapter.Name.toLowerCase().includes('mobile') ||
               adapter.Name.toLowerCase().includes('hotspot') ||
-              adapter.InterfaceDescription?.toLowerCase().includes('microsoft hosted network')
+              adapter.InterfaceDescription?.toLowerCase().includes('microsoft hosted network') ||
+              adapter.InterfaceDescription?.toLowerCase().includes('wi-fi direct')
             )
           );
           
@@ -59,11 +58,7 @@ class WiFiModule {
             console.log('[WiFi] Found hotspot adapter:', hotspotAdapter.Name);
             
             // Get network connections for this adapter with IP addresses
-            const connectionCommand = `
-              Get-NetAdapter -Name "${hotspotAdapter.Name}" | 
-              Get-NetNeighbor -AddressFamily IPv4 -State Reachable | 
-              Select-Object IPAddress, LinkLayerAddress
-            `;
+            const connectionCommand = `Get-NetNeighbor -AddressFamily IPv4 -State Reachable | Where-Object { $_.InterfaceAlias -eq '${hotspotAdapter.Name}' } | Select-Object IPAddress, LinkLayerAddress`;
             
             const { stdout: connectionOutput } = await execAsync(`powershell -Command "${connectionCommand}"`);
             console.log('[WiFi] Connection output:', connectionOutput);
@@ -82,6 +77,11 @@ class WiFiModule {
               }
             }
             
+            if (devices.length === 0) {
+              console.log('[WiFi] Get-NetNeighbor returned no reachable devices, trying ARP/IP-based detection');
+              return await this.getConnectedDevicesByIP();
+            }
+
             console.log(`[WiFi] Connected devices (Adapter): ${devices.length}, Devices: ${JSON.stringify(devices)}`);
             return devices;
           } else {
@@ -172,23 +172,35 @@ class WiFiModule {
   // Get hotspot IP address
   async getHotspotIP() {
     if (this.platform === 'win32') {
+      const fallbackIP = '192.168.137.1'; // NOSONAR — known Windows hotspot gateway
+
       try {
-        const command = 'netsh interface ip show address "Mobile Hotspot*"';
-        const { stdout } = await execAsync(command);
-        
+        // netsh Mobile Hotspot interface (Windows Settings flow)
+        const { stdout } = await execAsync('netsh interface ip show address "Mobile Hotspot*"');
         const ipMatch = stdout.match(/IP Address:\s*(\d+\.\d+\.\d+\.\d+)/);
         if (ipMatch) {
           console.log('[WiFi] Hotspot IP:', ipMatch[1]);
           return ipMatch[1];
         }
-        
-        // Fallback to default
-        console.log('[WiFi] Using default hotspot IP: 192.168.137.1');
-        return '192.168.137.1'; // NOSONAR — known Windows hotspot gateway
-      } catch (error) {
-        console.log('[WiFi] Could not get hotspot IP, using default: 192.168.137.1');
-        return '192.168.137.1'; // NOSONAR
+      } catch {
+        // Fall through to PowerShell enumeration
       }
+
+      try {
+        // PowerShell: look for any interface likely to be the hotspot
+        const command = `powershell -Command "Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.InterfaceDescription -like '*Hosted Network*' -or $_.InterfaceDescription -like '*Wi-Fi Direct*' -or $_.InterfaceDescription -like '*Mobile Hotspot*' } | Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty IPAddress -First 1"`;
+        const { stdout } = await execAsync(command);
+        const ip = stdout.trim();
+        if (ip && /^\d+\.\d+\.\d+\.\d+$/.test(ip)) {
+          console.log('[WiFi] Hotspot IP (PS):', ip);
+          return ip;
+        }
+      } catch (error) {
+        console.log('[WiFi] Could not enumerate hotspot IP:', error.message);
+      }
+
+      console.log('[WiFi] Using default hotspot IP:', fallbackIP);
+      return fallbackIP;
     }
     return '192.168.137.1'; // NOSONAR
   }
@@ -214,11 +226,7 @@ class WiFiModule {
       console.log('[WiFi] Using ARP fallback method...');
 
       // Get Mobile Hotspot interface details using PowerShell
-      const psCommand = `
-        Get-NetAdapter |
-        Where-Object { $_.Name -like '*Mobile*' -or $_.Name -like '*Hotspot*' } |
-        Select-Object -ExpandProperty InterfaceAlias
-      `;
+      const psCommand = "Get-NetAdapter | Where-Object { $_.Name -like '*Mobile*' -or $_.Name -like '*Hotspot*' -or $_.InterfaceDescription -like '*Wi-Fi Direct*' } | Select-Object -ExpandProperty InterfaceAlias";
 
       let hotspotInterface = '';
       let hotspotIP = '';
@@ -563,39 +571,56 @@ class WiFiModule {
       console.log(`Creating emergency mobile hotspot with SSID: "${ssid}"`);
       console.log(`Using WPA2 security with simple password: "${password}"`);
       
-      // Try to enable Mobile Hotspot using PowerShell
+      // Try to enable the Microsoft Hosted Network Virtual Adapter, then start it
       try {
-        console.log('Attempting to enable Mobile Hotspot with WPA2 security...');
-        
-        // Set Mobile Hotspot SSID using registry
-        const setSsidCommand = String.raw`powershell -Command "Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\WlanSvc\Parameters\HostedNetworkSettings' -Name 'SSID' -Value ([byte[]](char[]'${ssid}'))"`;
-        
+        await execAsync(`powershell -Command "Get-PnpDevice -Class Net -FriendlyName '*Hosted Network*' -ErrorAction SilentlyContinue | Enable-PnpDevice -Confirm:$false"`);
+        console.log('Hosted Network Virtual Adapter enabled (or already enabled)');
+      } catch (adapterError) {
+        console.log('Could not enable Hosted Network Virtual Adapter:', adapterError.message);
+      }
+
+      // Try to start the Windows Hosted Network via netsh first
+      try {
+        console.log('Attempting to start Windows Hosted Network with netsh...');
+
+        const setNetworkCommand = `netsh wlan set hostednetwork mode=allow ssid="${ssid}" key="${password}" keyUsage=persistent`;
+        const startNetworkCommand = 'netsh wlan start hostednetwork';
+
+        console.log(`Configuring hosted network: ${ssid}`);
+        await execAsync(setNetworkCommand);
+        console.log('Hosted network configured');
+
+        console.log('Starting hosted network...');
+        await execAsync(startNetworkCommand);
+        console.log('Hosted network started');
+
+        return {
+          success: true,
+          message: 'Emergency hotspot started — phones can now join',
+          password: password,
+          isOpen: true,
+          method: 'Windows Hosted Network (netsh)'
+        };
+      } catch (netshError) {
+        console.warn(`netsh hostednetwork failed: ${netshError.message}`);
+        console.log('Falling back to Windows Settings for manual Mobile Hotspot...');
+
+        // Open Windows Mobile Hotspot settings for manual activation
         try {
-          await execAsync(setSsidCommand);
-          console.log('Mobile Hotspot SSID set');
-        } catch (ssidError) {
-          console.error(`Failed to set SSID: ${ssidError.message}`);
-        }
-        
-        // Enable Mobile Hotspot
-        const enableCommand = 'powershell -Command "Start-Process ms-settings:network-mobilehotspot"';
-        console.log(`Opening Mobile Hotspot settings for manual activation`);
-        
-        try {
-          await execAsync(enableCommand);
+          await execAsync('powershell -Command "Start-Process ms-settings:network-mobilehotspot"');
           console.log('Mobile Hotspot settings opened');
         } catch (enableError) {
           console.error(`Failed to open Mobile Hotspot settings: ${enableError.message}`);
         }
-        
+
         // Provide manual activation instructions with password
         return {
           success: true,
           message: 'Mobile Hotspot settings opened for manual activation',
           manualInstructions: [
             '1. In the opened Mobile Hotspot settings window:',
-            '2. Set Network name to "MeshNet"',
-            '3. Set Network password to: 12345678',
+            `2. Set Network name to "${ssid}"`,
+            `3. Set Network password to: ${password}`,
             '4. Toggle "Share my internet connection" to ON',
             '5. Victims can connect using this simple password',
             '6. Once activated, return to this app to continue'
@@ -604,28 +629,8 @@ class WiFiModule {
           isOpen: false,
           method: 'Windows Mobile Hotspot (WPA2 Security)'
         };
-        
-      } catch (mobileHotspotError) {
-        console.error(`Mobile Hotspot approach failed: ${mobileHotspotError.message}`);
-        
-        // Fallback: Provide instructions for manual activation
-        return {
-          success: false,
-          message: 'Mobile Hotspot requires manual activation',
-          manualInstructions: [
-            '1. Open Windows Settings (Windows Key + I)',
-            '2. Go to Network & Internet > Mobile Hotspot',
-            '3. Set Network name to "MeshNet"',
-            '4. Set Network password to: 12345678',
-            '5. Toggle "Share my internet connection" to ON',
-            '6. Victims can connect using this simple password',
-            '7. Return to this app to continue'
-          ],
-          error: mobileHotspotError.message,
-          troubleshooting: 'Mobile Hotspot may need to be enabled manually in Windows Settings'
-        };
       }
-      
+
     } catch (error) {
       console.error('Hotspot creation error:', error);
       return {

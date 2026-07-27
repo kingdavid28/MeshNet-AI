@@ -134,7 +134,7 @@ export class BLEService {
     try {
       const credentials = JSON.parse(json);
       return {
-        ssid: credentials.ssid || 'MeshNet-Emergency',
+        ssid: credentials.ssid || 'meshnet',
         password: credentials.password || '',
         version: credentials.version || '1.0',
       };

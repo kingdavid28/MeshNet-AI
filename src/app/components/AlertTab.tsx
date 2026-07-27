@@ -36,15 +36,27 @@ export function AlertTab({ nodeCount }: { nodeCount: number }) {
     };
 
     let delivered = false;
+    let errorMessage = "";
+    
     try {
+      console.log(`[AlertTab] Sending alert to ${API_BASE}/api/alerts`, payload);
       const res = await fetch(`${API_BASE}/api/alerts`, {
         method:  "POST",
         headers: meshHeaders(),
         body:    JSON.stringify(payload),
-        signal:  AbortSignal.timeout(6_000),
+        signal:  AbortSignal.timeout(10_000), // Increased timeout
       });
+      console.log(`[AlertTab] Response status:`, res.status);
       delivered = res.ok || res.status === 201;
-    } catch {
+      
+      if (!delivered) {
+        errorMessage = `Server returned ${res.status}`;
+        const errorText = await res.text().catch(() => "");
+        if (errorText) errorMessage += `: ${errorText}`;
+      }
+    } catch (error) {
+      console.error(`[AlertTab] Network error:`, error);
+      errorMessage = error instanceof Error ? error.message : "Network error";
       // Backend unreachable — queue for retry
     }
 
@@ -58,6 +70,7 @@ export function AlertTab({ nodeCount }: { nodeCount: number }) {
         const details  = message.trim() ? ` · ${message.trim()}` : "";
         const plaintext = `${label}${details}${gpsLine}`;
         const ciphertext = await encryptMessage(plaintext);
+        console.log(`[AlertTab] Broadcasting mesh message to ${API_BASE}/api/messages`);
         await fetch(`${API_BASE}/api/messages`, {
           method:  "POST",
           headers: meshHeaders(),
@@ -69,13 +82,17 @@ export function AlertTab({ nodeCount }: { nodeCount: number }) {
             ciphertext,
             hops:       0,
           }),
-          signal: AbortSignal.timeout(6_000),
+          signal: AbortSignal.timeout(10_000),
         });
-      } catch { /* non-fatal — alert already stored */ }
+      } catch (error) {
+        console.error(`[AlertTab] Mesh broadcast failed (non-fatal):`, error);
+        /* non-fatal — alert already stored */
+      }
     } else {
+      console.log(`[AlertTab] Alert not delivered, queuing locally. Error: ${errorMessage}`);
       // Queue alert in localStorage for background retry
       const queue = JSON.parse(localStorage.getItem("meshnet_alert_queue") ?? "[]") as unknown[];
-      queue.push({ ...payload, queuedAt: Date.now() });
+      queue.push({ ...payload, queuedAt: Date.now(), error: errorMessage });
       localStorage.setItem("meshnet_alert_queue", JSON.stringify(queue));
       setQueued(true);
     }

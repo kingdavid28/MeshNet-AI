@@ -77,8 +77,10 @@ meshRouter.get("/join", (req: Request, res: Response) => {
 function joinHandler(req: Request, res: Response) {
   // Derive gateway IP from the incoming request so this works on any hotspot subnet.
   // req.socket.localAddress is the interface IP the server accepted the connection on.
-  const gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  let gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  if (gatewayIp === "::1" || gatewayIp === "127.0.0.1") gatewayIp = "localhost";
   const clientIp = req.socket.remoteAddress?.replace("::ffff:", "") ?? "127.0.0.1";
+  const webPort = process.env.WEB_PORT ?? "5173";
 
   // Only redirect if request is coming from a hotspot client (not localhost)
   // This prevents redirect loops when called from the desktop app itself
@@ -103,7 +105,7 @@ function joinHandler(req: Request, res: Response) {
     <ol>
       <li>Connect to the MeshNet Wi-Fi hotspot</li>
       <li>Open your browser - captive portal will redirect automatically</li>
-      <li>Or visit: <a href="http://${gatewayIp}:8080/">http://${gatewayIp}:8080/</a></li>
+      <li>Or visit: <a href="http://${gatewayIp}:${webPort}/">http://${gatewayIp}:${webPort}/</a></li>
     </ol>
   </div>
   <p>This endpoint is for captive portal redirection. Access the PWA directly at the URL above.</p>
@@ -179,7 +181,7 @@ function joinHandler(req: Request, res: Response) {
     <p>Gateway: ${gatewayIp}</p>
     <p>Status: Active</p>
   </div>
-  <a href="http://${gatewayIp}:8080/" class="btn">Open MeshNet App</a>
+  <a href="http://${gatewayIp}:${webPort}/" class="btn">Open MeshNet App</a>
   <p style="margin-top: 30px; font-size: 12px; opacity: 0.7;">
     MeshNet Emergency Network v2.4.0
   </p>
@@ -193,22 +195,26 @@ function joinHandler(req: Request, res: Response) {
 // Discovery endpoint for PWA to find backend on local network
 // Returns backend info including API base URL
 publicMeshRouter.get("/discover", (req: Request, res: Response) => {
-  const gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  let gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  if (gatewayIp === "::1" || gatewayIp === "127.0.0.1") gatewayIp = "localhost";
+  const webPort = process.env.WEB_PORT ?? "5173";
   res.json({
     meshnet: true,
     version: "2.4.0",
     apiBase: `http://${gatewayIp}:4000`,
-    webBase: `http://${gatewayIp}:8080`,
+    webBase: `http://${gatewayIp}:${webPort}`,
     capabilities: ["wifi-hotspot", "captive-portal", "https"],
   });
 });
 meshRouter.get("/discover", (req: Request, res: Response) => {
-  const gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  let gatewayIp = req.socket.localAddress?.replace("::ffff:", "") ?? "192.168.137.1"; // NOSONAR
+  if (gatewayIp === "::1" || gatewayIp === "127.0.0.1") gatewayIp = "localhost";
+  const webPort = process.env.WEB_PORT ?? "5173";
   res.json({
     meshnet: true,
     version: "2.4.0",
     apiBase: `http://${gatewayIp}:4000`,
-    webBase: `http://${gatewayIp}:8080`,
+    webBase: `http://${gatewayIp}:${webPort}`,
     capabilities: ["wifi-hotspot", "captive-portal", "https"],
   });
 });
@@ -380,6 +386,25 @@ meshRouter.post("/edges", (req: Request, res: Response) => {
   if (!["wifi", "bluetooth"].includes(protocol)) {
     res.status(400).json({ error: "protocol must be 'wifi' or 'bluetooth'" });
     return;
+  }
+
+  const now = new Date().toISOString();
+  for (const nodeId of [a, b]) {
+    nodeStmts.upsert.run({
+      id:                 nodeId,
+      label:              nodeId,
+      name:               nodeId,
+      device:             "smartphone",
+      role:               "peer",
+      signal:             80,
+      battery_percentage: 100,
+      bluetooth_status:   0,
+      wifi_status:        0,
+      os:                 null,
+      lat:                null,
+      lng:                null,
+      last_seen:          now,
+    } as any);
   }
 
   edgeStmts.upsert.run({
@@ -633,4 +658,12 @@ meshRouter.get("/messages/:id", (req: Request, res: Response) => {
     count: 0,
     last_updated: new Date().toISOString(),
   });
+});
+
+// ─── GET /api/mesh/incoming ─────────────────────────────────────────────────
+// Poll endpoint for incoming packets queued for the requesting node.
+// Currently returns an empty queue until store-and-forward storage is wired up.
+
+publicMeshRouter.get("/incoming", (_req: Request, res: Response) => {
+  res.json([]);
 });

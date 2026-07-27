@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getApiBase, getMeshSecret } from '../utils/env';
 import { WiFiHotspotService, HotspotConfig } from '../services/wifi';
 import { DesktopWiFiService } from '../services/wifi-desktop';
@@ -69,8 +69,8 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
     }
   };
 
-  const wifiService = new WiFiHotspotService();
-  const desktopWiFiService = new DesktopWiFiService();
+  const wifiService = useMemo(() => new WiFiHotspotService(), []);
+  const desktopWiFiService = useMemo(() => new DesktopWiFiService(), []);
 
   useEffect(() => {
     // Check if running in desktop (Electron) app
@@ -104,8 +104,30 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
   const updateConnectedDevicesCount = useCallback(async () => {
     if (!isDesktop || !isHotspotActive) return;
     try {
-      const devices = await desktopWiFiService.getConnectedDevices();
-      const fingerprint = JSON.stringify(devices.map((d: { mac: string }) => d.mac).sort((a, b) => a.localeCompare(b)));
+      // Try detailed device list; fall back to a plain count if the API doesn't provide it
+      let rawDevices: Array<{ mac: string; ip: string }> = [];
+      try {
+        rawDevices = await desktopWiFiService.getConnectedDevices();
+      } catch {
+        const count = await desktopWiFiService.getConnectedDevicesCount();
+        rawDevices = Array.from({ length: count }, (_, i) => ({
+          mac: `device-${i}`,
+          ip: '',
+        }));
+      }
+
+      const gatewayIp = await desktopWiFiService.getHotspotIP().catch(() => '');
+
+      // Dedupe by MAC and exclude the hotspot gateway so we only count real peers
+      const seenMacs = new Set<string>();
+      const devices = rawDevices.filter((d: { mac: string; ip: string }) => {
+        if (!d.mac || seenMacs.has(d.mac)) return false;
+        if (d.ip && d.ip === gatewayIp) return false;
+        seenMacs.add(d.mac);
+        return true;
+      });
+
+      const fingerprint = JSON.stringify([...seenMacs].sort((a, b) => a.localeCompare(b)));
 
       // Only log + process when the device list actually changed
       if (fingerprint !== lastDeviceFingerprintRef.current) {
@@ -136,7 +158,7 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
   const loadHotspotConfig = async () => {
     const config = await wifiService.createHotspotConfig();
     // Emergency network: simple password for Windows WPA2 requirement
-    config.ssid = 'MeshNet-Emergency';
+    config.ssid = 'meshnet';
     config.password = '12345678'; // Simple password for easy emergency access
     setHotspotConfig(config);
   };
@@ -245,7 +267,7 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
   // ── Extracted helper: phone hotspot activation branch ────────────────────
   const handlePhoneActivation = async (): Promise<boolean> => {
     try {
-      const ssid = 'MeshNet-Emergency';
+      const ssid = 'meshnet';
       const password = '12345678';
       
       // Start WiFi hotspot using Android native plugin
@@ -316,7 +338,7 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
   // ── Extracted helper: desktop hotspot activation branch ───────────────────
   const handleDesktopActivation = async (): Promise<boolean> => {
     const config = {
-      ssid: 'MeshNet-Emergency', // Clear emergency SSID for easy identification
+      ssid: 'meshnet', // Clear emergency SSID for easy identification
       password: '12345678', // Simple password for Windows WPA2 requirement
       interface: 'wlan0',
     };
@@ -607,25 +629,23 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
             </button>
           </div>
 
-          {/* Enable auto-popup button when the kernel portproxy is missing */}
-          {portalNeedsSetup && (
-            <button
-              onClick={async () => {
-                const eAPI = (globalThis as any).electronAPI;
-                if (!eAPI?.setupCaptivePortal) return;
-                const r = await eAPI.setupCaptivePortal(hotspotIP || DEFAULT_HOTSPOT_IP);
-                if (r?.success) {
-                  setError(null);
-                  alert('Done! Deactivate and reactivate the hotspot — phones will now get the auto-popup.');
-                } else {
-                  setError('Setup failed: ' + (r?.error ?? 'unknown'));
-                }
-              }}
-              className="w-full py-2 text-[11px] font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-            >
-              ⚡ Enable Auto-Popup — one-time UAC prompt
-            </button>
-          )}
+          {/* Enable auto-popup button - always show so users can re-run setup if needed */}
+          <button
+            onClick={async () => {
+              const eAPI = (globalThis as any).electronAPI;
+              if (!eAPI?.setupCaptivePortal) return;
+              const r = await eAPI.setupCaptivePortal(hotspotIP || DEFAULT_HOTSPOT_IP);
+              if (r?.success) {
+                setError(null);
+                alert('Done! Deactivate and reactivate the hotspot — phones will now get the auto-popup.');
+              } else {
+                setError('Setup failed: ' + (r?.error ?? 'unknown'));
+              }
+            }}
+            className="w-full py-2 text-[11px] font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+          >
+            ⚡ Enable Auto-Popup — one-time UAC prompt
+          </button>
         </div>
       )}
 

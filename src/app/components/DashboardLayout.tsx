@@ -18,18 +18,16 @@ import SosInputPortal, { type SosPayload } from "./SosInputPortal";
 import NodeMapCanvas from "./NodeMapCanvas";
 import DisasterControlPanel, { type Scenario } from "./DisasterControlPanel";
 import FlickerAlertBanner from "./FlickerAlertBanner";
+import { CommsTab } from "./CommsTab";
 import { useCloudantNodes, type CloudantNode } from "../hooks/useCloudantNodes";
 import { useRouting } from "../hooks/useRouting";
 import { useSignalStream } from "../hooks/useSignalStream";
 import { useDeviceLocation } from "../hooks/useDeviceLocation";
-import { BluetoothScanner } from "../../components/BluetoothScanner";
-import { BluetoothMeshService } from "../../services/bluetooth";
 import { WebRTCManager } from "../../components/WebRTCManager";
 import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
-import { BLEControls } from "../../components/BLEControls";
-import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X } from "lucide-react";
+import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, MessageSquare, Network } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { getApiBase, getMeshSecret } from "../../utils/env";
 
@@ -64,12 +62,6 @@ export default function DashboardLayout() {
   const { result: routeResult, loading: routeLoading, error: routeError, query: queryRoute } = useRouting();
   const { latestFlicker, flickerHistory, connected: sseConnected, dismiss: dismissFlicker } = useSignalStream();
 
-  // Shared BLE service instance — used by the SOS portal as an emergency fallback
-  // and by the BluetoothScanner UI for direct connect/scans.
-  const bleServiceRef = useRef<BluetoothMeshService | null>(null);
-  bleServiceRef.current ??= new BluetoothMeshService();
-  const bleService = bleServiceRef.current;
-
   const [log, setLog] = useState<LogEntry[]>([
     makeEntry("system", "Dashboard initialized — IBM Cloudant sync active... acquiring GPS"),
   ]);
@@ -81,13 +73,11 @@ export default function DashboardLayout() {
   // Clicked node for route source selection
   const [selectedNodeId,   setSelectedNodeId]   = useState<string | null>(null);
   // Desktop tab state
-  const [activeTab,        setActiveTab]        = useState<"dashboard" | "protocols">("dashboard");
+  const [activeTab,        setActiveTab]        = useState<"dashboard" | "comms" | "protocols">("dashboard");
   // Protocol selection
-  const [activeProtocol,   setActiveProtocol]   = useState<'ble' | 'webrtc' | 'hotspot' | null>(null);
-  // Hotspot credentials for BLE advertising
+  const [activeProtocol,   setActiveProtocol]   = useState<'webrtc' | 'hotspot' | null>(null);
+  // Hotspot credentials
   const [hotspotCredentials, setHotspotCredentials] = useState<{ ssid: string; password: string } | null>(null);
-  // BLE advertising status
-  const [bleAdvertising, setBleAdvertising] = useState(false);
 
   const appendLog = (type: string, message: string) => {
     setLog((prev) => [makeEntry(type, message), ...prev].slice(0, 40));
@@ -259,7 +249,7 @@ export default function DashboardLayout() {
             <img
               src="/MeshnetLogo.png"
               alt="MeshNet AI"
-              style={{ objectFit: "contain", width: "12%" }}
+              style={{ height: "80px", width: "auto" }}
             />
             <div className="flex flex-col">
               <div className="text-[11px] font-bold text-white tracking-wider uppercase">
@@ -273,6 +263,36 @@ export default function DashboardLayout() {
 
           {/* Status pills */}
           <div className="flex items-center gap-3">
+            {/* Mesh Network Status */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border"
+              style={{
+                background:  "rgba(34,197,94,0.1)",
+                borderColor: "rgba(34,197,94,0.2)",
+                color:       "#22C55E",
+              }}
+            >
+              <Network size={11} />
+              <span className="text-[10px] font-mono uppercase tracking-wider">
+                Mesh Standby
+              </span>
+            </div>
+
+            {/* Mesh Comms Status */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border"
+              style={{
+                background:  "rgba(91,141,217,0.1)",
+                borderColor: "rgba(91,141,217,0.2)",
+                color:       "#7B9CC4",
+              }}
+            >
+              <MessageSquare size={11} />
+              <span className="text-[10px] font-mono uppercase tracking-wider">
+                Encrypted · Offline · Peer-to-Peer
+              </span>
+            </div>
+
             {/* SSE stream status */}
             <div
               className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-mono uppercase border"
@@ -357,8 +377,11 @@ export default function DashboardLayout() {
             </div>
 
             {/* BLE count */}
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border"
+            <button
+              type="button"
+              onClick={() => setActiveTab("protocols")}
+              aria-label={`${bleActive} active BLE node${bleActive !== 1 ? "s" : ""} — open connection protocols`}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border cursor-pointer hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#22C55E] transition"
               style={{
                 background: bleActive > 0 ? "rgba(34,197,94,0.08)" : "rgba(75,85,99,0.15)",
                 borderColor: bleActive > 0 ? "rgba(34,197,94,0.2)" : "rgba(75,85,99,0.3)",
@@ -375,7 +398,7 @@ export default function DashboardLayout() {
               >
                 {bleActive} BLE
               </span>
-            </div>
+            </button>
           </div>
         </header>
 
@@ -411,20 +434,8 @@ export default function DashboardLayout() {
             {/* Divider */}
             <div className="border-t" style={{ borderColor: "rgba(91,141,217,0.12)" }} />
 
-            {/* BLE Controls */}
-            <BLEControls
-              hotspotCredentials={hotspotCredentials}
-              onStatusChange={(isAdvertising) => {
-                setBleAdvertising(isAdvertising);
-                appendLog("ble", isAdvertising ? "BLE advertising started" : "BLE advertising stopped");
-              }}
-            />
-
-            {/* Divider */}
-            <div className="border-t" style={{ borderColor: "rgba(91,141,217,0.12)" }} />
-
             {/* SOS Input Portal */}
-            <SosInputPortal onSend={handleSosSent} bleService={bleService} />
+            <SosInputPortal onSend={handleSosSent} />
           </aside>
 
           {/* RIGHT — Map + Route result + Activity log */}
@@ -590,6 +601,17 @@ export default function DashboardLayout() {
               <span className="text-sm font-semibold">Dashboard</span>
             </button>
             <button
+              onClick={() => setActiveTab("comms")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                activeTab === "comms"
+                  ? "bg-[#F97316] text-white"
+                  : "text-[#7B9CC4] hover:text-[#E8EEF7] hover:bg-[rgba(91,141,217,0.1)]"
+              }`}
+            >
+              <MessageSquare size={18} />
+              <span className="text-sm font-semibold">Comms</span>
+            </button>
+            <button
               onClick={() => setActiveTab("protocols")}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                 activeTab === "protocols"
@@ -603,8 +625,8 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        {/* ── Protocols Panel (shown when protocols tab is active) ──────────────── */}
-        {activeTab === "protocols" && (
+        {/* ── Comms Panel (shown when comms tab is active) ──────────────────────── */}
+        {activeTab === "comms" && (
           <div
             style={{
               position: "fixed",
@@ -615,6 +637,56 @@ export default function DashboardLayout() {
               flexDirection: "column",
             }}
           >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 24px",
+                borderBottom: "1px solid rgba(91,141,217,0.15)",
+                background: "rgba(10,21,38,0.8)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#F97316] flex items-center justify-center">
+                  <MessageSquare size={16} className="text-white" />
+                </div>
+                <div>
+                  <div
+                    className="text-base font-black text-[#E8EEF7] tracking-wider uppercase leading-none"
+                    style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+                  >
+                    Mesh Communications
+                  </div>
+                  <div className="text-[9px] font-mono text-[#7B9CC4] tracking-widest uppercase">
+                    Encrypted · Offline · Peer-to-Peer
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className="w-10 h-10 rounded-lg bg-[rgba(91,141,217,0.2)] flex items-center justify-center hover:bg-[rgba(91,141,217,0.3)] transition-colors"
+              >
+                <X size={20} className="text-[#7B9CC4]" />
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: "hidden" }}>
+              <CommsTab />
+            </div>
+          </div>
+        )}
+
+        {/* ── Protocols Panel (shown when protocols tab is active) ──────────────── */}
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(6,14,28,0.95)",
+            zIndex: 1000,
+            display: activeTab === 'protocols' ? "flex" : "none",
+            flexDirection: "column",
+          }}
+        >
             <div
               style={{
                 display: "flex",
@@ -666,23 +738,12 @@ export default function DashboardLayout() {
                   >
                     Select Protocol
                   </h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
-                    <button
-                      onClick={() => setActiveProtocol('ble')}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        activeProtocol === 'ble' 
-                          ? 'bg-[#F97316] border-[#F97316]' 
-                          : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)] hover:border-[rgba(91,141,217,0.4)]'
-                      }`}
-                    >
-                      <div style={{ fontSize: "24px", marginBottom: "8px" }}>📡</div>
-                      <div className="text-xs font-bold text-[#E8EEF7]">BLE</div>
-                    </button>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
                     <button
                       onClick={() => setActiveProtocol('webrtc')}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        activeProtocol === 'webrtc' 
-                          ? 'bg-[#F97316] border-[#F97316]' 
+                        activeProtocol === 'webrtc'
+                          ? 'bg-[#F97316] border-[#F97316]'
                           : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)] hover:border-[rgba(91,141,217,0.4)]'
                       }`}
                     >
@@ -692,8 +753,8 @@ export default function DashboardLayout() {
                     <button
                       onClick={() => setActiveProtocol('hotspot')}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        activeProtocol === 'hotspot' 
-                          ? 'bg-[#F97316] border-[#F97316]' 
+                        activeProtocol === 'hotspot'
+                          ? 'bg-[#F97316] border-[#F97316]'
                           : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)] hover:border-[rgba(91,141,217,0.4)]'
                       }`}
                     >
@@ -702,11 +763,6 @@ export default function DashboardLayout() {
                     </button>
                   </div>
 
-                  {activeProtocol === 'ble' && (
-                    <div style={{ marginTop: "20px" }}>
-                      <BluetoothScanner service={bleService} />
-                    </div>
-                  )}
                   {activeProtocol === 'webrtc' && (
                     <div style={{ marginTop: "20px" }}>
                       <WebRTCManager />
@@ -757,7 +813,6 @@ export default function DashboardLayout() {
               </div>
             </div>
           </div>
-        )}
       </div>
     </div>
   );

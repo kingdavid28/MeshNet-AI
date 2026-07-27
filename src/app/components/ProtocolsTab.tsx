@@ -8,16 +8,7 @@ import { MeshNetDiscovery } from "../../components/MeshNetDiscovery";
 
 export function ProtocolsTab() {
   const [activeProtocol, setActiveProtocol] = useState<'ble' | 'webrtc' | 'hotspot' | null>(null);
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
   const [isElectron, setIsElectron] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener("change", handler);
-    setIsDesktop(mq.matches);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   useEffect(() => {
     setIsElectron(!!(window as any).electronAPI);
@@ -36,20 +27,23 @@ export function ProtocolsTab() {
       </div>
 
       {/* MeshNet Discovery - Only on mobile devices (desktop/Electron is hotspot host) */}
-      {!isDesktop && !isElectron && <MeshNetDiscovery />}
+      {!isElectron && <MeshNetDiscovery />}
 
       <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={() => setActiveProtocol('ble')}
-          className={`p-3 rounded-lg border-2 transition-all ${
-            activeProtocol === 'ble'
-              ? 'bg-[#F97316] border-[#F97316]'
-              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
-          }`}
-        >
-          <div className="text-2xl mb-1">📡</div>
-          <div className="text-xs font-bold text-[#E8EEF7]">BLE</div>
-        </button>
+        {/* BLE - Only on mobile devices */}
+        {!isElectron && (
+          <button
+            onClick={() => setActiveProtocol('ble')}
+            className={`p-3 rounded-lg border-2 transition-all ${
+              activeProtocol === 'ble'
+                ? 'bg-[#F97316] border-[#F97316]'
+                : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
+            }`}
+          >
+            <div className="text-2xl mb-1">📡</div>
+            <div className="text-xs font-bold text-[#E8EEF7]">BLE</div>
+          </button>
+        )}
         <button
           onClick={() => setActiveProtocol('webrtc')}
           className={`p-3 rounded-lg border-2 transition-all ${
@@ -74,7 +68,7 @@ export function ProtocolsTab() {
         </button>
       </div>
 
-      {activeProtocol === 'ble' && (
+      {activeProtocol === 'ble' && !isElectron && (
         <div className="animate-fadeIn">
           <BluetoothScanner />
         </div>

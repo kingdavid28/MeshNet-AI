@@ -7,7 +7,8 @@ const selfsigned = require('selfsigned');
 const { exec, execSync } = require('node:child_process');
 const { promisify } = require('node:util');
 const WiFiModule = require('./wifi-module/index');
-const BLEModule = require('./ble-module/index');
+// BLE module disabled - requires USB Bluetooth 4.0 hardware
+// const BLEModule = require('./ble-module/index');
 
 const execAsync = promisify(exec);
 
@@ -33,6 +34,8 @@ const HOTSPOT_ORIGINS = [
   'http://192.168.1.1:4000', // Common router gateway with explicit port
   'http://192.168.0.1:4000', // Common router gateway with explicit port
   'http://10.0.0.1:4000',   // Common router gateway with explicit port
+  'http://127.0.0.1:4000',   // IPv4 loopback fallback
+  'http://127.0.0.1',        // IPv4 loopback fallback without port
   'http://192.168.1.1',      // Common router gateway without port
   'http://192.168.0.1',      // Common router gateway without port
   'http://10.0.0.1',        // Common router gateway without port
@@ -83,7 +86,7 @@ function createWindow() {
 
   // Block navigations to external origins (defence-in-depth)
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const allowed = ['http://localhost:5173', 'http://localhost:4000', 'file://'];
+    const allowed = ['http://localhost:5173', 'http://localhost:4000', 'http://localhost:8081', 'http://127.0.0.1:8081', 'file://'];
     if (!allowed.some((base) => url.startsWith(base))) {
       event.preventDefault();
     }
@@ -227,49 +230,49 @@ ipcMain.handle('mdns-stop', async () => {
   }
 });
 
-// BLE initialization IPC handler
-ipcMain.handle('ble-initialize', async () => {
-  try {
-    await BLEModule.initialize();
-    return { success: true };
-  } catch (error) {
-    console.error('BLE initialization error:', error);
-    return { success: false, error: error.message };
-  }
-});
+// BLE initialization IPC handler - disabled
+// ipcMain.handle('ble-initialize', async () => {
+//   try {
+//     await BLEModule.initialize();
+//     return { success: true };
+//   } catch (error) {
+//     console.error('BLE initialization error:', error);
+//     return { success: false, error: error.message };
+//   }
+// });
 
-// BLE start advertising IPC handler
-ipcMain.handle('ble-start-advertising', async (event, credentials) => {
-  try {
-    const result = await BLEModule.startAdvertising(credentials);
-    return result;
-  } catch (error) {
-    console.error('BLE start advertising error:', error);
-    return { success: false, error: error.message };
-  }
-});
+// BLE start advertising IPC handler - disabled
+// ipcMain.handle('ble-start-advertising', async (event, credentials) => {
+//   try {
+//     const result = await BLEModule.startAdvertising(credentials);
+//     return result;
+//   } catch (error) {
+//     console.error('BLE start advertising error:', error);
+//     return { success: false, error: error.message };
+//   }
+// });
 
-// BLE stop advertising IPC handler
-ipcMain.handle('ble-stop-advertising', async () => {
-  try {
-    const result = await BLEModule.stopAdvertising();
-    return result;
-  } catch (error) {
-    console.error('BLE stop advertising error:', error);
-    return { success: false, error: error.message };
-  }
-});
+// BLE stop advertising IPC handler - disabled
+// ipcMain.handle('ble-stop-advertising', async () => {
+//   try {
+//     const result = await BLEModule.stopAdvertising();
+//     return result;
+//   } catch (error) {
+//     console.error('BLE stop advertising error:', error);
+//     return { success: false, error: error.message };
+//   }
+// });
 
-// BLE check advertising status IPC handler
-ipcMain.handle('ble-is-advertising', async () => {
-  try {
-    const isAdvertising = BLEModule.isAdvertising();
-    return { success: true, isAdvertising };
-  } catch (error) {
-    console.error('BLE check advertising error:', error);
-    return { success: false, error: error.message };
-  }
-});
+// BLE check advertising status IPC handler - disabled
+// ipcMain.handle('ble-is-advertising', async () => {
+//   try {
+//     const isAdvertising = BLEModule.isAdvertising();
+//     return { success: true, isAdvertising };
+//   } catch (error) {
+//     console.error('BLE check advertising error:', error);
+//     return { success: false, error: error.message };
+//   }
+// });
 
 // WiFi hotspot creation IPC handler
 ipcMain.handle('wifi-create-hotspot', async (event, config) => {

@@ -31,8 +31,9 @@ const PORT = process.env.PORT ?? 4000;
 // Restrict to known origins in production via CORS_ORIGINS env var.
 // Multiple origins are comma-separated: "https://app.example.com,http://10.0.0.5:5173"
 // Falls back to localhost dev server if not set — never wildcards in production.
-const rawOrigins = process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:4173,http://localhost:8081";
+const rawOrigins = process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:4173,http://localhost:8080,http://localhost:8081";
 const allowedOrigins = rawOrigins.split(",").map((o) => o.trim()).filter(Boolean);
+const allowAllOrigins = rawOrigins.trim() === "*" || allowedOrigins.includes("*");
 
 // Configure helmet with relaxed CSP for the join endpoint
 app.use(helmet({
@@ -50,7 +51,7 @@ app.use(helmet({
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no Origin header (same-origin, curl, native WebView)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowAllOrigins || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin '${origin}' is not allowed`));

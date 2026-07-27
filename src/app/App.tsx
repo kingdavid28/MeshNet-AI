@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Radio, Wifi, Download, RefreshCw } from "lucide-react";
+import { Radio, Wifi, Download, RefreshCw, Network } from "lucide-react";
 import DashboardLayout from "./components/DashboardLayout";
 import { StatusBar } from "./components/StatusBar";
 import { HomeTab } from "./components/HomeTab";
@@ -8,8 +8,11 @@ import { MapTab } from "./components/MapTab";
 import { CommsTab } from "./components/CommsTab";
 import { ProtocolsTab } from "./components/ProtocolsTab";
 import { BLEScanner } from "../components/BLEScanner";
+import EmergencyQuickStart from "./components/EmergencyQuickStart";
 import { useCloudantNodes } from "./hooks/useCloudantNodes";
 import { useNetworkDiscovery } from "./hooks/useNetworkDiscovery";
+import { useEmergencyMode } from "./hooks/useEmergencyMode";
+import { useMeshNetwork } from "./hooks/useMeshNetwork";
 import { NAV, MESSAGES } from "./constants";
 import type { Tab } from "./types";
 
@@ -18,6 +21,25 @@ export default function App() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { backend, discovering, error, rediscover, manualUrl, setManualBackendUrl } = useNetworkDiscovery();
+  const { activateEmergencyMode } = useEmergencyMode();
+  
+  // Initialize mesh network
+  const meshNetwork = useMeshNetwork('node-1');
+
+  // Handle URL parameters for PWA shortcuts
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const emergencyParam = urlParams.get('emergency');
+    const tabParam = urlParams.get('tab');
+
+    if (emergencyParam === 'true') {
+      activateEmergencyMode();
+    }
+
+    if (tabParam && ['home', 'alert', 'map', 'comms', 'protocols'].includes(tabParam)) {
+      setTab(tabParam as Tab);
+    }
+  }, [activateEmergencyMode]);
 
   // PWA Install Prompt
   useEffect(() => {
@@ -48,9 +70,12 @@ export default function App() {
     }
   };
 
-  // Render the full desktop dashboard on wide screens; mobile shell on narrow.
+  // Detect Electron environment and screen size for platform-conditional UI
+  const [isElectron, setIsElectron] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
+
   useEffect(() => {
+    setIsElectron(!!(window as any).electronAPI);
     const mq = window.matchMedia("(min-width: 768px)");
     const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
     mq.addEventListener("change", handler);
@@ -61,6 +86,8 @@ export default function App() {
   const { nodes: liveNodes } = useCloudantNodes(10_000);
   const peerCount = liveNodes.length;
 
+  // Desktop: full dashboard layout; Mobile: mobile tabbed shell.
+  // BLE is only available in the mobile shell when not running in Electron.
   if (isDesktop) {
     return <DashboardLayout />;
   }
@@ -104,8 +131,10 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/20">
-              <Wifi size={11} className="text-[#22C55E]" />
-              <span className="text-[10px] font-mono text-[#22C55E] uppercase tracking-wider">Offline</span>
+              <Network size={11} className="text-[#22C55E]" />
+              <span className="text-[10px] font-mono text-[#22C55E] uppercase tracking-wider">
+                {meshNetwork.isConnected ? `Mesh (${meshNetwork.nodes.length})` : 'Offline'}
+              </span>
             </div>
           </div>
         </div>
@@ -134,7 +163,7 @@ export default function App() {
         )}
 
         {/* Network Discovery Status */}
-        {!backend && !isDesktop && (
+        {!backend && !isElectron && (
           <div className="shrink-0 mx-4 mt-3 p-3 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/30 flex flex-col gap-2">
             <div className="flex items-center gap-3">
               {discovering ? (
@@ -186,8 +215,31 @@ export default function App() {
           className="flex-1 overflow-y-auto"
           style={{ scrollbarWidth: "none", display: tab === "map" ? "none" : undefined }}
         >
-          {/* BLE Scanner for credential exchange */}
-          {!backend && !isDesktop && (
+          {/* Emergency Quick Start - Always accessible */}
+          <div className="mx-4 mt-3">
+            <EmergencyQuickStart />
+          </div>
+
+          {/* Mesh Network Status */}
+          {meshNetwork.isInitialized && (
+            <div className="mx-4 mt-3 p-3 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Network size={16} className="text-[#8B5CF6]" />
+                <span className="text-xs font-semibold text-[#E8EEF7]">Mesh Network</span>
+                <span className={`ml-auto text-[10px] font-mono ${meshNetwork.isConnected ? 'text-[#22C55E]' : 'text-[#F97316]'}`}>
+                  {meshNetwork.isConnected ? 'Active' : 'Standby'}
+                </span>
+              </div>
+              {meshNetwork.isConnected && (
+                <div className="text-[10px] text-[#7B9CC4]">
+                  {meshNetwork.nodes.length} nodes connected
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* BLE Scanner for credential exchange - Mobile only (not in Electron) */}
+          {!backend && !isElectron && (
             <div className="mx-4 mt-3">
               <BLEScanner />
             </div>

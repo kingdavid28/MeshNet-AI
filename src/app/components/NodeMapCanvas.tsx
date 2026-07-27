@@ -82,7 +82,7 @@ export default function NodeMapCanvas({
     /* flex:1 + minHeight:0 fills the parent flex column (both mobile shell
        and DashboardLayout map panel). Inline styles only — never rely on
        Tailwind for structural flex properties in the height chain. */
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0, overflowY: "auto" }}>
 
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -255,7 +255,7 @@ export default function NodeMapCanvas({
       {/* ── Selected node detail card ─────────────────────────────────────────── */}
       {selected && (
         <div
-          className="rounded-xl border p-3 flex items-start gap-3"
+          className="rounded-xl border p-3 flex items-start gap-3 shrink-0"
           style={{
             background: "#0F2040",
             borderColor: selected.bluetooth_status

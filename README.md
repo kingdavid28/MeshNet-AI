@@ -1,5 +1,7 @@
 
-  # Mobile App UI Design
+  # MeshNet-AI
+
+  An AI-powered offline emergency communication platform built with React, Node.js, and Electron. It turns everyday smartphones into an interconnected, self-healing mesh network using Bluetooth and Wi-Fi—requiring zero cellular signal and zero internet.
 
   <p align="center">
     <img src="public/MeshnetLogo.png" alt="MeshNet AI" width="320" />
@@ -7,31 +9,66 @@
 
   ## Running the code
 
-  Run `npm i` to install the dependencies.
+### Primary: Android APK (Mobile App)
+Install the pre-built APK on your Android device:
+```
+Location: android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-  Run `npm run dev` to start the development server.
-  
+**Build the APK:**
+```bash
+# Build the web app first
+pnpm build
 
-  Open 3 terminals and run one command in each
-Terminal 1 — Python FastAPI (AI routing engine, port 5050)
-cd "c:\Users\reycel\Downloads\Mobile App UI Design\backend"
-python -m uvicorn api_server:app --port 5050 --reload
+# Sync with Capacitor and build Android
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
 
-Terminal 2 — Node.js Express (REST API + SQLite, port 4000)
+**Important Notes:**
+- **Android 11+ Hotspot Limitation**: WiFi hotspot creation requires system app privileges on Android 11+. On modern devices, users must manually create the hotspot in Android Settings and the app will connect to it.
+- **Backend Required**: The Android app needs a running Node.js backend (port 4000) on the same network. Configure the backend IP in the app settings or via `VITE_API_BASE_URL`.
+- **Permissions**: The app requests Bluetooth, Location, and WiFi permissions on first launch.
+
+The Android app includes:
+- Full MeshNet UI (React-based via Capacitor)
+- BLE discovery and advertising
+- WiFi Direct peer-to-peer connections
+- Captive portal redirect server
+- mDNS service broadcasting
+- SOS and emergency communication
+
+### Secondary: Desktop (Rescue Hub)
+For desktop-based rescue operations, run the Electron app:
+
+**Quick Start (Windows Desktop)**
+Run `start_meshnet.bat` to start all services:
+- Node.js Express backend (port 4000)
+- Vite frontend (React app, port 5173)
+- Electron desktop app (with admin rights for hotspot)
+
+**Manual Setup**
+Run `npm i` to install dependencies.
+
+Open 3 terminals and run one command in each:
+
+Terminal 1 — Node.js Express (REST API + SQLite, port 4000)
 cd "c:\Users\reycel\Downloads\Mobile App UI Design\backend"
 npm run dev
 
-Terminal 3 — Vite frontend (React app, port 5173)
+Terminal 2 — Vite frontend (React app, port 5173)
 cd "c:\Users\reycel\Downloads\Mobile App UI Design"
 pnpm dev
-pnpm preview
+
+Terminal 3 — Electron desktop app (hotspot management)
+cd "c:\Users\reycel\Downloads\Mobile App UI Design\desktop"
+npm start
 
 Once all three are running, open your browser at:
 
-http://localhost:4173
+http://localhost:5173
 
-PS C:\Users\reycel\Downloads\meshnetmerge\Mobile App UI Design\desktop>
-Start-Process powershell -Verb RunAs -ArgumentList "-NoExit", "-Command", "cd 'c:\Users\reycel\Downloads\meshnetmerge\Mobile App UI Design\desktop'; npm start"
 
 
 ----------------------------------------------------------------
@@ -202,3 +239,137 @@ All devices forced into active BLE scanning mode
 Maximum device discovery for emergency connectivity
 Prioritizes emergency communication over normal operations
 Key advantage: This works without cellular towers, internet, or traditional infrastructure - only requires devices with BLE and WiFi capabilities.
+
+How victims can receive help and communicate with MeshNet:
+
+Current Implementation
+1. Automatic Discovery via Captive Portal
+
+Victim connects to MeshNet emergency WiFi hotspot
+Phone automatically shows "Sign in to network" popup
+Tapping opens MeshNet emergency app (no app install needed)
+2. One-Tap SOS Button
+
+Victim taps "SEND SOS" button
+Phone sends emergency alert with GPS location
+Alert appears on rescue dashboard immediately
+3. Two-Way Communication
+
+Medical Requests: Victim can request medical help with severity level
+Text Messages: Victim can send text messages to rescuers
+GPS Sharing: Victim's location is shared in real-time on map
+4. Mesh Networking
+
+Devices communicate via WebRTC peer-to-peer
+mDNS broadcasting enables local discovery
+BLE advertising provides WiFi credentials automatically
+Current Flow
+Rescue Team Setup
+Desktop app creates emergency WiFi hotspot
+Captive portal redirects all traffic to MeshNet app
+Backend runs on gateway IP (192.168.137.1:4000)
+Victim Connection
+Victim connects to "MeshNet-Emergency" WiFi
+Phone automatically opens MeshNet emergency app
+Victim sees SOS button and communication options
+Emergency Response
+Victim taps SOS → Alert appears on rescue map
+Rescuers see victim's GPS location
+Two-way communication established
+What's Working
+✅ WiFi hotspot creation
+✅ Captive portal redirect (HTTP mode)
+✅ SOS alert system
+✅ GPS location sharing
+✅ Medical request system
+✅ Text messaging
+✅ Real-time map display
+✅ mDNS service broadcasting
+✅ BLE credential advertising (requires USB adapter)
+What Would Improve Victim Experience
+Push notifications for rescue team responses
+Voice communication via WebRTC
+Offline mode when backend unavailable
+Battery optimization for extended emergency use
+Multi-language support for international disasters
+The system is designed to work without cellular service or internet - only requires WiFi and BLE capabilities on devices.
+
+
+
+Feedback submitted
+
+
+Network Mode Selection Implementation Complete
+
+Implemented Connection Options:
+
+Option A: Desktop as Rescue Hub (Already Working)
+
+Desktop creates WiFi hotspot
+Desktop runs backend API
+Phone connects to desktop hotspot
+No network configuration needed
+Option B: Phone as Rescue Hub + Desktop on Phone Network (NEW)
+
+Phone creates WiFi hotspot "MeshNet-Emergency"
+Desktop connects to phone hotspot (192.168.43.x)
+Phone captive portal redirects to desktop on same network
+Auto mode in UI
+Option C: Phone as Rescue Hub + Bluetooth Tethering (NEW)
+
+Phone creates WiFi hotspot "MeshNet-Emergency"
+Desktop connects via Bluetooth tethering (192.168.44.x)
+Phone captive portal redirects via Bluetooth
+Bluetooth mode in UI
+Option D: Phone as Rescue Hub + Same Network (Already Working)
+
+Phone creates WiFi hotspot
+Phone and desktop on same existing network
+Manual IP configuration required
+Manual mode in UI
+New UI Features:
+
+Network mode selection with three options
+Visual feedback for selected mode
+Context-aware help text for each mode
+Manual IP input only shown when needed
+Clear descriptions of each connection method
+APK Location: c:\Users\reycel\Downloads\meshnetmerge\Mobile App UI Design\android\app\build\outputs\apk\debug\app-debug.apk
+
+Usage Instructions:
+
+For Option B (Desktop on Phone Network):
+
+Phone: Select "Auto (Desktop on Phone Network)" mode
+Phone: Activate hotspot
+Desktop: Connect to "MeshNet-Emergency" WiFi
+Desktop: Run backend (will be on 192.168.43.x)
+Victim: Connect to phone hotspot
+Captive portal redirects to desktop backend
+For Option C (Bluetooth Tethering):
+
+Phone: Enable Bluetooth tethering
+Phone: Select "Bluetooth Tethering" mode
+Desktop: Pair with phone via Bluetooth
+Desktop: Connect to phone's Bluetooth network
+Phone: Activate hotspot
+Victim: Connect to phone hotspot
+Captive portal redirects via Bluetooth
+For Option D (Same Network):
+
+Phone: Select "Manual (Same Network)" mode
+Phone: Enter desktop backend IP
+Phone: Activate hotspot
+Ensure phone and desktop on same network
+Victim: Connect to phone hotspot
+Captive portal redirects to configured IP
+Best Practice Recommendation:
+
+Use Option A (Desktop as Rescue Hub) for most scenarios - it's already working and simplest
+Use Option B when phone must be the rescue hub and desktop can connect to phone hotspot
+Use Option C when Bluetooth is preferred over WiFi for desktop connection
+Use Option D when both devices are already on the same network
+The implementation now supports all major network topology options with a user-friendly interface for selecting the appropriate mode.
+
+export CLOUDANT_URL="https://apikey:password@account.cloudant.com"
+python fetch_cloudant.py

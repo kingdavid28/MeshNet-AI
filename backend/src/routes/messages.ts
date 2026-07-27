@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import type { MeshMessage } from "../models/message";
-import { messageStmts, type MessageRow } from "../db";
+import { messageStmts, nodeStmts, type MessageRow } from "../db";
 
 export const messagesRouter = Router();
 
@@ -69,6 +69,23 @@ messagesRouter.post("/", (req: Request, res: Response) => {
     read:         0,
     created_at:   new Date().toISOString(),
   };
+
+  // Ensure the sender node exists in the topology before persisting the message
+  nodeStmts.upsert.run({
+    id:                 fromNodeId,
+    label:              fromLabel,
+    name:               fromLabel,
+    device:             "smartphone",
+    role:               "peer",
+    signal:             80,
+    battery_percentage: 100,
+    bluetooth_status:   0,
+    wifi_status:        0,
+    os:                 null,
+    lat:                null,
+    lng:                null,
+    last_seen:          row.created_at,
+  } as any);
 
   messageStmts.insert.run(row);
   res.status(201).json(rowToMessage(row));

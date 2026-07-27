@@ -530,6 +530,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMap({
       style={{
         position:  "absolute",
         inset:     0,
+        width:     "100%",
+        height:    "100%",
         // absolute fill ensures the div matches the wrapper's height exactly,
         // regardless of any flex sizing quirks in ancestor components.
       }}
