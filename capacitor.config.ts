@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   server: {
     // In development, point the Android webview at the Vite dev server
     // so hot-reload works on the device.  Remove for production builds.
-    androidScheme: "https",
+    androidScheme: "http",
   },
   plugins: {
     // MeshDiscoveryPlugin config — consumed by MeshDiscoveryPlugin.kt

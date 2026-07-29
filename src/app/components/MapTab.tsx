@@ -2,12 +2,17 @@ import { useDeviceLocation } from "../hooks/useDeviceLocation";
 import { useCloudantNodes } from "../hooks/useCloudantNodes";
 import { useMeshDiscovery } from "../hooks/useMeshDiscovery";
 import { useMockNodeSimulation } from "../hooks/useMockNodeSimulation";
+import { useMeshRouting } from "../hooks/useMeshRouting";
 import NodeMapCanvas from "./NodeMapCanvas";
 import SimPerfOverlay from "./SimPerfOverlay";
 import { SIM_MODE, TICK_MS } from "../constants";
+import { MeshNode } from "../../utils/routing";
 
 export function MapTab() {
   const deviceLocation = useDeviceLocation();
+
+  // ── Mesh routing and SOS messaging ──
+  const meshRouting = useMeshRouting();
 
   // ── Real device mesh discovery (BLE + Wi-Fi Direct via Capacitor plugin) ──
   console.log('[MapTab] Initializing mesh discovery...');
@@ -20,6 +25,22 @@ export function MapTab() {
     enabled: true,
   });
   console.log('[MapTab] Discovery hook returned:', { discoveryStatus, discoveredPeers, isNative });
+
+  // ── Convert discovered peers to MeshNode format for routing ──
+  const meshNodes: MeshNode[] = discoveredPeers.map(p => ({
+    node_id: p.nodeId,
+    battery_level: p.battery,
+    is_active: true,
+    device_type: 'smartphone',
+    has_weather_hq_signal: false,
+    lat: p.lat,
+    lon: p.lng,
+  }));
+
+  // ── Auto-compute route when nodes are available ──
+  if (meshNodes.length > 0 && !meshRouting.routingResult) {
+    meshRouting.computeRoute(meshNodes);
+  }
 
   // ── Live data source — either mock simulation or real backend ───────────
   const live = useCloudantNodes(10_000);
@@ -112,6 +133,66 @@ export function MapTab() {
           <span style={{ fontSize: 9, fontFamily: "monospace", color: "#14B8A6", marginLeft: "auto" }}>
             {discoveryStatus.peersFound} peer{discoveryStatus.peersFound !== 1 ? "s" : ""} found
           </span>
+        </div>
+      )}
+
+      {/* Routing status strip */}
+      {meshRouting.routingResult && (
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "6px 10px", marginBottom: 8,
+            borderRadius: 8, flexShrink: 0,
+            background: "rgba(59,130,246,0.08)",
+            border: "1px solid rgba(59,130,246,0.2)",
+          }}
+        >
+          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7B9CC4", textTransform: "uppercase" }}>
+            Route: {meshRouting.routingResult.optimal_path.length} hops
+          </span>
+          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#3B82F6", marginLeft: "auto" }}>
+            Quality: {(meshRouting.routingResult.path_quality * 100).toFixed(0)}%
+          </span>
+          {meshRouting.routingResult.hq_anchor && (
+            <span style={{ fontSize: 9, fontFamily: "monospace", color: "#F59E0B" }}>
+              HQ: {meshRouting.routingResult.hq_anchor}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* SOS broadcast status strip */}
+      {meshRouting.isBroadcasting && (
+        <div
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "6px 10px", marginBottom: 8,
+            borderRadius: 8, flexShrink: 0,
+            background: "rgba(239,68,68,0.08)",
+            border: "1px solid rgba(239,68,68,0.2)",
+          }}
+        >
+          <div style={{
+            width: 6, height: 6, borderRadius: "50%",
+            background: "#EF4444",
+            animation: "pulse 1s infinite",
+          }} />
+          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#EF4444", textTransform: "uppercase" }}>
+            SOS Broadcast
+          </span>
+          <span style={{ fontSize: 9, fontFamily: "monospace", color: "#7B9CC4", marginLeft: "auto" }}>
+            Hop {meshRouting.currentHop + 1}: {meshRouting.currentNode} ({meshRouting.hopStatus})
+          </span>
+          <button
+            onClick={meshRouting.abortBroadcast}
+            style={{
+              fontSize: 8, fontFamily: "monospace", padding: "2px 6px",
+              background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)",
+              borderRadius: 4, color: "#EF4444", cursor: "pointer",
+            }}
+          >
+            ABORT
+          </button>
         </div>
       )}
 

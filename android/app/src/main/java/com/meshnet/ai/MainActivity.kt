@@ -21,7 +21,7 @@ class MainActivity : BridgeActivity() {
     companion object {
         private const val TAG = "MeshNetMainActivity"
         private const val PERMISSION_REQUEST_CODE = 1001
-        
+
         private val REQUIRED_PERMISSIONS = arrayOf(
             // Location permissions (required for BLE scanning)
             Manifest.permission.ACCESS_FINE_LOCATION,

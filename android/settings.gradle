@@ -5,3 +5,6 @@ def capacitorAndroid = new File(['node', '--print', "require.resolve('@capacitor
 // Manually include the capacitor-android project
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File(capacitorAndroid, 'capacitor')
+
+// Apply Capacitor settings to include community plugins
+apply from: 'capacitor.settings.gradle'

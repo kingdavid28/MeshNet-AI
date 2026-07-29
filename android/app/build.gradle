@@ -68,6 +68,11 @@ dependencies {
     // Capacitor core - this will pull in required AndroidX dependencies
     implementation project(':capacitor-android')
 
+    // Capacitor community plugins
+    implementation project(':capacitor-community-bluetooth-le')
+    implementation project(':capacitor-community-sqlite')
+    implementation project(':capacitor-camera')
+
     // Material Components - required for AppTheme
     implementation 'com.google.android.material:material:1.9.0'
 
