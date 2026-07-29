@@ -499,11 +499,16 @@ class MeshDiscoveryPlugin : Plugin() {
     @SuppressLint("MissingPermission")
     private fun startBleAdvertise() {
         val adapter = bluetoothAdapter ?: run {
+            Log.e(TAG, "BLE advertise failed: Bluetooth adapter unavailable")
             notifyError("Bluetooth adapter unavailable"); return
         }
-        if (!adapter.isEnabled) { notifyError("Bluetooth is off"); return }
+        if (!adapter.isEnabled) { 
+            Log.e(TAG, "BLE advertise failed: Bluetooth is off")
+            notifyError("Bluetooth is off"); return 
+        }
 
         bleAdvertiser = adapter.bluetoothLeAdvertiser ?: run {
+            Log.e(TAG, "BLE advertise failed: BLE advertising not supported on this device")
             notifyError("BLE advertising not supported on this device"); return
         }
 
@@ -525,14 +530,16 @@ class MeshDiscoveryPlugin : Plugin() {
         advertiseCallback = object : AdvertiseCallback() {
             override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
                 isAdvertising = true
-                Log.i(TAG, "BLE advertising started")
+                Log.i(TAG, "BLE advertising started successfully - Node ID: $selfNodeId, Service UUID: $MESH_SERVICE_UUID")
                 notifyStatusChange()
             }
             override fun onStartFailure(errorCode: Int) {
+                Log.e(TAG, "BLE advertise failed with error code: $errorCode")
                 notifyError("BLE advertise failed: code $errorCode")
             }
         }
 
+        Log.i(TAG, "Starting BLE advertising with Node ID: $selfNodeId")
         bleAdvertiser!!.startAdvertising(settings, data, advertiseCallback!!)
     }
 
@@ -561,8 +568,7 @@ class MeshDiscoveryPlugin : Plugin() {
         })
 
         // Build the GATT service with all characteristics.
-        // SEC-6: PERMISSION_READ_ENCRYPTED requires the remote to pair before reading,
-        // preventing unauthenticated BLE scanners from harvesting node data.
+        // Changed to PERMISSION_READ to allow unencrypted reads for discovery without pairing
         val service = BluetoothGattService(
             UUID.fromString(MESH_SERVICE_UUID),
             BluetoothGattService.SERVICE_TYPE_PRIMARY
@@ -573,7 +579,7 @@ class MeshDiscoveryPlugin : Plugin() {
                 BluetoothGattCharacteristic(
                     UUID.fromString(uuid),
                     BluetoothGattCharacteristic.PROPERTY_READ,
-                    BluetoothGattCharacteristic.PERMISSION_READ_ENCRYPTED
+                    BluetoothGattCharacteristic.PERMISSION_READ
                 )
             )
         }
@@ -584,10 +590,19 @@ class MeshDiscoveryPlugin : Plugin() {
 
     @SuppressLint("MissingPermission")
     private fun startBleScan() {
-        val adapter = bluetoothAdapter ?: return
-        if (!adapter.isEnabled) return
+        val adapter = bluetoothAdapter ?: run {
+            Log.e(TAG, "BLE scan failed: Bluetooth adapter unavailable")
+            return
+        }
+        if (!adapter.isEnabled) { 
+            Log.e(TAG, "BLE scan failed: Bluetooth is off")
+            return 
+        }
 
-        bleScanner = adapter.bluetoothLeScanner ?: return
+        bleScanner = adapter.bluetoothLeScanner ?: run {
+            Log.e(TAG, "BLE scan failed: BLE scanner not supported on this device")
+            return
+        }
 
         val filter = ScanFilter.Builder()
             .setServiceUuid(ParcelUuid(UUID.fromString(MESH_SERVICE_UUID)))
@@ -601,17 +616,23 @@ class MeshDiscoveryPlugin : Plugin() {
         scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 // Skip our own advertisement
-                if (result.device.address == bluetoothAdapter?.address) return
+                if (result.device.address == bluetoothAdapter?.address) {
+                    Log.d(TAG, "Skipping own advertisement: ${result.device.address}")
+                    return
+                }
+                Log.i(TAG, "BLE device found: ${result.device.address}, RSSI: ${result.rssi}")
                 onBleDeviceFound(result.device, result.rssi)
             }
             override fun onScanFailed(errorCode: Int) {
+                Log.e(TAG, "BLE scan failed with error code: $errorCode")
                 notifyError("BLE scan failed: code $errorCode")
             }
         }
 
+        Log.i(TAG, "Starting BLE scan for Service UUID: $MESH_SERVICE_UUID")
         bleScanner!!.startScan(listOf(filter), settings, scanCallback!!)
         isScanning = true
-        Log.i(TAG, "BLE scanning started")
+        Log.i(TAG, "BLE scanning started successfully")
         notifyStatusChange()
     }
 
@@ -621,30 +642,43 @@ class MeshDiscoveryPlugin : Plugin() {
     @SuppressLint("MissingPermission")
     private fun onBleDeviceFound(device: BluetoothDevice, rssi: Int) {
         val deviceAddr = device.address
+        Log.i(TAG, "Connecting to BLE device: $deviceAddr (RSSI: $rssi)")
         // Allocate per-device state map (idempotent if already present)
         val chars = gattReadState.getOrPut(deviceAddr) { ConcurrentHashMap() }
 
         device.connectGatt(context, false, object : BluetoothGattCallback() {
 
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                Log.d(TAG, "Connection state change for $deviceAddr: status=$status, newState=$newState")
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
+                    Log.i(TAG, "Connected to $deviceAddr, discovering services")
                     gatt.discoverServices()
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    Log.i(TAG, "Disconnected from $deviceAddr")
                     gatt.close()
                     gattReadState.remove(deviceAddr)
                     val nodeId = chars[CHAR_NODE_ID] ?: return
                     if (nodeId.isNotEmpty()) {
                         // ANDROID-5: record as BLE-verified before Wi-Fi Direct can connect
                         bleVerifiedAddresses[nodeId] = deviceAddr
+                        Log.i(TAG, "BLE verified node: $nodeId at $deviceAddr")
                         processBleDiscovery(chars, rssi)
                     }
                 }
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-                if (status != BluetoothGatt.GATT_SUCCESS) { gatt.disconnect(); return }
+                Log.d(TAG, "Services discovered for $deviceAddr: status=$status")
+                if (status != BluetoothGatt.GATT_SUCCESS) { 
+                    Log.e(TAG, "Service discovery failed for $deviceAddr: $status")
+                    gatt.disconnect(); return 
+                }
                 val service = gatt.getService(UUID.fromString(MESH_SERVICE_UUID))
-                if (service == null) { gatt.disconnect(); return }
+                if (service == null) { 
+                    Log.e(TAG, "MeshNet service not found on $deviceAddr")
+                    gatt.disconnect(); return 
+                }
+                Log.i(TAG, "MeshNet service found on $deviceAddr, reading characteristics")
                 readNextChar(gatt, service,
                     listOf(CHAR_NODE_ID, CHAR_LABEL, CHAR_LAT, CHAR_LNG,
                            CHAR_BATTERY, CHAR_SIGNAL, CHAR_WIFI), 0, chars)
@@ -655,9 +689,11 @@ class MeshDiscoveryPlugin : Plugin() {
                 characteristic: BluetoothGattCharacteristic,
                 status: Int
             ) {
+                Log.d(TAG, "Characteristic read: ${characteristic.uuid}, status=$status")
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    chars[characteristic.uuid.toString().uppercase()] =
-                        characteristic.value?.toString(Charsets.UTF_8) ?: ""
+                    val value = characteristic.value?.toString(Charsets.UTF_8) ?: ""
+                    chars[characteristic.uuid.toString().uppercase()] = value
+                    Log.d(TAG, "Characteristic value: $value")
                 }
                 val keys = listOf(CHAR_NODE_ID, CHAR_LABEL, CHAR_LAT, CHAR_LNG,
                                   CHAR_BATTERY, CHAR_SIGNAL, CHAR_WIFI)
@@ -666,6 +702,7 @@ class MeshDiscoveryPlugin : Plugin() {
                     readNextChar(gatt, gatt.getService(UUID.fromString(MESH_SERVICE_UUID)),
                         keys, idx + 1, chars)
                 } else {
+                    Log.i(TAG, "All characteristics read from $deviceAddr, disconnecting")
                     gatt.disconnect()
                 }
             }

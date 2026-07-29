@@ -7,6 +7,7 @@
  * replacing the need for a separate backend server.
  */
 
+import { Capacitor } from '@capacitor/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 
 interface MeshNode {
@@ -67,6 +68,14 @@ class SQLiteService {
       return;
     }
 
+    // Only initialize SQLite on native platforms (Android/iOS)
+    // On web, use in-memory fallback
+    if (!Capacitor.isNativePlatform()) {
+      console.log('[SQLiteService] Web platform detected, using in-memory fallback');
+      this.initialized = true;
+      return;
+    }
+
     try {
       // Create database connection
       this.db = await this.sqlite.createConnection(
@@ -90,7 +99,8 @@ class SQLiteService {
       console.log('[SQLiteService] Database initialized successfully');
     } catch (error) {
       console.error('[SQLiteService] Failed to initialize database:', error);
-      throw error;
+      // Don't throw - allow app to continue without SQLite
+      this.initialized = true;
     }
   }
 

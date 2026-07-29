@@ -78,4 +78,7 @@ dependencies {
 
     // Coroutines — used by the plugin for async BLE / Wi-Fi operations
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    // JSR-305 annotations - required for crypto-tink and other libraries
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
 }

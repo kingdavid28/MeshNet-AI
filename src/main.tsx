@@ -27,10 +27,11 @@ try {
 console.log('[Main] Initializing SQLite service...');
 const sqliteService = getSQLiteService();
 sqliteService.initialize().then(() => {
-  console.log('[Main] SQLite database initialized for offline mode');
+  console.log('[Main] SQLite service initialized');
   localStorage.setItem('meshnet_backend_mode', 'offline');
 }).catch((error) => {
   console.error('[Main] Failed to initialize SQLite:', error);
+  console.log('[Main] App will continue without SQLite persistence');
 });
 
 console.log('[Main] Mounting React app...');
