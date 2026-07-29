@@ -16,6 +16,7 @@ import { messagesRouter } from "./routes/messages";
 import { healthRouter }  from "./routes/health";
 import { routeRouter }   from "./routes/route";
 import { signalRouter }  from "./routes/signal";
+import emergencyRouter from "./routes/emergency";
 import { requestLogger } from "./middleware/logger";
 import { rateLimiter }   from "./middleware/rateLimit";
 import { requireMeshAuth } from "./middleware/auth";
@@ -67,6 +68,9 @@ app.use(rateLimiter);
 // ─── Routes ───────────────────────────────────────────────────────────────────
 // /api/health is intentionally unauthenticated — uptime monitors probe it.
 app.use("/api/health", healthRouter);
+
+// Emergency contact search — no auth required for offline access
+app.use("/api/emergency", emergencyRouter);
 
 // Public mesh endpoints — no auth required (captive portal + victim self-registration)
 app.use("/api/mesh", publicMeshRouter);

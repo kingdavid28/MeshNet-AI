@@ -27,6 +27,7 @@ import { WebRTCManager } from "../../components/WebRTCManager";
 import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
+import { BackendConnectionCard } from "../../components/BackendConnectionCard";
 import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, MessageSquare, Network } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { getApiBase, getMeshSecret } from "../../utils/env";
@@ -78,6 +79,10 @@ export default function DashboardLayout() {
   const [activeProtocol,   setActiveProtocol]   = useState<'webrtc' | 'hotspot' | null>(null);
   // Hotspot credentials
   const [hotspotCredentials, setHotspotCredentials] = useState<{ ssid: string; password: string } | null>(null);
+  // Backend connection status
+  const [backendStatus, setBackendStatus] = useState<'connected' | 'disconnected' | 'connecting' | 'error' | 'updated'>('disconnected');
+  const [backendNodeCount, setBackendNodeCount] = useState<number>(0);
+  const [showBackendCard, setShowBackendCard] = useState<boolean>(false);
 
   const appendLog = (type: string, message: string) => {
     setLog((prev) => [makeEntry(type, message), ...prev].slice(0, 40));
@@ -376,6 +381,39 @@ export default function DashboardLayout() {
               </span>
             </div>
 
+            {/* Backend connectivity status */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-mono uppercase border"
+              style={{
+                background: (() => {
+                  if (backendStatus === 'connected' || backendStatus === 'updated') return "rgba(34,197,94,0.1)";
+                  if (backendStatus === 'connecting') return "rgba(249,115,22,0.1)";
+                  if (backendStatus === 'error') return "rgba(239,68,68,0.1)";
+                  return "rgba(75,85,99,0.1)";
+                })(),
+                borderColor: (() => {
+                  if (backendStatus === 'connected' || backendStatus === 'updated') return "rgba(34,197,94,0.25)";
+                  if (backendStatus === 'connecting') return "rgba(249,115,22,0.25)";
+                  if (backendStatus === 'error') return "rgba(239,68,68,0.25)";
+                  return "rgba(75,85,99,0.25)";
+                })(),
+                color: (() => {
+                  if (backendStatus === 'connected' || backendStatus === 'updated') return "#22C55E";
+                  if (backendStatus === 'connecting') return "#F97316";
+                  if (backendStatus === 'error') return "#EF4444";
+                  return "#6B7280";
+                })(),
+              }}
+            >
+              <Database size={9} />
+              {(() => {
+                if (backendStatus === 'connected' || backendStatus === 'updated') return `Backend (${backendNodeCount})`;
+                if (backendStatus === 'connecting') return "Connecting...";
+                if (backendStatus === 'error') return "Backend Error";
+                return "Backend Offline";
+              })()}
+            </div>
+
             {/* BLE count */}
             <button
               type="button"
@@ -430,6 +468,33 @@ export default function DashboardLayout() {
               }}
               onBroadcast={handleBroadcast}
             />
+
+            {/* Divider */}
+            <div className="border-t" style={{ borderColor: "rgba(91,141,217,0.12)" }} />
+
+            {/* Backend Connection Card */}
+            {showBackendCard && (
+              <BackendConnectionCard
+                onConnect={(url) => {
+                  appendLog("backend", `Connected to backend: ${url}`);
+                }}
+                onDisconnect={(url, error) => {
+                  appendLog("backend", `Disconnected from backend: ${error}`);
+                }}
+                onStatusChange={(status, nodeCount) => {
+                  setBackendStatus(status);
+                  setBackendNodeCount(nodeCount);
+                }}
+              />
+            )}
+
+            {/* Toggle Backend Card */}
+            <button
+              onClick={() => setShowBackendCard(!showBackendCard)}
+              className="w-full text-left text-xs font-medium text-gray-400 hover:text-gray-200 py-2 px-3 rounded border border-gray-700 hover:border-gray-600 transition-colors"
+            >
+              {showBackendCard ? '▼ Hide Backend Config' : '▶ Show Backend Config'}
+            </button>
 
             {/* Divider */}
             <div className="border-t" style={{ borderColor: "rgba(91,141,217,0.12)" }} />

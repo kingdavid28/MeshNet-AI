@@ -9,24 +9,73 @@ import { SIM_MODE, TICK_MS } from "../constants";
 export function MapTab() {
   const deviceLocation = useDeviceLocation();
 
-  // ── Live data source — either mock simulation or real backend ───────────
-  const live = useCloudantNodes(10_000);
-  const sim  = useMockNodeSimulation(TICK_MS);
-
-  const nodes   = SIM_MODE ? sim.nodes   : live.nodes;
-  const loading = SIM_MODE ? false        : live.loading;
-  const error   = SIM_MODE ? null         : live.error;
-  const source  = SIM_MODE ? ("seed" as const) : live.source;
-  const refresh = SIM_MODE ? () => {}     : live.refresh;
-
   // ── Real device mesh discovery (BLE + Wi-Fi Direct via Capacitor plugin) ──
-  const { status: discoveryStatus, isNative } = useMeshDiscovery({
+  console.log('[MapTab] Initializing mesh discovery...');
+  const { status: discoveryStatus, peers: discoveredPeers, isNative } = useMeshDiscovery({
     nodeId:  localStorage.getItem("meshnet_node_id") ?? "mobile-user",
     label:   "You",
     battery: 80,
     signal:  75,
     deviceLocation,
+    enabled: true,
   });
+  console.log('[MapTab] Discovery hook returned:', { discoveryStatus, discoveredPeers, isNative });
+
+  // ── Live data source — either mock simulation or real backend ───────────
+  const live = useCloudantNodes(10_000);
+  const sim  = useMockNodeSimulation(TICK_MS);
+
+  // Hybrid mode: Try backend first, fallback to discovered peers on mobile
+  let nodes, loading, error, source, refresh;
+  
+  if (SIM_MODE) {
+    nodes = sim.nodes;
+    loading = false;
+    error = null;
+    source = "seed" as const;
+    refresh = () => {};
+  } else if (isNative) {
+    // Mobile: Try backend first, merge with discovered peers
+    if (live.nodes.length > 0 && !live.error) {
+      // Backend available - use backend nodes
+      nodes = live.nodes;
+      loading = live.loading;
+      error = live.error;
+      source = live.source;
+      refresh = live.refresh;
+    } else {
+      // Backend unavailable - use discovered peers from BLE/WiFi Direct
+      nodes = discoveredPeers.map(p => ({
+        node_id: p.nodeId,
+        label: p.label,
+        latitude: p.lat,
+        longitude: p.lng,
+        battery_percentage: p.battery,
+        bluetooth_status: p.protocol === "bluetooth" || p.protocol === "both",
+        wifi_status: p.protocol === "wifi" || p.protocol === "both",
+        protocol_active: (() => {
+          if (p.protocol === "both") return "both" as const;
+          if (p.protocol === "bluetooth") return "bluetooth" as const;
+          return "wifi" as const;
+        })(),
+        signal: p.signal,
+        device: "smartphone" as const,
+        role: "peer" as const,
+        last_seen: new Date(p.lastSeen).toISOString(),
+      }));
+      loading = false;
+      error = live.error; // Show backend error if any
+      source = "local-backend" as const;
+      refresh = () => {};
+    }
+  } else {
+    // Web: use backend
+    nodes = live.nodes;
+    loading = live.loading;
+    error = live.error;
+    source = live.source;
+    refresh = live.refresh;
+  }
 
   return (
     <div style={{ flex: 1, minHeight: 0, padding: 12, display: "flex", flexDirection: "column" }}>

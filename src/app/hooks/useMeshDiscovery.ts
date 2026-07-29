@@ -108,7 +108,7 @@ function meshHeaders(): HeadersInit {
   };
 }
 
-// ── Hook ──────────────────────────────────────────────────────────────────────
+// ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useMeshDiscovery({
   nodeId:              propNodeId,
@@ -163,7 +163,7 @@ export function useMeshDiscovery({
         nodeId, label, lat, lng, battery, signal,
         device: "smartphone",
         role:   "peer",
-      }).catch((e) => setError(String(e)));
+      }).catch((e: Error) => setError(String(e)));
     } else {
       // On web: call the backend directly so the node appears on the map
       fetch(`${apiBase}/api/mesh/register`, {
@@ -196,13 +196,20 @@ export function useMeshDiscovery({
 
     async function start() {
       try {
+        console.log('[MeshDiscovery] Starting discovery...', { isNative, nodeId, label, apiBase });
+        
         // 1. Register this device so it appears on the map immediately
         reRegister();
 
-        if (!isNative) return;   // BLE/Wi-Fi not available in browser
+        if (!isNative) {
+          console.log('[MeshDiscovery] Not native platform, skipping BLE/WiFi');
+          return;   // BLE/Wi-Fi not available in browser
+        }
 
-        // 2. Start native discovery
+        // 2. Start native discovery (permissions are handled by the plugin)
+        console.log('[MeshDiscovery] Starting native discovery with options:', buildOptions());
         const initialStatus = await MeshDiscovery.startDiscovery(buildOptions());
+        console.log('[MeshDiscovery] Initial status:', initialStatus);
         if (!removed) setStatus(initialStatus);
 
         // 3. Listen for events from the Kotlin plugin
@@ -210,6 +217,7 @@ export function useMeshDiscovery({
           "peerDiscovered",
           (event: PeerDiscoveredEvent) => {
             if (removed) return;
+            console.log('[MeshDiscovery] Peer discovered:', event);
             setPeers((prev) => {
               const now = Date.now();
               const existing = prev.find((p) => p.nodeId === event.nodeId);
@@ -228,18 +236,31 @@ export function useMeshDiscovery({
 
         const statusSub = await MeshDiscovery.addListener(
           "statusChange",
-          (evt) => { if (!removed) setStatus((s) => ({ ...(s ?? {} as DiscoveryStatus), ...evt })); }
+          (evt: any) => { 
+            if (!removed) {
+              console.log('[MeshDiscovery] Status change:', evt);
+              setStatus((s) => ({ ...(s ?? {} as DiscoveryStatus), ...evt })); 
+            }
+          }
         );
         listeners.push(statusSub);
 
         const errorSub = await MeshDiscovery.addListener(
           "error",
-          (evt: { message: string }) => { if (!removed) setError(evt.message); }
+          (evt: { message: string }) => { 
+            if (!removed) {
+              console.error('[MeshDiscovery] Error:', evt);
+              setError(evt.message); 
+            }
+          }
         );
         listeners.push(errorSub);
 
       } catch (e) {
-        if (!removed) setError(e instanceof Error ? e.message : String(e));
+        if (!removed) {
+          console.error('[MeshDiscovery] Start failed:', e);
+          setError(e instanceof Error ? e.message : String(e));
+        }
       }
     }
 
@@ -249,6 +270,7 @@ export function useMeshDiscovery({
       removed = true;
       listeners.forEach((l) => l.remove());
       if (isNative) {
+        console.log('[MeshDiscovery] Stopping discovery');
         MeshDiscovery.stopDiscovery().catch(() => {});
       }
     };

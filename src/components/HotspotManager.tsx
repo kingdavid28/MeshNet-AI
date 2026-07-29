@@ -77,8 +77,12 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
     const desktopSupported = desktopWiFiService.isSupported();
     setIsDesktop(desktopSupported);
     
+    // Check if running in Capacitor (mobile app)
+    const isCapacitor = !!(window as any).Capacitor;
+    
     // Check if WiFi APIs are supported (browser)
-    setIsSupported(WiFiHotspotService.isSupported());
+    // Always set to true for Capacitor/mobile since we use native plugins
+    setIsSupported(isCapacitor || WiFiHotspotService.isSupported());
     
     // Load existing hotspot config
     loadHotspotConfig();
@@ -271,8 +275,29 @@ export function HotspotManager({ onCredentialsChange }: HotspotManagerProps) {
       const password = '12345678';
       
       // Start WiFi hotspot using Android native plugin
-      await MeshDiscovery.startHotspot({ ssid, password });
-      console.log('[HotspotManager] Phone hotspot started');
+      try {
+        await MeshDiscovery.startHotspot({ ssid, password });
+        console.log('[HotspotManager] Phone hotspot started');
+      } catch (hotspotError: any) {
+        // Android 11+ requires manual hotspot creation
+        if (hotspotError.message && hotspotError.message.includes('system app privileges')) {
+          console.log('[HotspotManager] Android 11+ detected, showing manual instructions');
+          setManualInstructions([
+            'Go to Android Settings',
+            'Tap Network & Internet',
+            'Tap Hotspot & Tethering',
+            'Tap WiFi Hotspot',
+            'Set SSID to "meshnet"',
+            'Set password to "12345678"',
+            'Enable the hotspot',
+            'Return to this app and it will detect the hotspot'
+          ]);
+          setShowInstructions(true);
+          setError('Android 11+ requires manual hotspot creation in Settings. Please follow the instructions below.');
+          return false;
+        }
+        throw hotspotError;
+      }
       
       // Determine backend URL based on network mode
       let backendIP: string | undefined = undefined;

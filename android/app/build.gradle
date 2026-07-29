@@ -39,7 +39,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Only apply signing config when the keystore env vars are present
             if (System.getenv("MESHNET_KEYSTORE_FILE")) {

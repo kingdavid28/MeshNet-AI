@@ -205,10 +205,8 @@ class MeshDiscoveryPlugin : Plugin() {
         if (providedApiBase.isNotBlank()) {
             apiBase = providedApiBase
         }
-        if (apiBase.isBlank()) {
-            call.reject("apiBase is required — set VITE_API_BASE_URL or pass apiBase to startDiscovery()")
-            return
-        }
+        // Allow empty apiBase for pure P2P mode (no backend)
+        // Only require apiBase if backend operations are needed
 
         selfNodeId        = call.getString("nodeId",            selfNodeId)!!
         selfLabel         = call.getString("label",             "MeshNet Node")!!
@@ -232,7 +230,10 @@ class MeshDiscoveryPlugin : Plugin() {
         startBleAdvertise()
         startBleScan()
         startWifiDirect()
-        startHeartbeat()
+        // Only start heartbeat if backend is available
+        if (apiBase.isNotBlank()) {
+            startHeartbeat()
+        }
         call.resolve(buildStatusResult())
     }
 

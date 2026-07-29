@@ -80,5 +80,5 @@ export const NAV = [
   { id: "protocols" as Tab, label: "Protocols", icon: Settings },
 ];
 
-export const SIM_MODE = import.meta.env.VITE_SIM_MODE === "true";
-export const TICK_MS = Number.parseInt(String(import.meta.env.VITE_SIM_TICK_MS ?? "5000"), 10);
+export const SIM_MODE = false; // Force production mode - no simulation
+export const TICK_MS = 5000;

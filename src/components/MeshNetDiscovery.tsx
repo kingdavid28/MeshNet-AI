@@ -1,65 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, QrCode, Network, Smartphone } from 'lucide-react';
-import mdnsService, { MeshNetService } from '../services/mdns';
+import { Wifi, QrCode, Network } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
-interface DiscoveredDevice {
-  id: string;
+interface MeshNetConnectionInfo {
+  nodeId: string;
   name: string;
-  type: 'hotspot' | 'bluetooth' | 'mdns';
-  signal: number;
-  url: string;
+  bluetooth: {
+    serviceUuid: string;
+  };
+  wifi: {
+    ssid: string;
+  };
 }
 
 export const MeshNetDiscovery: React.FC = () => {
-  const [discoveredDevices, setDiscoveredDevices] = useState<DiscoveredDevice[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [connectionUrl, setConnectionUrl] = useState('');
+  const [connectionInfo, setConnectionInfo] = useState<MeshNetConnectionInfo | null>(null);
 
-  // Generate connection URL for QR code
+  // Generate connection info for QR code
   useEffect(() => {
-    const url = `${window.location.origin}/join`;
-    setConnectionUrl(url);
+    const nodeId = localStorage.getItem('meshnet_node_id') || crypto.randomUUID();
+    const deviceName = localStorage.getItem('meshnet_node_label') || 'MeshNet Device';
+    
+    setConnectionInfo({
+      nodeId,
+      name: deviceName,
+      bluetooth: {
+        serviceUuid: '0000FEED-0000-1000-8000-00805F9B34FB'
+      },
+      wifi: {
+        ssid: 'MESHNET-' + nodeId.substring(0, 6).toUpperCase()
+      }
+    });
   }, []);
 
-  // Start mDNS discovery on mount
-  useEffect(() => {
-    const handleServicesDiscovered = (services: MeshNetService[]) => {
-      const devices: DiscoveredDevice[] = services.map(service => ({
-        id: `${service.host}-${service.port}`,
-        name: service.name,
-        type: 'mdns' as const,
-        signal: 85, // Would be calculated from actual signal strength
-        url: `http://${service.host}:${service.port}/join`
-      }));
-      setDiscoveredDevices(devices);
-      setIsScanning(false);
-    };
-
-    mdnsService.onServicesDiscovered(handleServicesDiscovered);
-    mdnsService.startDiscovery();
-
-    return () => {
-      mdnsService.removeListener(handleServicesDiscovered);
-      mdnsService.stopDiscovery();
-    };
-  }, []);
-
-  // Manual scan trigger
-  const startMDNSDiscovery = async () => {
-    setIsScanning(true);
-    mdnsService.scanForMeshNetServices?.();
-  };
-
-  const connectToDevice = (device: DiscoveredDevice) => {
-    // Navigate to connection URL
-    window.location.href = device.url;
-  };
-
-  const generateQRCode = () => {
-    // Using a simple QR code API for now
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(connectionUrl)}`;
-    return qrApiUrl;
+  const getQRCodeData = () => {
+    if (!connectionInfo) return '';
+    return JSON.stringify(connectionInfo);
   };
 
   return (
@@ -69,13 +46,6 @@ export const MeshNetDiscovery: React.FC = () => {
           <Network className="w-5 h-5 text-blue-400 mr-2" />
           <h3 className="text-white font-semibold">MeshNet Discovery</h3>
         </div>
-        <button
-          onClick={startMDNSDiscovery}
-          disabled={isScanning}
-          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-xs rounded"
-        >
-          {isScanning ? 'Scanning...' : 'Scan for MeshNet'}
-        </button>
       </div>
 
       {/* QR Code Section */}
@@ -93,70 +63,41 @@ export const MeshNetDiscovery: React.FC = () => {
           </button>
         </div>
         
-        {showQR && (
+        {showQR && connectionInfo && (
           <div className="flex flex-col items-center">
-            <img 
-              src={generateQRCode()} 
-              alt="MeshNet QR Code" 
-              className="border-4 border-white rounded-lg mb-2"
-            />
+            <div className="bg-white p-3 rounded-lg mb-2">
+              <QRCodeSVG 
+                value={getQRCodeData()} 
+                size={180}
+                level="H"
+                includeMargin={true}
+              />
+            </div>
             <p className="text-gray-400 text-xs text-center">
               Scan this QR code to join MeshNet
             </p>
             <p className="text-gray-500 text-xs text-center mt-1">
-              {connectionUrl}
+              Device: {connectionInfo.name}
+            </p>
+            <p className="text-gray-500 text-xs text-center">
+              WiFi: {connectionInfo.wifi.ssid}
             </p>
           </div>
         )}
       </div>
 
-      {/* Discovered Devices */}
-      {discoveredDevices.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-gray-400 text-sm font-medium">Available MeshNet Devices</h4>
-          {discoveredDevices.map((device) => (
-            <div
-              key={device.id}
-              className="p-3 bg-gray-700 rounded flex items-center justify-between hover:bg-gray-600 cursor-pointer"
-              onClick={() => connectToDevice(device)}
-            >
-              <div className="flex items-center">
-                {device.type === 'hotspot' && <Wifi className="w-4 h-4 text-blue-400 mr-2" />}
-                {device.type === 'bluetooth' && <Smartphone className="w-4 h-4 text-blue-400 mr-2" />}
-                {device.type === 'mdns' && <Network className="w-4 h-4 text-blue-400 mr-2" />}
-                <div>
-                  <p className="text-white text-sm font-medium">{device.name}</p>
-                  <p className="text-gray-400 text-xs">Signal: {device.signal}%</p>
-                </div>
-              </div>
-              <button className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded">
-                Join
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Captive Portal Info */}
+      {/* Connection Info */}
       <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700 rounded">
         <div className="flex items-start">
           <Wifi className="w-4 h-4 text-blue-400 mr-2 mt-0.5" />
           <div>
-            <h4 className="text-white text-sm font-medium mb-1">Captive Portal Auto-Connect</h4>
+            <h4 className="text-white text-sm font-medium mb-1">Connection Information</h4>
             <p className="text-gray-400 text-xs">
-              When connecting to MeshNet hotspot, you'll be automatically redirected to join the mesh network.
+              Your device broadcasts this QR code to allow other MeshNet devices to connect via Bluetooth or WiFi Direct.
             </p>
           </div>
         </div>
       </div>
-
-      {/* Scanning State */}
-      {isScanning && (
-        <div className="mt-4 p-3 bg-gray-700 rounded text-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400 mx-auto mb-2"></div>
-          <p className="text-gray-400 text-sm">Scanning for MeshNet devices...</p>
-        </div>
-      )}
     </div>
   );
 };

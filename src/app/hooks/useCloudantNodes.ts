@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
 import { getApiBase, getMeshSecret } from "../../utils/env";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -240,6 +241,17 @@ export function useCloudantNodes(
   const apiBase = getApiBase();
 
   const load = useCallback(async () => {
+    // On native platform (mobile), completely disable backend calls
+    // Use pure peer-to-peer mode via BLE/WiFi Direct
+    if (Capacitor.isNativePlatform()) {
+      console.log('[Cloudant] Native platform detected, skipping backend calls for P2P mode');
+      setNodes([]);
+      setSource("local-backend");
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     // Check if emergency mode is active - use offline-first approach
     const isEmergencyMode = localStorage.getItem('emergency_mode') === 'true';
     
@@ -299,7 +311,7 @@ export function useCloudantNodes(
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setError(msg);
-      // Priority 3 — seed fallback so the map always renders something
+      // On web, use seed fallback so the map always renders something
       const seedNodes = generateSeedNodes(deviceLat, deviceLng);
       setNodes((prev) => (prev.length === 0 ? seedNodes : prev));
       setSource((prev) => (prev === "seed" ? "seed" : prev));
