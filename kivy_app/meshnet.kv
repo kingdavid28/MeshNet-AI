@@ -1,0 +1,104 @@
+#:kivy 2.3.0
+
+<MeshNetRootWidget>:
+    orientation: 'vertical'
+    padding: dp(10)
+    spacing: dp(10)
+    
+    # Header
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(60)
+        spacing: dp(10)
+        
+        Label:
+            text: 'MeshNet-AI'
+            font_size: dp(24)
+            bold: True
+            color: 0, 0.8, 0.8, 1
+            size_hint_x: 0.7
+        
+        Label:
+            text: 'Offline Emergency Mesh'
+            font_size: dp(14)
+            color: 0.7, 0.7, 0.7, 1
+            size_hint_x: 0.3
+            halign: 'right'
+    
+    # Status bar
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(40)
+        spacing: dp(10)
+        canvas.before:
+            Color:
+                rgba: 0.1, 0.1, 0.15, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        Label:
+            text: 'BLE: Active'
+            font_size: dp(12)
+            color: 0.2, 0.8, 0.2, 1
+            size_hint_x: 0.33
+        
+        Label:
+            text: 'Nodes: 0'
+            font_size: dp(12)
+            color: 0.7, 0.7, 0.7, 1
+            size_hint_x: 0.33
+        
+        Label:
+            text: 'WiFi: Ready'
+            font_size: dp(12)
+            color: 0.7, 0.7, 0.7, 1
+            size_hint_x: 0.33
+    
+    # Main content area
+    BoxLayout:
+        orientation: 'vertical'
+        
+        Label:
+            text: 'Mesh Network Map'
+            font_size: dp(18)
+            bold: True
+            size_hint_y: None
+            height: dp(40)
+        
+        # Map placeholder
+        BoxLayout:
+            canvas.before:
+                Color:
+                    rgba: 0.05, 0.05, 0.1, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            
+            Label:
+                text: 'Map View\\n(Topology Visualization)'
+                font_size: dp(16)
+                color: 0.5, 0.5, 0.5, 1
+                halign: 'center'
+    
+    # Quick actions
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: None
+        height: dp(60)
+        spacing: dp(10)
+        
+        Button:
+            text: 'SOS'
+            font_size: dp(16)
+            bold: True
+            background_color: 1, 0.3, 0.3, 1
+            size_hint_x: 0.5
+        
+        Button:
+            text: 'Scan'
+            font_size: dp(16)
+            background_color: 0.2, 0.6, 0.8, 1
+            size_hint_x: 0.5

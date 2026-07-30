@@ -1,0 +1,29 @@
+# Buildozer virtual environment
+.buildozer-venv/
+.buildozer/
+
+# Build outputs
+bin/
+*.apk
+*.aab
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+*.err
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
