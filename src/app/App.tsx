@@ -77,7 +77,7 @@ export default function App() {
 
   // Detect Electron environment and screen size for platform-conditional UI
   const [isElectron, setIsElectron] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia("(min-width: 768px)").matches);
 
   console.log('[App] Render info', JSON.stringify({ isElectron, isDesktop, windowWidth: window.innerWidth }));
 
@@ -86,7 +86,6 @@ export default function App() {
     const mq = window.matchMedia("(min-width: 768px)");
     const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
     mq.addEventListener("change", handler);
-    setIsDesktop(mq.matches);
     return () => mq.removeEventListener("change", handler);
   }, []);
 
