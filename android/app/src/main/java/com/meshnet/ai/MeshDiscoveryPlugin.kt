@@ -87,14 +87,10 @@ private const val TAG = "MeshDiscovery"
  *  Must match the value in capacitor.config.ts and iOS implementation. */
 private const val MESH_SERVICE_UUID = "0000FEED-0000-1000-8000-00805F9B34FB"
 
-/** GATT Characteristic UUIDs — written by the advertising node, read by scanner */
-private const val CHAR_NODE_ID   = "0000FEE1-0000-1000-8000-00805F9B34FB"
-private const val CHAR_LABEL     = "0000FEE2-0000-1000-8000-00805F9B34FB"
-private const val CHAR_LAT       = "0000FEE3-0000-1000-8000-00805F9B34FB"
-private const val CHAR_LNG       = "0000FEE4-0000-1000-8000-00805F9B34FB"
-private const val CHAR_BATTERY   = "0000FEE5-0000-1000-8000-00805F9B34FB"
-private const val CHAR_SIGNAL    = "0000FEE6-0000-1000-8000-00805F9B34FB"
-private const val CHAR_WIFI      = "0000FEE7-0000-1000-8000-00805F9B34FB"  // wifi_status 0/1
+/** GATT Characteristic UUIDs — serverless BLE mesh implementation */
+private const val CHAR_IDENTITY_UUID = "0000FEE1-0000-1000-8000-00805F9B34FB"  // JSON identity payload
+private const val CHAR_MSG_UUID      = "0000FEE2-0000-1000-8000-00805F9B34FB"  // Message data exchange
+private const val CCCD_UUID         = "00002902-0000-1000-8000-00805F9B34FB"  // Client Characteristic Configuration
 
 /** Wi-Fi Direct SSID prefix — devices filter by this when scanning */
 private const val WIFI_SSID_PREFIX = "MESHNET-"
@@ -153,6 +149,10 @@ class MeshDiscoveryPlugin : Plugin() {
     private val bleVerifiedAddresses = ConcurrentHashMap<String, String>() // nodeId → BT address
     // Per-device GATT read state (ANDROID-4: thread-safe, one map per remote device)
     private val gattReadState   = ConcurrentHashMap<String, ConcurrentHashMap<String, String>>()
+    // Device address → RSSI (for reporting signal strength)
+    private val deviceRssi      = ConcurrentHashMap<String, Int>()
+    // Track devices currently being connected to prevent duplicate connections
+    private val connectingDevices = ConcurrentHashMap<String, Boolean>()
 
     // BLE
     private var bluetoothManager: BluetoothManager?      = null
@@ -162,6 +162,8 @@ class MeshDiscoveryPlugin : Plugin() {
     private var gattServer:       BluetoothGattServer?   = null
     private var scanCallback:     ScanCallback?          = null
     private var advertiseCallback: AdvertiseCallback?    = null
+    private var identityCharacteristic: BluetoothGattCharacteristic? = null
+    private var messageCharacteristic: BluetoothGattCharacteristic? = null
 
     // Wi-Fi Direct
     private var wifiP2pManager:  WifiP2pManager?  = null
@@ -550,40 +552,98 @@ class MeshDiscoveryPlugin : Plugin() {
                 device: BluetoothDevice, requestId: Int, offset: Int,
                 characteristic: BluetoothGattCharacteristic
             ) {
-                val value: ByteArray? = when (characteristic.uuid.toString().uppercase()) {
-                    CHAR_NODE_ID -> selfNodeId.toByteArray()
-                    CHAR_LABEL   -> selfLabel.toByteArray()
-                    CHAR_LAT     -> selfLat.toString().toByteArray()
-                    CHAR_LNG     -> selfLng.toString().toByteArray()
-                    CHAR_BATTERY -> selfBattery.toString().toByteArray()
-                    CHAR_SIGNAL  -> selfSignal.toString().toByteArray()
-                    CHAR_WIFI    -> (if (isWifiDirect) "1" else "0").toByteArray()
-                    else         -> null
+                val fullValue: ByteArray? = when (characteristic.uuid.toString().uppercase()) {
+                    CHAR_IDENTITY_UUID -> buildIdentityPayload().toByteArray()
+                    CHAR_MSG_UUID      -> null  // Read not supported for message char
+                    else               -> null
                 }
+                
+                // Handle offset for long reads (MTU limitation)
+                val value: ByteArray? = if (fullValue != null && offset < fullValue.size) {
+                    if (offset == 0) {
+                        fullValue
+                    } else {
+                        fullValue.copyOfRange(offset, fullValue.size)
+                    }
+                } else {
+                    null
+                }
+                
+                // When we handle offset ourselves, pass offset=0 to sendResponse
+                val responseOffset = if (offset == 0) 0 else 0
                 gattServer?.sendResponse(device, requestId,
                     if (value != null) BluetoothGatt.GATT_SUCCESS
                     else               BluetoothGatt.GATT_FAILURE,
-                    offset, value)
+                    responseOffset, value)
+            }
+
+            override fun onCharacteristicWriteRequest(
+                device: BluetoothDevice, requestId: Int,
+                characteristic: BluetoothGattCharacteristic,
+                preparedWrite: Boolean, responseNeeded: Boolean, offset: Int,
+                value: ByteArray
+            ) {
+                if (characteristic.uuid.toString().uppercase() == CHAR_MSG_UUID) {
+                    // Handle incoming message from peer
+                    val message = String(value, Charsets.UTF_8)
+                    Log.i(TAG, "Received message from ${device.address}: $message")
+                    notifyPeerMessage(device.address, message)
+                }
+                if (responseNeeded) {
+                    gattServer?.sendResponse(device, requestId,
+                        BluetoothGatt.GATT_SUCCESS, offset, value)
+                }
             }
         })
 
-        // Build the GATT service with all characteristics.
-        // Changed to PERMISSION_READ to allow unencrypted reads for discovery without pairing
+        // Build the GATT service with identity and message characteristics
         val service = BluetoothGattService(
             UUID.fromString(MESH_SERVICE_UUID),
             BluetoothGattService.SERVICE_TYPE_PRIMARY
         )
-        listOf(CHAR_NODE_ID, CHAR_LABEL, CHAR_LAT, CHAR_LNG,
-               CHAR_BATTERY, CHAR_SIGNAL, CHAR_WIFI).forEach { uuid ->
-            service.addCharacteristic(
-                BluetoothGattCharacteristic(
-                    UUID.fromString(uuid),
-                    BluetoothGattCharacteristic.PROPERTY_READ,
-                    BluetoothGattCharacteristic.PERMISSION_READ
-                )
-            )
-        }
+
+        // Identity characteristic (READ | NOTIFY)
+        val idChar = BluetoothGattCharacteristic(
+            UUID.fromString(CHAR_IDENTITY_UUID),
+            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+            BluetoothGattCharacteristic.PERMISSION_READ
+        )
+
+        // CCCD descriptor for notifications
+        val cccd = BluetoothGattDescriptor(
+            UUID.fromString(CCCD_UUID),
+            BluetoothGattDescriptor.PERMISSION_READ or BluetoothGattDescriptor.PERMISSION_WRITE
+        )
+        idChar.addDescriptor(cccd)
+
+        // Message characteristic (WRITE | WRITE_NO_RESPONSE | NOTIFY)
+        val msgChar = BluetoothGattCharacteristic(
+            UUID.fromString(CHAR_MSG_UUID),
+            BluetoothGattCharacteristic.PROPERTY_WRITE or
+            BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE or
+            BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+            BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE
+        )
+
+        service.addCharacteristic(idChar)
+        service.addCharacteristic(msgChar)
         gattServer?.addService(service)
+
+        // Store reference for later updates
+        identityCharacteristic = idChar
+        messageCharacteristic = msgChar
+
+        Log.i(TAG, "GATT server started with MeshNet service (identity + message characteristics)")
+    }
+
+    // ── Identity Payload Builder ───────────────────────────────────────────────
+
+    private fun buildIdentityPayload(): String {
+        """
+        Build JSON identity payload for the GATT identity characteristic.
+        Schema: {"v": 1, "id": "node_id", "lat": 0.0, "lon": 0.0}
+        """
+        return """{"v":1,"id":"$selfNodeId","lat":$selfLat,"lon":$selfLng}"""
     }
 
     // ── BLE Scan ──────────────────────────────────────────────────────────────
@@ -636,128 +696,261 @@ class MeshDiscoveryPlugin : Plugin() {
         notifyStatusChange()
     }
 
-    /** Connect to a discovered BLE device and read all GATT characteristics.
-     *  ANDROID-4: each device gets its own ConcurrentHashMap so concurrent callbacks
-     *  for multiple devices cannot corrupt shared state. */
+    /** Connect to a discovered BLE device and read identity characteristic.
+     *  Serverless BLE mesh implementation - reads JSON identity payload. */
     @SuppressLint("MissingPermission")
     private fun onBleDeviceFound(device: BluetoothDevice, rssi: Int) {
         val deviceAddr = device.address
+        deviceRssi[deviceAddr] = rssi
+        
+        // Skip if already connecting or connected to this device
+        val wasConnecting = connectingDevices.putIfAbsent(deviceAddr, true) != null
+        if (wasConnecting) {
+            Log.d(TAG, "Already connecting to $deviceAddr, skipping duplicate connection attempt")
+            return
+        }
+        
         Log.i(TAG, "Connecting to BLE device: $deviceAddr (RSSI: $rssi)")
-        // Allocate per-device state map (idempotent if already present)
-        val chars = gattReadState.getOrPut(deviceAddr) { ConcurrentHashMap() }
 
-        device.connectGatt(context, false, object : BluetoothGattCallback() {
+        // Use TRANSPORT_LE to ensure BLE connection (not classic Bluetooth)
+        // Use autoConnect=false for immediate connection
+        val gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            device.connectGatt(context, false, object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                    handleConnectionStateChange(gatt, deviceAddr, status, newState)
+                }
 
-            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-                Log.d(TAG, "Connection state change for $deviceAddr: status=$status, newState=$newState")
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    Log.i(TAG, "Connected to $deviceAddr, discovering services")
-                    gatt.discoverServices()
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    Log.i(TAG, "Disconnected from $deviceAddr")
-                    gatt.close()
-                    gattReadState.remove(deviceAddr)
-                    val nodeId = chars[CHAR_NODE_ID] ?: return
-                    if (nodeId.isNotEmpty()) {
-                        // ANDROID-5: record as BLE-verified before Wi-Fi Direct can connect
-                        bleVerifiedAddresses[nodeId] = deviceAddr
-                        Log.i(TAG, "BLE verified node: $nodeId at $deviceAddr")
-                        processBleDiscovery(chars, rssi)
+                @SuppressLint("NewApi")
+                override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+                    Log.d(TAG, "MTU changed to $mtu for $deviceAddr (status=$status)")
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        gatt.discoverServices()
+                    } else {
+                        gatt.discoverServices()
                     }
                 }
-            }
 
-            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-                Log.d(TAG, "Services discovered for $deviceAddr: status=$status")
-                if (status != BluetoothGatt.GATT_SUCCESS) { 
-                    Log.e(TAG, "Service discovery failed for $deviceAddr: $status")
-                    gatt.disconnect(); return 
+                override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                    handleServicesDiscovered(gatt, deviceAddr, status)
                 }
-                val service = gatt.getService(UUID.fromString(MESH_SERVICE_UUID))
-                if (service == null) { 
-                    Log.e(TAG, "MeshNet service not found on $deviceAddr")
-                    gatt.disconnect(); return 
+
+                override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+                    handleCharacteristicRead(gatt, deviceAddr, characteristic, status)
                 }
-                Log.i(TAG, "MeshNet service found on $deviceAddr, reading characteristics")
-                readNextChar(gatt, service,
-                    listOf(CHAR_NODE_ID, CHAR_LABEL, CHAR_LAT, CHAR_LNG,
-                           CHAR_BATTERY, CHAR_SIGNAL, CHAR_WIFI), 0, chars)
-            }
 
-            override fun onCharacteristicRead(
-                gatt: BluetoothGatt,
-                characteristic: BluetoothGattCharacteristic,
-                status: Int
-            ) {
-                Log.d(TAG, "Characteristic read: ${characteristic.uuid}, status=$status")
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    val value = characteristic.value?.toString(Charsets.UTF_8) ?: ""
-                    chars[characteristic.uuid.toString().uppercase()] = value
-                    Log.d(TAG, "Characteristic value: $value")
+                override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+                    handleCharacteristicChanged(gatt, deviceAddr, characteristic)
                 }
-                val keys = listOf(CHAR_NODE_ID, CHAR_LABEL, CHAR_LAT, CHAR_LNG,
-                                  CHAR_BATTERY, CHAR_SIGNAL, CHAR_WIFI)
-                val idx = keys.indexOfFirst { it == characteristic.uuid.toString().uppercase() }
-                if (idx >= 0 && idx + 1 < keys.size) {
-                    readNextChar(gatt, gatt.getService(UUID.fromString(MESH_SERVICE_UUID)),
-                        keys, idx + 1, chars)
-                } else {
-                    Log.i(TAG, "All characteristics read from $deviceAddr, disconnecting")
-                    gatt.disconnect()
+            }, BluetoothDevice.TRANSPORT_LE)
+        } else {
+            device.connectGatt(context, false, object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                    handleConnectionStateChange(gatt, deviceAddr, status, newState)
                 }
-            }
-        }, BluetoothDevice.TRANSPORT_LE)
-    }
 
-    private fun readNextChar(
-        gatt: BluetoothGatt,
-        service: BluetoothGattService?,
-        keys: List<String>,
-        idx: Int,
-        out: MutableMap<String, String>
-    ) {
-        if (service == null || idx >= keys.size) { gatt.disconnect(); return }
-        val char = service.getCharacteristic(UUID.fromString(keys[idx]))
-        if (char != null) gatt.readCharacteristic(char)
-        else readNextChar(gatt, service, keys, idx + 1, out)
-    }
+                override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                    handleServicesDiscovered(gatt, deviceAddr, status)
+                }
 
-    /** After reading all GATT chars from a peer, register them with the backend. */
-    private fun processBleDiscovery(chars: Map<String, String>, rssi: Int) {
-        val nodeId  = chars[CHAR_NODE_ID] ?: return
-        val label   = chars[CHAR_LABEL]   ?: nodeId
-        val lat     = chars[CHAR_LAT]     ?.toDoubleOrNull() ?: 0.0
-        val lng     = chars[CHAR_LNG]     ?.toDoubleOrNull() ?: 0.0
-        val battery = chars[CHAR_BATTERY] ?.toIntOrNull()    ?: 80
-        val signal  = rssiToPercent(rssi)
-        val wifi    = chars[CHAR_WIFI]    == "1"
+                override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+                    handleCharacteristicRead(gatt, deviceAddr, characteristic, status)
+                }
 
-        // Debounce — don't re-register the same node more than once per 30s
-        val now = System.currentTimeMillis()
-        if ((now - (knownPeers[nodeId] ?: 0)) < 30_000) return
-        knownPeers[nodeId] = now
-
-        scope.launch {
-            // 1. Register the discovered peer node with the backend
-            postRegister(nodeId, label, lat, lng, battery, signal,
-                ble = true, wifiDirect = wifi, "smartphone", "peer")
-
-            // 2. Register the edge (this node ↔ peer) with protocol + RSSI quality
-            postEdge(selfNodeId, nodeId, "bluetooth", signal)
-
-            // 3. Emit event to JavaScript
-            val event = JSObject().apply {
-                put("nodeId",   nodeId)
-                put("label",    label)
-                put("lat",      lat)
-                put("lng",      lng)
-                put("battery",  battery)
-                put("signal",   signal)
-                put("protocol", "bluetooth")
-            }
-            notifyListeners("peerDiscovered", event)
-            Log.i(TAG, "BLE peer registered: $nodeId ($label)")
+                override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+                    handleCharacteristicChanged(gatt, deviceAddr, characteristic)
+                }
+            })
         }
+
+        // Request MTU for Android 5.0+ if using the 3-parameter version
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            gatt?.requestMtu(512)
+        }
+    }
+
+    private fun handleConnectionStateChange(gatt: BluetoothGatt, deviceAddr: String, status: Int, newState: Int) {
+        Log.d(TAG, "Connection state change for $deviceAddr: status=$status, newState=$newState")
+        if (newState == BluetoothProfile.STATE_CONNECTED) {
+            Log.i(TAG, "Connected to $deviceAddr, discovering services")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                gatt.requestMtu(512)
+            } else {
+                gatt.discoverServices()
+            }
+        } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+            Log.i(TAG, "Disconnected from $deviceAddr (status=$status)")
+            gatt.close()
+            gattReadState.remove(deviceAddr)
+            connectingDevices.remove(deviceAddr) // Remove from connecting devices
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                scheduleReconnect(deviceAddr)
+            } else {
+                Log.w(TAG, "Connection failed with status $status, not scheduling reconnect")
+            }
+        }
+    }
+
+    @SuppressLint("NewApi")
+    private fun handleMtuChanged(gatt: BluetoothGatt, deviceAddr: String, mtu: Int, status: Int) {
+        Log.d(TAG, "MTU changed to $mtu for $deviceAddr (status=$status)")
+        gatt.discoverServices()
+    }
+
+    private fun handleServicesDiscovered(gatt: BluetoothGatt, deviceAddr: String, status: Int) {
+        Log.d(TAG, "Services discovered for $deviceAddr: status=$status")
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            Log.e(TAG, "Service discovery failed for $deviceAddr: $status")
+            gatt.disconnect()
+            return
+        }
+        val service = gatt.getService(UUID.fromString(MESH_SERVICE_UUID))
+        if (service == null) {
+            Log.e(TAG, "MeshNet service not found on $deviceAddr")
+            gatt.disconnect()
+            return
+        }
+        Log.i(TAG, "MeshNet service found on $deviceAddr, reading identity characteristic")
+
+        val idChar = service.getCharacteristic(UUID.fromString(CHAR_IDENTITY_UUID))
+        if (idChar != null) {
+            // Ensure the characteristic is readable before reading
+            if ((idChar.properties and BluetoothGattCharacteristic.PROPERTY_READ) != 0) {
+                @Suppress("DEPRECATION")
+                gatt.readCharacteristic(idChar)
+            } else {
+                Log.e(TAG, "Identity characteristic is not readable on $deviceAddr")
+                gatt.disconnect()
+            }
+        } else {
+            Log.e(TAG, "Identity characteristic not found on $deviceAddr")
+            gatt.disconnect()
+        }
+    }
+
+    private fun handleCharacteristicRead(gatt: BluetoothGatt, deviceAddr: String, characteristic: BluetoothGattCharacteristic, status: Int) {
+        Log.d(TAG, "Characteristic read: ${characteristic.uuid}, status=$status")
+        if (status == BluetoothGatt.GATT_SUCCESS) {
+            val uuid = characteristic.uuid.toString().uppercase()
+            if (uuid == CHAR_IDENTITY_UUID) {
+                val value = characteristic.value?.toString(Charsets.UTF_8) ?: ""
+                Log.i(TAG, "Identity payload from $deviceAddr: $value")
+                val rssi = deviceRssi[deviceAddr] ?: 0
+                processIdentityPayload(deviceAddr, value, rssi)
+            }
+        }
+        // After reading identity, enable notifications for message characteristic
+        val service = gatt.getService(UUID.fromString(MESH_SERVICE_UUID))
+        if (service != null) {
+            val msgChar = service.getCharacteristic(UUID.fromString(CHAR_MSG_UUID))
+            if (msgChar != null) {
+                gatt.setCharacteristicNotification(msgChar, true)
+                val cccd = msgChar.getDescriptor(UUID.fromString(CCCD_UUID))
+                if (cccd != null) {
+                    cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                    gatt.writeDescriptor(cccd)
+                }
+            }
+        }
+    }
+
+    private fun handleCharacteristicChanged(gatt: BluetoothGatt, deviceAddr: String, characteristic: BluetoothGattCharacteristic) {
+        val uuid = characteristic.uuid.toString().uppercase()
+        if (uuid == CHAR_MSG_UUID) {
+            val message = characteristic.value?.toString(Charsets.UTF_8) ?: ""
+            Log.i(TAG, "Message received from $deviceAddr: $message")
+            notifyPeerMessage(deviceAddr, message)
+        }
+    }
+
+    // ── Identity Payload Processing ───────────────────────────────────────────
+
+    private fun processIdentityPayload(deviceAddr: String, payload: String, rssi: Int) {
+        try {
+            val json = JSONObject(payload)
+            val version = json.optInt("v", 0)
+            val nodeId = json.optString("id", deviceAddr)
+            val lat = json.optDouble("lat", 0.0)
+            val lng = json.optDouble("lon", 0.0)
+
+            Log.i(TAG, "Parsed identity: node=$nodeId, lat=$lat, lng=$lng, version=$version")
+
+            // Store peer info
+            knownPeers[nodeId] = System.currentTimeMillis()
+            bleVerifiedAddresses[nodeId] = deviceAddr
+
+            // Emit peer discovered event to JavaScript
+            val peerData = JSObject().apply {
+                put("nodeId", nodeId)
+                put("lat", lat)
+                put("lng", lng)
+                put("rssi", rssi)
+                put("protocol", "BLE")
+                put("address", deviceAddr)
+            }
+            notifyPeerDiscovered(peerData)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse identity payload: $payload", e)
+        }
+    }
+
+    // ── Reconnect Logic with Backoff ─────────────────────────────────────────
+
+    private val reconnectBackoffs = ConcurrentHashMap<String, Int>()
+    private val reconnectHandler = Handler(Looper.getMainLooper())
+
+    private fun scheduleReconnect(deviceAddr: String) {
+        val backoff = reconnectBackoffs.getOrPut(deviceAddr) { 0 }
+        if (backoff >= 10) {
+            Log.w(TAG, "Max reconnect attempts reached for $deviceAddr")
+            return
+        }
+
+        val delayMs = (8000 * (backoff + 1)).toLong() // 8s, 16s, 24s, etc.
+        reconnectBackoffs[deviceAddr] = backoff + 1
+
+        Log.i(TAG, "Scheduling reconnect to $deviceAddr in ${delayMs}ms (attempt ${backoff + 1})")
+
+        reconnectHandler.postDelayed({
+            if (isScanning) {
+                Log.i(TAG, "Attempting reconnect to $deviceAddr")
+                // Trigger new scan to find the device again
+                // The scan callback will handle reconnection
+            }
+        }, delayMs)
+    }
+
+    // ── Message Broadcasting ─────────────────────────────────────────────────
+
+    @SuppressLint("MissingPermission")
+    fun broadcastMessage(message: String) {
+        Log.i(TAG, "Broadcasting message to all connected peers: $message")
+        val messageBytes = message.toByteArray(Charsets.UTF_8)
+
+        // Iterate through connected GATT clients and write to message characteristic
+        gattReadState.keys.forEach { deviceAddr ->
+            try {
+                // Need to maintain active GATT connections for this to work
+                // For now, log the intent
+                Log.d(TAG, "Would send message to $deviceAddr")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to send message to $deviceAddr", e)
+            }
+        }
+    }
+
+    // ── Event Notification Helpers ───────────────────────────────────────────
+
+    private fun notifyPeerDiscovered(peerData: JSObject) {
+        notifyListeners("peerDiscovered", peerData)
+    }
+
+    private fun notifyPeerMessage(deviceAddr: String, message: String) {
+        val msgData = JSObject().apply {
+            put("address", deviceAddr)
+            put("message", message)
+        }
+        notifyListeners("peerMessage", msgData)
     }
 
     // ── Wi-Fi Direct ──────────────────────────────────────────────────────────
@@ -899,11 +1092,8 @@ class MeshDiscoveryPlugin : Plugin() {
 
     private suspend fun patchHeartbeat() {
         if (selfNodeId.isEmpty() || apiBase.isBlank()) return
-        // ANDROID-3: skip heartbeat until we have a real GPS fix
-        if (!selfGpsValid) {
-            Log.d(TAG, "Heartbeat skipped — waiting for valid GPS fix")
-            return
-        }
+        // Allow heartbeat without GPS for pure P2P mode
+        // GPS coordinates will be 0.0 if not available
         try {
             val url = URL("$apiBase/api/mesh/nodes/$selfNodeId/heartbeat")
             val body = JSONObject().apply {

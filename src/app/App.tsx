@@ -13,6 +13,8 @@ import { useCloudantNodes } from "./hooks/useCloudantNodes";
 import { useNetworkDiscovery } from "./hooks/useNetworkDiscovery";
 import { useEmergencyMode } from "./hooks/useEmergencyMode";
 import { useMeshNetwork } from "./hooks/useMeshNetwork";
+import { useMeshDiscovery } from "./hooks/useMeshDiscovery";
+import { useDeviceLocation } from "./hooks/useDeviceLocation";
 import { NAV, MESSAGES } from "./constants";
 import type { Tab } from "./types";
 
@@ -22,6 +24,9 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const { backend, discovering, error, rediscover, manualUrl, setManualBackendUrl } = useNetworkDiscovery();
   const { activateEmergencyMode } = useEmergencyMode();
+  
+  // Get device location for mesh discovery
+  const deviceLocation = useDeviceLocation();
   
   // Initialize mesh network
   const meshNetwork = useMeshNetwork('node-1');
@@ -74,6 +79,8 @@ export default function App() {
   const [isElectron, setIsElectron] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 768);
 
+  console.log('[App] Render info', JSON.stringify({ isElectron, isDesktop, windowWidth: window.innerWidth }));
+
   useEffect(() => {
     setIsElectron(!!(window as any).electronAPI);
     const mq = window.matchMedia("(min-width: 768px)");
@@ -84,13 +91,46 @@ export default function App() {
   }, []);
 
   const { nodes: liveNodes } = useCloudantNodes(10_000);
-  const peerCount = liveNodes.length;
 
   // Desktop: full dashboard layout; Mobile: mobile tabbed shell.
   // BLE is only available in the mobile shell when not running in Electron.
   if (isDesktop) {
     return <DashboardLayout />;
   }
+
+  // Initialize BLE mesh discovery for native platforms (only on mobile)
+  const meshDiscovery = useMeshDiscovery({
+    nodeId: 'node-1',
+    label: 'MeshNet Device',
+    battery: 100,
+    signal: 80,
+    deviceLocation,
+    enabled: true,
+  });
+  
+  // On mobile, use BLE-discovered peers; on web, use backend nodes
+  const displayNodes = meshDiscovery.isNative && meshDiscovery.peers.length > 0
+    ? meshDiscovery.peers.map(p => ({
+        node_id: p.nodeId,
+        label: p.label,
+        latitude: p.lat,
+        longitude: p.lng,
+        battery_percentage: p.battery,
+        bluetooth_status: p.protocol === "bluetooth" || p.protocol === "both",
+        wifi_status: p.protocol === "wifi" || p.protocol === "both",
+        protocol_active: (() => {
+          if (p.protocol === "both") return "both" as const;
+          if (p.protocol === "bluetooth") return "bluetooth" as const;
+          return "wifi" as const;
+        })(),
+        signal: p.signal,
+        device: "smartphone" as const,
+        role: "peer" as const,
+        last_seen: new Date(p.lastSeen).toISOString(),
+      }))
+    : liveNodes;
+  
+  const peerCount = displayNodes.length;
 
   return (
     <div
@@ -235,6 +275,12 @@ export default function App() {
                   {meshNetwork.nodes.length} nodes connected
                 </div>
               )}
+              {meshDiscovery.isNative && (
+                <div className="text-[10px] text-[#7B9CC4] mt-1">
+                  BLE Discovery: {meshDiscovery.status?.scanning ? 'Active' : 'Inactive'}
+                  {meshDiscovery.peers.length > 0 && ` (${meshDiscovery.peers.length} peers)`}
+                </div>
+              )}
             </div>
           )}
 
@@ -245,7 +291,7 @@ export default function App() {
             </div>
           )}
 
-          {tab === "home" && <HomeTab liveNodes={liveNodes} />}
+          {tab === "home" && <HomeTab liveNodes={displayNodes} />}
           {tab === "alert" && <AlertTab nodeCount={peerCount} />}
           {tab === "comms" && <CommsTab />}
           {tab === "protocols" && <ProtocolsTab />}
@@ -254,7 +300,11 @@ export default function App() {
         {/* Map tab is a flex sibling so Leaflet gets a fixed-height parent. */}
         {tab === "map" && (
           <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <MapTab />
+            <MapTab 
+              discoveryStatus={meshDiscovery.status}
+              discoveredPeers={meshDiscovery.peers}
+              isNative={meshDiscovery.isNative}
+            />
           </div>
         )}
 

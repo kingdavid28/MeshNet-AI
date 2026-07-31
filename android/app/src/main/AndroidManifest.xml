@@ -45,7 +45,9 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <!-- BLE hardware feature declaration -->
+    <uses-feature android:name="android.hardware.bluetooth" android:required="true"/>
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+    <uses-feature android:name="android.hardware.wifi" android:required="true"/>
 
     <application
         android:allowBackup="true"

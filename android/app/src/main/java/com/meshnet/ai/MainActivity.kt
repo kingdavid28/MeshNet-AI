@@ -9,6 +9,7 @@ import android.webkit.WebView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.getcapacitor.BridgeActivity
+import com.getcapacitor.Plugin
 
 /**
  * MainActivity — Capacitor entry point.
@@ -39,6 +40,11 @@ class MainActivity : BridgeActivity() {
             // Notifications (Android 13+)
             Manifest.permission.POST_NOTIFICATIONS
         )
+    }
+
+    // Manual plugin registration for MeshDiscoveryPlugin
+    init {
+        registerPlugin(MeshDiscoveryPlugin::class.java)
     }
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {

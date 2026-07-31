@@ -4,14 +4,9 @@
  * React hook that orchestrates real-device mesh discovery via the native
  * Capacitor plugin (MeshDiscoveryPlugin.kt on Android).
  *
- * Responsibilities
- * ────────────────
- *  1. On mount: registers this device with the Express backend so it
- *     appears on the map immediately (registerSelf).
- *  2. Starts BLE advertising + scanning + Wi-Fi Direct via the native plugin.
- *  3. Listens for peerDiscovered events and adds them to local state so
- *     the map can show them without waiting for the next 10-second poll.
- *  4. On unmount: calls stopDiscovery() and removes all event listeners.
+ * This hook now uses a singleton service (meshDiscoveryService) to manage
+ * discovery state outside the React component tree, preventing issues with
+ * React Strict Mode causing multiple mount/unmount cycles.
  *
  * Usage
  * ─────
@@ -23,24 +18,12 @@
  *     battery: 80,
  *     signal:  75,
  *   });
- *
- * On web (browser): all operations are no-ops — the hook returns
- * { status: null, peers: [], error: null, isNative: false }.
- *
- * On Android: the hook returns live discovery state and fires whenever
- * a new peer is found via BLE or Wi-Fi Direct.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Capacitor } from "@capacitor/core";
-import { getApiBase, getMeshSecret } from "../../utils/env";
-import {
-  MeshDiscovery,
-  type DiscoveryStatus,
-  type PeerDiscoveredEvent,
-  type StartDiscoveryOptions,
-} from "../plugins/MeshDiscoveryPlugin";
+import { useState } from "react";
+import { meshDiscoveryService } from "../services/meshDiscoveryService";
 import type { DeviceLocation } from "./useDeviceLocation";
+import type { DiscoveryStatus } from "../plugins/MeshDiscoveryPlugin";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -85,197 +68,66 @@ export interface UseMeshDiscoveryResult {
   /** true only when running inside a Capacitor Android/iOS app. */
   isNative:     boolean;
   /** Manually trigger re-registration of self with the backend. */
-  reRegister:   () => void;
-}
-
-// ── Stable node ID — persisted in localStorage so it survives app restarts ───
-// DATA-4: use crypto.randomUUID() for guaranteed uniqueness across reinstalls
-
-function getOrCreateNodeId(): string {
-  const key = "meshnet_node_id";
-  const existing = localStorage.getItem(key);
-  if (existing) return existing;
-  const id = crypto.randomUUID();
-  localStorage.setItem(key, id);
-  return id;
-}
-
-function meshHeaders(): HeadersInit {
-  const secret = getMeshSecret();
-  return {
-    "Content-Type": "application/json",
-    ...(secret ? { "X-Mesh-Secret": secret } : {}),
-  };
+  reRegister:   () => Promise<void>;
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useMeshDiscovery({
-  nodeId:              propNodeId,
-  label,
-  battery,
-  signal,
-  apiBase:             propApiBase,
+  nodeId = 'node-1',
+  label = 'MeshNet Device',
+  battery = 100,
+  signal = 80,
+  apiBase = '',
   heartbeatIntervalMs = 5_000,
   deviceLocation,
-  enabled              = true,
+  enabled = true,
 }: UseMeshDiscoveryOptions): UseMeshDiscoveryResult {
 
-  const isNative = Capacitor.isNativePlatform();
+  console.log('[useMeshDiscovery] Hook function called', JSON.stringify({ nodeId, label, enabled }));
+  console.log('[useMeshDiscovery] About to call useState');
 
-  const nodeId = propNodeId || getOrCreateNodeId();
-  const apiBase = propApiBase ?? getApiBase();
+  const [status, setStatus] = useState<DiscoveryStatus | null>(null);
+  const [peers, setPeers] = useState<DiscoveredPeer[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isNative, setIsNative] = useState(meshDiscoveryService.getState().isNative);
 
-  const [status, setStatus]   = useState<DiscoveryStatus | null>(null);
-  const [peers,  setPeers]    = useState<DiscoveredPeer[]>([]);
-  const [error,  setError]    = useState<string | null>(null);
+  console.log('[useMeshDiscovery] useState called');
 
-  // Keep a ref to the current GPS coords so the heartbeat always sends fresh data
-  const latRef = useRef(deviceLocation?.lat ?? 0);
-  const lngRef = useRef(deviceLocation?.lng ?? 0);
-  useEffect(() => {
-    latRef.current = deviceLocation?.lat ?? latRef.current;
-    lngRef.current = deviceLocation?.lng ?? lngRef.current;
-  }, [deviceLocation]);
+  // Subscribe to service state changes - service handles duplicate subscriptions
+  const unsubscribe = meshDiscoveryService.subscribe((state) => {
+    console.log('[useMeshDiscovery] State update', state);
+    setStatus(state.status);
+    setPeers(state.peers);
+    setError(state.error);
+    setIsNative(state.isNative);
+  });
 
-  // ── Build options object ───────────────────────────────────────────────────
+  // Start discovery - service handles duplicate starts with isInitialized flag
+  if (enabled) {
+    console.log('[useMeshDiscovery] Starting discovery service');
+    meshDiscoveryService.start({
+      nodeId,
+      label,
+      battery,
+      signal,
+      apiBase,
+      heartbeatIntervalMs,
+      deviceLocation: deviceLocation?.lat && deviceLocation?.lng 
+        ? { lat: deviceLocation.lat, lng: deviceLocation.lng } 
+        : undefined,
+    }).catch(e => {
+      console.error('[useMeshDiscovery] Start failed:', e);
+      setError(e instanceof Error ? e.message : String(e));
+    });
+  } else {
+    console.log('[useMeshDiscovery] Discovery disabled');
+  }
 
-  const buildOptions = useCallback((): StartDiscoveryOptions => ({
-    nodeId,
-    label,
-    lat:                latRef.current,
-    lng:                lngRef.current,
-    battery,
-    signal,
-    apiBase,
-    heartbeatIntervalMs,
-  }), [nodeId, label, battery, signal, apiBase, heartbeatIntervalMs]);
+  const reRegister = async () => {
+    await meshDiscoveryService.reRegister();
+  };
 
-  // ── Register self with backend (runs on web too via fetch) ────────────────
-
-  const reRegister = useCallback(() => {
-    const lat = latRef.current;
-    const lng = lngRef.current;
-
-    if (isNative) {
-      // On native: delegate to the plugin (it handles the HTTP call natively)
-      MeshDiscovery.registerSelf({
-        nodeId, label, lat, lng, battery, signal,
-        device: "smartphone",
-        role:   "peer",
-      }).catch((e: Error) => setError(String(e)));
-    } else {
-      // On web: call the backend directly so the node appears on the map
-      fetch(`${apiBase}/api/mesh/register`, {
-        method:  "POST",
-        headers: meshHeaders(),
-        body:    JSON.stringify({
-          id:                nodeId,
-          label,
-          name:              label,
-          device:            "smartphone",
-          role:              "peer",
-          signal,
-          batteryPercentage: battery,
-          bluetoothStatus:   false,
-          wifiStatus:        false,
-          lat,
-          lng,
-        }),
-      }).catch(() => { /* offline — silently ignore */ });
-    }
-  }, [isNative, nodeId, label, battery, signal, apiBase]);
-
-  // ── Main effect — start discovery, attach event listeners ─────────────────
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    let removed = false;
-    const listeners: Array<{ remove: () => void }> = [];
-
-    async function start() {
-      try {
-        console.log('[MeshDiscovery] Starting discovery...', { isNative, nodeId, label, apiBase });
-        
-        // 1. Register this device so it appears on the map immediately
-        reRegister();
-
-        if (!isNative) {
-          console.log('[MeshDiscovery] Not native platform, skipping BLE/WiFi');
-          return;   // BLE/Wi-Fi not available in browser
-        }
-
-        // 2. Start native discovery (permissions are handled by the plugin)
-        console.log('[MeshDiscovery] Starting native discovery with options:', buildOptions());
-        const initialStatus = await MeshDiscovery.startDiscovery(buildOptions());
-        console.log('[MeshDiscovery] Initial status:', initialStatus);
-        if (!removed) setStatus(initialStatus);
-
-        // 3. Listen for events from the Kotlin plugin
-        const peerSub = await MeshDiscovery.addListener(
-          "peerDiscovered",
-          (event: PeerDiscoveredEvent) => {
-            if (removed) return;
-            console.log('[MeshDiscovery] Peer discovered:', event);
-            setPeers((prev) => {
-              const now = Date.now();
-              const existing = prev.find((p) => p.nodeId === event.nodeId);
-              if (existing) {
-                return prev.map((p) =>
-                  p.nodeId === event.nodeId
-                    ? { ...p, ...event, lastSeen: now }
-                    : p
-                );
-              }
-              return [...prev, { ...event, firstSeen: now, lastSeen: now }];
-            });
-          }
-        );
-        listeners.push(peerSub);
-
-        const statusSub = await MeshDiscovery.addListener(
-          "statusChange",
-          (evt: any) => { 
-            if (!removed) {
-              console.log('[MeshDiscovery] Status change:', evt);
-              setStatus((s) => ({ ...(s ?? {} as DiscoveryStatus), ...evt })); 
-            }
-          }
-        );
-        listeners.push(statusSub);
-
-        const errorSub = await MeshDiscovery.addListener(
-          "error",
-          (evt: { message: string }) => { 
-            if (!removed) {
-              console.error('[MeshDiscovery] Error:', evt);
-              setError(evt.message); 
-            }
-          }
-        );
-        listeners.push(errorSub);
-
-      } catch (e) {
-        if (!removed) {
-          console.error('[MeshDiscovery] Start failed:', e);
-          setError(e instanceof Error ? e.message : String(e));
-        }
-      }
-    }
-
-    void start();
-
-    return () => {
-      removed = true;
-      listeners.forEach((l) => l.remove());
-      if (isNative) {
-        console.log('[MeshDiscovery] Stopping discovery');
-        MeshDiscovery.stopDiscovery().catch(() => {});
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, isNative]);
-
+  console.log('[useMeshDiscovery] Hook returning result', { status, peers, error, isNative });
   return { status, peers, error, isNative, reRegister };
 }

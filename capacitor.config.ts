@@ -6,11 +6,6 @@ const config: CapacitorConfig = {
   appName: "MeshNet AI",
   // Vite build output — Capacitor copies dist/ into the Android webview
   webDir:  "dist",
-  server: {
-    // In development, point the Android webview at the Vite dev server
-    // so hot-reload works on the device.  Remove for production builds.
-    androidScheme: "http",
-  },
   plugins: {
     // MeshDiscoveryPlugin config — consumed by MeshDiscoveryPlugin.kt
     MeshDiscovery: {

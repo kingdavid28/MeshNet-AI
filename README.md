@@ -10,6 +10,23 @@
   ## Running the code
 
 ### Primary: Android APK (Mobile App)
+
+**For Judges - Quick Installation:**
+
+Download the latest APK directly from GitHub Releases:
+```
+https://github.com/kingdavid28/MeshNet-AI/releases/latest/download/app-debug.apk
+```
+
+Installation Steps:
+1. Download the APK from the link above
+2. Enable "Install from Unknown Sources" in Android Settings > Security
+3. Tap the downloaded APK file to install
+4. Launch the MeshNet AI app
+5. Grant Bluetooth, Location, and WiFi permissions when prompted
+
+**For Developers - Build from Source:**
+
 Install the pre-built APK on your Android device:
 ```
 Location: android/app/build/outputs/apk/debug/app-debug.apk
