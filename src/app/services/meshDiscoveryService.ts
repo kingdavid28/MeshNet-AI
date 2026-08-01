@@ -37,6 +37,7 @@ class MeshDiscoveryService {
   private apiBase: string;
   private heartbeatIntervalMs: number;
   private deviceLocation: { lat: number; lng: number } | undefined;
+  private notifyTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private constructor() {
     this.nodeId = this.getOrCreateNodeId();
@@ -74,7 +75,14 @@ class MeshDiscoveryService {
   }
 
   private notifyListeners() {
-    this.listeners.forEach(listener => listener({ ...this.state }));
+    // Debounce notifications to reduce WebView frame rate spam
+    if (this.notifyTimeout) {
+      clearTimeout(this.notifyTimeout);
+    }
+    this.notifyTimeout = setTimeout(() => {
+      this.listeners.forEach(listener => listener({ ...this.state }));
+      this.notifyTimeout = null;
+    }, 100); // 100ms debounce
   }
 
   private async registerSelf() {
