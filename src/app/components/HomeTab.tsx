@@ -33,9 +33,10 @@ export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
   const avgSignal = onlineNodes.length > 0
     ? Math.round(onlineNodes.reduce((s, n) => s + n.signal, 0) / onlineNodes.length)
     : 0;
+  const isMeshActive = onlineNodes.length > 0;
   const stats = [
     { label: "Nodes", value: String(onlineNodes.length), sub: "online" },
-    { label: "Signal", value: `${avgSignal}%`, sub: "avg" },
+    { label: "Signal", value: isMeshActive ? `${avgSignal}%` : "—", sub: "avg" },
     { label: "Latency", value: "—", sub: "p95" },
   ];
 
@@ -45,12 +46,12 @@ export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
       <div className="rounded-xl border border-[rgba(91,141,217,0.2)] bg-[#132B5A] p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
+            <div className={`w-2 h-2 rounded-full ${isMeshActive ? 'bg-[#22C55E] animate-pulse' : 'bg-[#4B5563]'}`} />
             <span
-              className="text-xs font-medium text-[#22C55E] uppercase tracking-widest"
+              className={`text-xs font-medium uppercase tracking-widest ${isMeshActive ? 'text-[#22C55E]' : 'text-[#4B5563]'}`}
               style={{ fontFamily: "Barlow Condensed, sans-serif" }}
             >
-              Mesh Active
+              {isMeshActive ? 'Mesh Active' : 'Mesh Standby'}
             </span>
           </div>
           <span className="text-xs font-mono text-[#7B9CC4]">{onlineNodes.length} nodes online</span>

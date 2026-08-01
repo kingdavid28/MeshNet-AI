@@ -288,10 +288,13 @@ class LifecycleManager:
                 self.api_client.close()
                 logger.info("API client closed")
             
-            # Stop BLE mesh
+            # Stop BLE mesh (stop this first to prevent race conditions)
             if hasattr(self, 'ble_mesh') and self.ble_mesh:
-                self.ble_mesh.stop()
-                logger.info("BLE mesh stopped")
+                try:
+                    self.ble_mesh.stop()
+                    logger.info("BLE mesh stopped")
+                except Exception as e:
+                    logger.error(f"Error stopping BLE mesh: {e}")
             
             # Stop hardware
             if hasattr(self, 'hardware') and self.hardware:

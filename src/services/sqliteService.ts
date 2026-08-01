@@ -10,7 +10,7 @@
 import { Capacitor } from '@capacitor/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 
-interface MeshNode {
+export interface MeshNode {
   id: string;
   label: string;
   lat: number;
@@ -22,7 +22,7 @@ interface MeshNode {
   lastSeen: string;
 }
 
-interface EmergencyContact {
+export interface EmergencyContact {
   id: string;
   name: string;
   phone: string;
@@ -32,7 +32,7 @@ interface EmergencyContact {
   medicalSpecialty?: string;
 }
 
-interface MedicalFacility {
+export interface MedicalFacility {
   id: string;
   name: string;
   lat: number;
@@ -42,7 +42,7 @@ interface MedicalFacility {
   address: string;
 }
 
-interface Shelter {
+export interface Shelter {
   id: string;
   name: string;
   lat: number;
@@ -51,6 +51,18 @@ interface Shelter {
   currentOccupancy: number;
   phone: string;
   address: string;
+}
+
+export interface DiscoveredPeer {
+  nodeId: string;
+  label: string;
+  lat: number;
+  lng: number;
+  battery: number;
+  signal: number;
+  protocol: string;
+  firstSeen: number;
+  lastSeen: number;
 }
 
 class SQLiteService {
@@ -141,9 +153,24 @@ class SQLiteService {
       );
     `;
 
+    const createDiscoveredPeers = `
+      CREATE TABLE IF NOT EXISTS discovered_peers (
+        node_id TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        lat REAL NOT NULL,
+        lng REAL NOT NULL,
+        battery INTEGER,
+        signal INTEGER,
+        protocol TEXT,
+        first_seen INTEGER,
+        last_seen INTEGER
+      );
+    `;
+
     await this.db.execute(createEmergencyContacts);
     await this.db.execute(createMedicalFacilities);
     await this.db.execute(createShelters);
+    await this.db.execute(createDiscoveredPeers);
   }
 
   // Mesh Node Operations (in-memory)
@@ -256,6 +283,137 @@ class SQLiteService {
       const distance = Math.sqrt(Math.pow(shelter.lat - lat, 2) + Math.pow(shelter.lng - lng, 2));
       return { ...shelter, distance };
     }).filter((shelter: any) => shelter.distance <= radius);
+  }
+
+  // Discovered Peers Operations
+  async addDiscoveredPeer(peer: DiscoveredPeer): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      await this.db.execute(
+        `INSERT OR REPLACE INTO discovered_peers (node_id, label, lat, lng, battery, signal, protocol, first_seen, last_seen) VALUES ('${peer.nodeId}', '${peer.label}', ${peer.lat}, ${peer.lng}, ${peer.battery}, ${peer.signal}, '${peer.protocol}', ${peer.firstSeen}, ${peer.lastSeen})`
+      );
+      return true;
+    } catch (error) {
+      console.error('[SQLiteService] Failed to add discovered peer:', error);
+      return false;
+    }
+  }
+
+  async getDiscoveredPeers(): Promise<DiscoveredPeer[]> {
+    if (!this.db) return [];
+
+    const result = await this.db.query('SELECT * FROM discovered_peers');
+    return (result.values || []).map((row: any) => ({
+      nodeId: row.node_id,
+      label: row.label,
+      lat: row.lat,
+      lng: row.lng,
+      battery: row.battery,
+      signal: row.signal,
+      protocol: row.protocol,
+      firstSeen: row.first_seen,
+      lastSeen: row.last_seen
+    }));
+  }
+
+  async updateDiscoveredPeer(nodeId: string, updates: Partial<DiscoveredPeer>): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      const setClause = Object.entries(updates)
+        .filter(([key]) => key !== 'nodeId')
+        .map(([key, value]) => {
+          const dbKey = key === 'nodeId' ? 'node_id' : 
+                        key === 'firstSeen' ? 'first_seen' : 
+                        key === 'lastSeen' ? 'last_seen' : key;
+          return `${dbKey} = ${typeof value === 'string' ? `'${value}'` : value}`;
+        })
+        .join(', ');
+
+      await this.db.execute(
+        `UPDATE discovered_peers SET ${setClause}, last_seen = ${Date.now()} WHERE node_id = '${nodeId}'`
+      );
+      return true;
+    } catch (error) {
+      console.error('[SQLiteService] Failed to update discovered peer:', error);
+      return false;
+    }
+  }
+
+  async cleanupOldPeers(maxAgeMs: number = 3600000): Promise<number> {
+    if (!this.db) return 0;
+
+    try {
+      const cutoff = Date.now() - maxAgeMs;
+      const result = await this.db.execute(
+        `DELETE FROM discovered_peers WHERE last_seen < ${cutoff}`
+      );
+      return result.changes?.changes || 0;
+    } catch (error) {
+      console.error('[SQLiteService] Failed to cleanup old peers:', error);
+      return 0;
+    }
+  }
+
+  // Backend Sync Operations
+  async syncFromBackend(apiBase: string): Promise<{ success: boolean; synced: number; errors: string[] }> {
+    if (!this.db) {
+      return { success: false, synced: 0, errors: ['Database not initialized'] };
+    }
+
+    const errors: string[] = [];
+    let synced = 0;
+
+    try {
+      // Sync emergency contacts
+      try {
+        const contactsRes = await fetch(`${apiBase}/api/contacts`);
+        if (contactsRes.ok) {
+          const contacts = await contactsRes.json();
+          for (const contact of contacts) {
+            const success = await this.addEmergencyContact(contact);
+            if (success) synced++;
+          }
+        }
+      } catch (error) {
+        errors.push(`Failed to sync contacts: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      // Sync medical facilities
+      try {
+        const facilitiesRes = await fetch(`${apiBase}/api/facilities`);
+        if (facilitiesRes.ok) {
+          const facilities = await facilitiesRes.json();
+          for (const facility of facilities) {
+            const success = await this.addMedicalFacility(facility);
+            if (success) synced++;
+          }
+        }
+      } catch (error) {
+        errors.push(`Failed to sync facilities: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      // Sync shelters
+      try {
+        const sheltersRes = await fetch(`${apiBase}/api/shelters`);
+        if (sheltersRes.ok) {
+          const shelters = await sheltersRes.json();
+          for (const shelter of shelters) {
+            const success = await this.addShelter(shelter);
+            if (success) synced++;
+          }
+        }
+      } catch (error) {
+        errors.push(`Failed to sync shelters: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      console.log('[SQLiteService] Backend sync complete:', { synced, errors });
+      return { success: errors.length === 0, synced, errors };
+    } catch (error) {
+      console.error('[SQLiteService] Backend sync failed:', error);
+      return { success: false, synced, errors: [error instanceof Error ? error.message : String(error)] };
+    }
   }
 
   // SOS Operation

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   AlertTriangle,
   Heart,
@@ -12,6 +12,9 @@ import {
 import { useDeviceLocation } from "../hooks/useDeviceLocation";
 import { encryptMessage } from "../hooks/useMeshCrypto";
 import { API_BASE, meshHeaders, ALERT_TYPE_MAP, ALERT_MSG_CATEGORY, ALERT_LABEL } from "../constants";
+import { getSQLiteService } from "../../services/sqliteService";
+import { Capacitor } from "@capacitor/core";
+import type { EmergencyContact, MedicalFacility, Shelter } from "../../services/sqliteService";
 
 export function AlertTab({ nodeCount }: { nodeCount: number }) {
   const [alertType, setAlertType] = useState<string | null>(null);
@@ -20,6 +23,37 @@ export function AlertTab({ nodeCount }: { nodeCount: number }) {
   const [sending, setSending] = useState(false);
   const [queued, setQueued] = useState(false);
   const deviceLocation = useDeviceLocation();
+  const [nearbyResources, setNearbyResources] = useState<{
+    contacts: EmergencyContact[];
+    facilities: (MedicalFacility & { distance: number })[];
+    shelters: (Shelter & { distance: number })[];
+  }>({ contacts: [], facilities: [], shelters: [] });
+
+  // Load nearby resources from SQLite on native platforms
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const loadNearbyResources = async () => {
+      try {
+        const sqliteService = getSQLiteService();
+        const [contacts, facilities, shelters] = await Promise.all([
+          sqliteService.searchEmergencyContacts('medical', 'medical'),
+          sqliteService.getMedicalFacilities(deviceLocation.lat || 0, deviceLocation.lng || 0, 25),
+          sqliteService.getShelters(deviceLocation.lat || 0, deviceLocation.lng || 0, 25)
+        ]);
+        setNearbyResources({ contacts, facilities, shelters });
+        console.log('[AlertTab] Loaded nearby resources:', {
+          contactsCount: contacts.length,
+          facilitiesCount: facilities.length,
+          sheltersCount: shelters.length
+        });
+      } catch (error) {
+        console.error('[AlertTab] Failed to load nearby resources:', error);
+      }
+    };
+
+    loadNearbyResources();
+  }, [deviceLocation.lat, deviceLocation.lng]);
 
   const handleSend = useCallback(async () => {
     if (!alertType || sending) return;

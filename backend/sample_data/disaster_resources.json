@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Central Warehouse",
+    "type": "supplies",
+    "location": "Makati, Philippines",
+    "latitude": 14.5547,
+    "longitude": 121.0244,
+    "capacity": 10000,
+    "current_occupancy": 5000,
+    "contact_phone": "+63-919-345-6789",
+    "status": "active"
+  }
+]

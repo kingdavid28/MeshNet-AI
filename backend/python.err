@@ -1,0 +1,1292 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\reycel\\Downloads\\meshnetmerge\\Mobile App UI Design\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:5050 (Press CTRL+C to quit)
+INFO:     Started reloader process [41652] using WatchFiles
+INFO:     Started server process [35720]
+INFO:     Waiting for application startup.
+2026-07-25 12:34:38,366 [INFO] meshnet.api — MeshNet AI Python router starting up — MeshNet AI Config
+  BLE ranges : flood=80m  war_zone=20m  earthquake=120m
+  WiFi ranges: flood=200m  war_zone=50m  earthquake=400m
+  Nodes      : 100 simulated
+  Max hops   : 7
+  Packet loss: 5%
+  Cloudant DB: mesh_nodes_db
+  Backend API: http://localhost:4000
+INFO:     Application startup complete.
+2026-07-25 12:34:38,754 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:38,754 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:38,758 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:38,775 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:38,776 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:38,776 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:38,776 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:38,777 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:38,781 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:38,781 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:38,782 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:38,784 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:38,785 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:38,785 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:38,786 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:38,786 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:38,790 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:38,791 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:38,792 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:38,794 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:38,795 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:38,795 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:38,795 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:38,796 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:38,799 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:38,799 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:38,800 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:38,802 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:38,803 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:38,803 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:38,804 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:38,804 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:38,808 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:38,808 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:38,809 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:38,811 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:38,812 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:38,812 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:38,813 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:38,813 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:38,816 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:38,816 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:38,817 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:38,819 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:38,820 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:38,820 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:38,821 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:38,821 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:39,847 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:39,848 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:39,849 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:39,851 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:39,852 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:39,852 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:39,852 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:39,853 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:39,874 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:39,875 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:39,876 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:39,877 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:39,878 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:39,878 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:39,878 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:39,878 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:39,926 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:39,927 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:39,930 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:39,947 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:39,948 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:39,948 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:39,948 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:39,949 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:39,970 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:39,970 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:39,971 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:39,973 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:39,973 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:39,974 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:39,974 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:39,975 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:39,977 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:39,977 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:39,978 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:39,980 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:39,980 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:39,981 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:39,981 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:39,981 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:39,983 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:39,984 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:39,984 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,009 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,010 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,010 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,011 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,011 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,016 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,016 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,017 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,019 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,020 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,020 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,020 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,020 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,024 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,024 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,025 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,027 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,027 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,027 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,027 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,028 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,086 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,086 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,087 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,102 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,102 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,102 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,103 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,103 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,117 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,117 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,118 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,134 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,134 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,134 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,134 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,135 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,137 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,137 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,137 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,139 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,140 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,140 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,140 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,141 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,142 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,142 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,143 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,145 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,146 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,146 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,146 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,146 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,149 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,149 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,150 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,152 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,152 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,153 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,153 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,153 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,156 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,157 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,158 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,160 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,160 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,160 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,161 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,161 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,164 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,164 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,165 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,167 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,168 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,168 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,168 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,168 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,172 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,172 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,173 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,176 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,177 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,177 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,177 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,177 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,180 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,180 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,181 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,183 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,184 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,184 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,184 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,184 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,186 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,186 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,187 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,210 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,210 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,211 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,211 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,211 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,213 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,213 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,214 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,241 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,242 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,242 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,242 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,242 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,245 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,245 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,246 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,248 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,248 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,249 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,249 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,249 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,252 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,252 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,253 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,272 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,272 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,273 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,273 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,274 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,276 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,276 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,277 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,303 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,304 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,304 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,304 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,304 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,307 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,307 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,308 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,334 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,334 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,335 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,335 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,335 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,338 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,338 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,339 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,341 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,342 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,342 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,343 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,343 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,345 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,345 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,347 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,365 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,366 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,366 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,366 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,367 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,370 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,371 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,372 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,396 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,396 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,397 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,397 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,397 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,399 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,400 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,401 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,427 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,428 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,428 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,428 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,429 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,431 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,431 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,432 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,434 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,435 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,435 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,435 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,435 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,438 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,438 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,439 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,458 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,459 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,459 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,459 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,459 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,462 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,462 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,463 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,488 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,489 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,489 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,489 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,489 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,491 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,492 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,493 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,495 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,495 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,496 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,496 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,496 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,499 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,499 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,500 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,502 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,502 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,502 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,503 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,503 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,505 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,506 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,507 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,519 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,519 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,519 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,520 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,520 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,522 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,522 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,523 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,526 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,526 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,526 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,527 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,527 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,529 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,529 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,530 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,550 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,550 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,551 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,551 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,551 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,554 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,554 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,555 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,581 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,582 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,582 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,582 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,582 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,585 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,585 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,586 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,613 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,614 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,614 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,614 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,614 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,617 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,617 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,618 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,621 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,621 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,621 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,621 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,622 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,624 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,624 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,625 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,643 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,644 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,644 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,644 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,644 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:40,647 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:40,647 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:40,648 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:40,650 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:40,651 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:40,651 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:40,651 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:40,651 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:42,309 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:42,309 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:42,310 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:42,312 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:42,313 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:42,313 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:42,313 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:42,314 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:42,318 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:42,318 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:42,319 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:42,321 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:42,322 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:42,322 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:42,323 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:42,323 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:43,764 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:43,765 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:43,767 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:43,909 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:43,910 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:43,911 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:43,911 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:43,912 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:43,917 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:43,917 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:43,919 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:43,938 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:43,939 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:43,941 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:43,942 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:43,942 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:43,949 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:43,950 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:43,953 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:43,959 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:43,960 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:43,961 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:43,961 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:43,962 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:43,966 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:43,966 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:43,968 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:43,997 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:43,999 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:43,999 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:44,000 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:44,001 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:44,008 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:44,008 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:44,009 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:44,015 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:44,016 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:44,016 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:44,017 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:44,019 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:44,355 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:44,355 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:44,357 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:44,361 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:44,362 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:44,362 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:44,363 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:44,364 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,056 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,058 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,059 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,065 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,065 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,065 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,066 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,067 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,070 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,071 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,072 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,077 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,077 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,078 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,079 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,080 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,083 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,084 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,087 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,090 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,092 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,092 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,093 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,093 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,096 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,096 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,098 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,102 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,103 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,104 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,104 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,105 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,108 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,108 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,110 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,114 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,115 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,116 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,116 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,117 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,121 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,121 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,123 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,127 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,128 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,128 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,129 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,129 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,133 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,134 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,135 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,165 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,166 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,167 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,167 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,168 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,172 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,172 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,174 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,178 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,178 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,179 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,179 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,180 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,183 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,184 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,186 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,190 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,191 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,191 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,192 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,192 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,197 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,197 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,199 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,202 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,203 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,204 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,204 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,205 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,209 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,209 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,211 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,214 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,215 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,215 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,216 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,217 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,221 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,221 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,223 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,241 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,243 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,243 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,244 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,244 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,248 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,248 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,250 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,253 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,254 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,255 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,256 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,256 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,260 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,261 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,262 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,266 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,267 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,268 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,269 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,269 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,274 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,274 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,276 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,281 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,282 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,283 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,283 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,284 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,289 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,290 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,291 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,295 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,296 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,297 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,298 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,298 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,302 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,302 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,304 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,310 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,311 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,311 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,312 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,312 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,316 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,316 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,318 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,336 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,337 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,338 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,338 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,339 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,343 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,343 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,344 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,347 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,348 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,349 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,349 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,350 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,354 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,354 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,356 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,360 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,361 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,362 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,362 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,363 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,367 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,367 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,369 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,395 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,396 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,396 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,396 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,398 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,401 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,401 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,403 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,428 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,429 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,430 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,430 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,431 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,434 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,435 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,436 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,440 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,441 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,442 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,442 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,443 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,446 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,446 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,448 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,452 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,453 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,453 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,454 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,454 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,458 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,458 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,460 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,488 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,489 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,490 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,490 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,491 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,495 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,495 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,496 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,500 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,501 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,502 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,502 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,503 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,507 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,507 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,508 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,512 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,513 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,513 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,514 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,514 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,517 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,518 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,519 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,523 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,524 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,524 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,525 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,525 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,529 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,529 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,531 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,551 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,552 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,553 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,553 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,554 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:52,558 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:52,559 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:52,560 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:52,564 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:52,565 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:52,565 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:52,566 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:52,566 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:34:56,926 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:34:56,926 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:34:56,927 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:34:56,949 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:34:56,950 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:34:56,950 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:34:56,951 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:34:56,954 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:38:05,854 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:38:05,857 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:38:05,860 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:38:05,885 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:38:05,886 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:38:05,886 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:38:05,887 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:38:05,887 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 12:48:44,568 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 12:48:44,568 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 12:48:44,569 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 12:48:44,571 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 12:48:44,572 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 12:48:44,572 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 12:48:44,572 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 12:48:44,573 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:10:48,401 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:10:48,442 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:10:48,450 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:10:48,467 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:10:48,469 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:10:48,470 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:10:48,471 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:10:48,473 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:10:49,473 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:10:49,475 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:10:49,478 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:10:49,503 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:10:49,505 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:10:49,508 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:10:49,509 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:10:49,510 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:10:49,733 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:10:49,734 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:10:49,736 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:10:49,740 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:10:49,743 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:10:49,745 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:10:49,746 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:10:49,747 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:11:11,821 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:11:11,839 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:11:11,890 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:11:11,927 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:11:11,953 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:11:11,967 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:11:11,969 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:11:11,970 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:11:28,611 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:11:28,613 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:11:28,616 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:11:28,619 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:11:28,620 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:11:28,622 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:11:28,624 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:11:28,625 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:12:42,544 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:12:42,552 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:12:42,566 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:12:42,606 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:12:42,620 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:12:42,632 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:12:42,647 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:12:42,661 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:31,795 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:31,796 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:31,799 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:31,804 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:31,806 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:31,808 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:31,812 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:31,815 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:31,831 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:31,832 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:31,836 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:31,840 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:31,842 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:31,843 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:31,844 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:31,846 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:31,851 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:31,853 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:31,856 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:31,885 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:31,887 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:31,887 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:31,889 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:31,891 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:41,535 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:41,537 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:41,540 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:41,568 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:41,570 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:41,572 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:41,573 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:41,574 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:41,578 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:41,579 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:41,585 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:41,589 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:41,591 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:41,592 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:41,593 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:41,595 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:41,599 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:41,600 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:41,603 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:41,629 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:41,631 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:41,632 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:41,633 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:41,634 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:44,544 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:44,548 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:44,555 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:44,564 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:44,569 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:44,570 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:44,580 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:44,583 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:51,446 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:51,449 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:51,452 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:51,482 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:51,485 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:51,486 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:51,488 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:51,490 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:51,496 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:51,498 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:51,503 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:51,509 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:51,512 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:51,514 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:51,516 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:51,518 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:53,179 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:53,203 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:53,216 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:53,358 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:53,363 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:53,379 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:53,386 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:53,401 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:33:57,308 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:33:57,320 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:33:57,431 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:33:57,472 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:33:57,502 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:33:57,615 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:33:57,619 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:33:57,624 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:01,509 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:01,525 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:01,746 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:01,803 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:01,836 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:01,974 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:01,977 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:01,987 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:02,018 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:02,029 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:02,059 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:02,225 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:02,253 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:02,255 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:02,267 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:02,280 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:07,338 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:07,340 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:07,352 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:07,433 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:07,436 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:07,438 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:07,440 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:07,441 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:11,582 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:11,647 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:11,701 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:11,818 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:11,985 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:12,023 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:12,103 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:12,131 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:12,242 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:12,265 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:12,295 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:12,401 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:12,439 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:12,494 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:12,532 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:12,627 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:17,313 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:17,321 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:17,350 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:17,375 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:17,380 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:17,393 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:17,498 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:17,503 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:21,563 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:21,566 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:21,715 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:21,745 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:21,757 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:21,770 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:21,785 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:21,798 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:21,828 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:21,839 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:21,854 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:21,870 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:21,949 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:21,965 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:21,967 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:21,975 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:27,380 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:27,405 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:27,434 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:27,639 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:27,676 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:27,703 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:27,730 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:27,771 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:32,502 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:32,557 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:32,670 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:32,830 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:32,870 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:32,910 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:32,978 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:33,031 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:33,199 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:33,262 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:33,332 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:33,385 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:33,430 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:33,497 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:33,537 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:33,564 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:38,291 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:38,293 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:38,296 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:38,299 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:38,301 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:38,302 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:38,303 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:38,305 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:42,972 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:42,973 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:42,974 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:42,988 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:42,990 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:42,991 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:42,992 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:42,993 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:43,000 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:43,002 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:43,004 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:43,013 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:43,015 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:43,016 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:43,017 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:43,018 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:48,145 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:48,212 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:48,338 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:48,509 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:48,616 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:48,678 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:48,780 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:48,802 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:52,356 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:52,386 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:52,419 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:52,470 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:52,488 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:52,531 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:52,561 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:52,593 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:52,641 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:52,713 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:52,751 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:54,109 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:54,186 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:54,266 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:54,384 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:54,438 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:34:57,373 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:34:57,402 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:34:57,433 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:34:57,483 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:34:57,529 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:34:57,545 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:34:57,573 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:34:57,641 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:03,863 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:03,925 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:03,946 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:03,962 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:03,977 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:03,991 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:04,006 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:04,021 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:04,062 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:04,083 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:04,100 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:04,120 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:04,157 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:04,172 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:04,187 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:04,202 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:07,456 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:07,467 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:07,482 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:07,508 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:07,509 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:07,519 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:07,520 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:07,522 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:12,310 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:12,322 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:12,336 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:12,374 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:12,375 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:12,389 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:12,402 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:12,416 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:12,447 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:12,456 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:12,471 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:12,487 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:12,498 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:12,512 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:12,538 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:12,552 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:18,290 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:18,299 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:18,314 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:18,328 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:18,340 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:18,353 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:18,367 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:18,381 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:22,366 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:22,368 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:22,372 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:22,375 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:22,377 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:22,378 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:22,380 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:22,381 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:22,385 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:22,386 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:22,388 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:22,391 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:22,392 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:22,395 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:22,399 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:22,400 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:35:28,292 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:35:28,300 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:35:28,302 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:35:28,306 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:35:28,308 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:35:28,309 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:35:28,310 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:35:28,312 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+WARNING:  WatchFiles detected changes in 'api_server.py'. Reloading...
+2026-07-25 17:36:09,313 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:36:09,322 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:36:09,336 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:36:09,374 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:36:09,376 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:36:09,378 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:36:09,388 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:36:09,389 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:36:09,492 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:36:09,494 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:36:09,495 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:36:09,513 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:36:09,514 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:36:09,520 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:36:09,522 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:36:09,523 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:36:09,614 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:36:09,626 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:36:09,629 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:36:09,636 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:36:09,638 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:36:09,639 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:36:09,640 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:36:09,644 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:37:08,833 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:37:08,932 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:37:08,995 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:37:09,278 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:37:09,395 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:37:09,476 [INFO] graph_builder — Received 5 nodes, 0 edges
+INFO:     Shutting down
+2026-07-25 17:37:09,563 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:37:09,704 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:37:09,835 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:37:09,867 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:37:09,936 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+INFO:     Waiting for connections to close. (CTRL+C to force quit)
+2026-07-25 17:37:10,069 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:37:10,152 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:37:10,187 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:37:10,209 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:37:10,223 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+2026-07-25 17:37:10,238 [INFO] graph_builder — MeshGraphBuilder.build() called with api_base=http://localhost:4000, scenario=earthquake
+2026-07-25 17:37:10,239 [INFO] graph_builder — Fetching topology from http://localhost:4000/api/mesh/topology with secret 9364088cb7fb41ea3d5a......
+2026-07-25 17:37:10,242 [DEBUG] urllib3.connectionpool — Starting new HTTP connection (1): localhost:4000
+2026-07-25 17:37:10,263 [DEBUG] urllib3.connectionpool — http://localhost:4000 "GET /api/mesh/topology HTTP/1.1" 200 1444
+2026-07-25 17:37:10,265 [INFO] graph_builder — Response status: 200, body: {"nodes":[{"id":"device-1ed760265e46","label":"Device -5e-46","name":"Hotspot Client 192.168.137.65","device":"smartphone","role":"peer","signal":0,"batteryPercentage":100,"bluetoothStatus":false,"wif
+2026-07-25 17:37:10,266 [INFO] graph_builder — Received 5 nodes, 0 edges
+2026-07-25 17:37:10,268 [INFO] graph_builder — Topology received: 5 nodes, 0 edges
+2026-07-25 17:37:10,269 [INFO] graph_builder — Graph built — 5 nodes, 0 directed edges (scenario=earthquake)
+INFO:     Finished server process [35720]
+ERROR:    Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 196, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 119, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\asyncio\base_events.py", line 2060, in _run_once
+    handle._run()
+    ~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\server.py", line 69, in serve
+    with self.capture_signals():
+         ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\contextlib.py", line 148, in __exit__
+    next(self.gen)
+    ~~~~^^^^^^^^^^
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\server.py", line 330, in capture_signals
+    signal.raise_signal(captured_signal)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 158, in _on_sigint
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 699, in lifespan
+    await receive()
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\lifespan\on.py", line 137, in receive
+    return await self.receive_queue.get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\queues.py", line 186, in get
+    await getter
+asyncio.exceptions.CancelledError
+
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 196, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 119, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\base_events.py", line 712, in run_until_complete
+    self.run_forever()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\asyncio\base_events.py", line 683, in run_forever
+    self._run_once()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\asyncio\base_events.py", line 2060, in _run_once
+    handle._run()
+    ~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\server.py", line 69, in serve
+    with self.capture_signals():
+         ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\contextlib.py", line 148, in __exit__
+    next(self.gen)
+    ~~~~^^^^^^^^^^
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\server.py", line 330, in capture_signals
+    signal.raise_signal(captured_signal)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 158, in _on_sigint
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\middleware\cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\middleware\cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 74, in app
+    await response(scope, receive, send)
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\responses.py", line 263, in __call__
+    async with anyio.create_task_group() as task_group:
+               ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\anyio\_backends\_asyncio.py", line 776, in __aexit__
+    raise exc_val
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\anyio\_backends\_asyncio.py", line 744, in __aexit__
+    await self._on_completed_fut
+asyncio.exceptions.CancelledError
+WARNING:  WatchFiles detected changes in 'api_server.py'. Reloading...
+INFO:     Started server process [35768]
+INFO:     Waiting for application startup.
+2026-07-25 17:51:58,652 [INFO] meshnet.api — MeshNet AI Python router starting up — MeshNet AI Config
+  BLE ranges : flood=80m  war_zone=20m  earthquake=120m
+  WiFi ranges: flood=200m  war_zone=50m  earthquake=400m
+  Nodes      : 100 simulated
+  Max hops   : 7
+  Packet loss: 5%
+  Cloudant DB: mesh_nodes_db
+  Backend API: http://localhost:4000
+INFO:     Application startup complete.
+ERROR:    Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 119, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 196, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\runners.py", line 124, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 699, in lifespan
+    await receive()
+  File "C:\Users\reycel\AppData\Roaming\Python\Python313\site-packages\uvicorn\lifespan\on.py", line 137, in receive
+    return await self.receive_queue.get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python313\Lib\asyncio\queues.py", line 186, in get
+    await getter
+asyncio.exceptions.CancelledError
+
+INFO:     Started server process [40556]
+INFO:     Waiting for application startup.
+2026-07-25 17:52:00,058 [INFO] meshnet.api — MeshNet AI Python router starting up — MeshNet AI Config
+  BLE ranges : flood=80m  war_zone=20m  earthquake=120m
+  WiFi ranges: flood=200m  war_zone=50m  earthquake=400m
+  Nodes      : 100 simulated
+  Max hops   : 7
+  Packet loss: 5%
+  Cloudant DB: mesh_nodes_db
+  Backend API: http://localhost:4000
+INFO:     Application startup complete.

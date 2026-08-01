@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Dr. Maria Santos",
+    "phone": "+63-917-123-4567",
+    "email": "maria.santos@hospital.gov",
+    "organization": "Manila General Hospital",
+    "role": "Emergency Response Coordinator",
+    "location": "Manila, Philippines",
+    "latitude": 14.5995,
+    "longitude": 120.9842,
+    "category": "medical",
+    "availability": "available",
+    "notes": "Specializes in disaster response"
+  },
+  {
+    "name": "Fire Chief Juan Dela Cruz",
+    "phone": "+63-918-234-5678",
+    "email": "j.delacruz@fire.gov",
+    "organization": "Bureau of Fire Protection",
+    "role": "Fire Chief",
+    "location": "Quezon City, Philippines",
+    "latitude": 14.676,
+    "longitude": 121.0437,
+    "category": "fire",
+    "availability": "available",
+    "notes": "24/7 emergency response"
+  }
+]

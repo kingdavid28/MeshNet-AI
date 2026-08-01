@@ -1,0 +1,13 @@
+[
+  {
+    "name": "St. Luke's Medical Center",
+    "type": "hospital",
+    "location": "Quezon City, Philippines",
+    "latitude": 14.6328,
+    "longitude": 121.0365,
+    "beds_total": 500,
+    "beds_available": 150,
+    "contact_phone": "+63-920-456-7890",
+    "emergency_services": 1
+  }
+]

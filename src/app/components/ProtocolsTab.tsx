@@ -6,14 +6,36 @@ import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
 import { MeshNetDiscovery } from "../../components/MeshNetDiscovery";
 import { DataEntryForm } from "./DataEntryForm";
+import { getSQLiteService } from "../../services/sqliteService";
+import { getApiBase } from "../../utils/env";
+import { RefreshCw, Check, X } from "lucide-react";
 
 export function ProtocolsTab() {
   const [activeProtocol, setActiveProtocol] = useState<'ble' | 'webrtc' | 'hotspot' | 'data' | null>(null);
   const [isElectron, setIsElectron] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; synced: number; errors: string[] } | null>(null);
 
   useEffect(() => {
     setIsElectron(!!(window as any).electronAPI);
   }, []);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    
+    try {
+      const sqliteService = getSQLiteService();
+      const apiBase = getApiBase();
+      const result = await sqliteService.syncFromBackend(apiBase);
+      setSyncResult(result);
+      console.log('[ProtocolsTab] Sync result:', result);
+    } catch (error) {
+      setSyncResult({ success: false, synced: 0, errors: [error instanceof Error ? error.message : String(error)] });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -29,6 +51,38 @@ export function ProtocolsTab() {
 
       {/* MeshNet Discovery - Only on mobile devices (desktop/Electron is hotspot host) */}
       {!isElectron && <MeshNetDiscovery />}
+
+      {/* Backend Sync Button */}
+      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-[#7B9CC4] uppercase tracking-widest">Backend Sync</span>
+          {syncResult && (
+            <div className="flex items-center gap-1">
+              {syncResult.success ? (
+                <Check size={14} className="text-[#22C55E]" />
+              ) : (
+                <X size={14} className="text-[#EF4444]" />
+              )}
+              <span className="text-[10px] font-mono text-[#7B9CC4]">
+                {syncResult.synced} synced
+              </span>
+            </div>
+          )}
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="w-full bg-[#5B8DD9] hover:bg-[#4A7BC8] disabled:bg-[#132B5A] disabled:text-[#7B9CC4] text-white text-sm font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+        >
+          <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+          {syncing ? "Syncing..." : "Sync from Backend"}
+        </button>
+        {syncResult && syncResult.errors.length > 0 && (
+          <div className="mt-2 text-[10px] text-[#EF4444]">
+            {syncResult.errors[0]}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-4 gap-2">
         {/* BLE - Only on mobile devices */}

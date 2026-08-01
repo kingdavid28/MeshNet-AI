@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Evacuation Center A",
+    "location": "Pasig, Philippines",
+    "latitude": 14.5764,
+    "longitude": 121.0851,
+    "capacity": 500,
+    "current_occupancy": 200,
+    "facilities": "Food, Water, Medical",
+    "contact_phone": "+63-921-567-8901",
+    "accepts_pets": 1
+  }
+]

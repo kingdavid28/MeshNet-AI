@@ -6,6 +6,7 @@ import {
   type StartDiscoveryOptions,
 } from '../plugins/MeshDiscoveryPlugin';
 import type { DiscoveredPeer } from '../hooks/useMeshDiscovery';
+import { getSQLiteService } from '../../services/sqliteService';
 
 interface DiscoveryState {
   status: DiscoveryStatus | null;
@@ -219,14 +220,32 @@ class MeshDiscoveryService {
     const existing = currentPeers.find((p) => p.nodeId === newPeer.nodeId);
     
     if (existing) {
+      // Update existing peer in memory and SQLite
+      const updatedPeer = { ...existing, lastSeen: now, ...newPeer };
+      this.savePeerToSQLite(updatedPeer);
       return currentPeers.map((p) =>
         p.nodeId === newPeer.nodeId
-          ? { ...p, lastSeen: now, ...newPeer }
+          ? updatedPeer
           : p
       );
     }
     
-    return [...currentPeers, { ...newPeer, lastSeen: now }];
+    // Add new peer to memory and SQLite
+    const newPeerWithTimestamp = { ...newPeer, lastSeen: now, firstSeen: now };
+    this.savePeerToSQLite(newPeerWithTimestamp);
+    return [...currentPeers, newPeerWithTimestamp];
+  }
+
+  private async savePeerToSQLite(peer: DiscoveredPeer) {
+    if (!this.state.isNative) return; // Only save to SQLite on native platforms
+    
+    try {
+      const sqliteService = getSQLiteService();
+      await sqliteService.addDiscoveredPeer(peer);
+      console.log('[MeshDiscoveryService] Peer saved to SQLite:', peer.nodeId);
+    } catch (error) {
+      console.error('[MeshDiscoveryService] Failed to save peer to SQLite:', error);
+    }
   }
 
   getState(): DiscoveryState {

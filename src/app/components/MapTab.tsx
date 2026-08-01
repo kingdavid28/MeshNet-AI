@@ -5,6 +5,9 @@ import NodeMapCanvas from "./NodeMapCanvas";
 import { MeshNode } from "../../utils/routing";
 import type { DiscoveredPeer } from "../hooks/useMeshDiscovery";
 import type { DiscoveryStatus } from "../plugins/MeshDiscoveryPlugin";
+import { getSQLiteService } from "../../services/sqliteService";
+import { useEffect, useState } from "react";
+import type { EmergencyContact, MedicalFacility, Shelter } from "../../services/sqliteService";
 
 interface MapTabProps {
   discoveryStatus: DiscoveryStatus | null;
@@ -14,6 +17,41 @@ interface MapTabProps {
 
 export function MapTab({ discoveryStatus, discoveredPeers, isNative }: MapTabProps) {
   const deviceLocation = useDeviceLocation();
+  const [sqliteResources, setSqliteResources] = useState<{
+    emergencyContacts: EmergencyContact[];
+    medicalFacilities: (MedicalFacility & { distance: number })[];
+    shelters: (Shelter & { distance: number })[];
+  }>({
+    emergencyContacts: [],
+    medicalFacilities: [],
+    shelters: []
+  });
+
+  // ── Load SQLite resources on native platforms ──
+  useEffect(() => {
+    if (!isNative) return;
+
+    const loadResources = async () => {
+      try {
+        const sqliteService = getSQLiteService();
+        const [contacts, facilities, shelters] = await Promise.all([
+          sqliteService.searchEmergencyContacts(),
+          sqliteService.getMedicalFacilities(deviceLocation.lat || 0, deviceLocation.lng || 0, 50),
+          sqliteService.getShelters(deviceLocation.lat || 0, deviceLocation.lng || 0, 50)
+        ]);
+        setSqliteResources({ emergencyContacts: contacts, medicalFacilities: facilities, shelters });
+        console.log('[MapTab] Loaded SQLite resources:', { 
+          contactsCount: contacts.length, 
+          facilitiesCount: facilities.length, 
+          sheltersCount: shelters.length 
+        });
+      } catch (error) {
+        console.error('[MapTab] Failed to load SQLite resources:', error);
+      }
+    };
+
+    loadResources();
+  }, [isNative, deviceLocation.lat, deviceLocation.lng]);
 
   // ── Mesh routing and SOS messaging ──
   const meshRouting = useMeshRouting();

@@ -338,7 +338,7 @@ class _AndroidBLEBackend:
         # Scanning runs in a Python thread so we can restart it periodically.
         self._scan_thread = threading.Thread(
             target=self._scan_loop,
-            daemon=True,
+            daemon=False,  # Changed to non-daemon for proper shutdown
             name="ble-scan",
         )
         self._scan_thread.start()
@@ -346,7 +346,7 @@ class _AndroidBLEBackend:
         # Reconnect scheduler thread handles dropped peers with backoff.
         self._reconnect_thread = threading.Thread(
             target=self._reconnect_loop,
-            daemon=True,
+            daemon=False,  # Changed to non-daemon for proper shutdown
             name="ble-reconnect",
         )
         self._reconnect_thread.start()
@@ -369,6 +369,16 @@ class _AndroidBLEBackend:
                 self._le_scanner.stopScan(self._scan_callback)
         except Exception as exc:
             logger.debug("[BLE-AND] Stop scan error (non-fatal): %s", exc)
+
+        # Wait for background threads to finish before accessing locks
+        if self._scan_thread is not None and self._scan_thread.is_alive():
+            self._scan_thread.join(timeout=5.0)
+        if self._reconnect_thread is not None and self._reconnect_thread.is_alive():
+            self._reconnect_thread.join(timeout=5.0)
+
+        # Small delay to ensure threads have fully cleaned up
+        import time
+        time.sleep(0.1)
 
         # Close all client GATT connections
         with self._peers_lock:

@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 import json
+import logging
 from typing import Optional, Dict, List, Callable
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
@@ -21,7 +22,7 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.lang import Builder
-from kivy.graphics import Color, Rectangle, Line, Ellipse
+from kivy.graphics import Color, Rectangle, Line, Ellipse, RoundedRectangle
 from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.clock import Clock
@@ -38,17 +39,37 @@ from ble_mesh import BLEMeshController
 from api_client import MeshNetAPI
 
 
-# Color scheme matching React app
+# Color scheme matching React app theme.css
 COLORS = {
-    'bg_dark': (0.043, 0.114, 0.227, 1),      # #0B1D3A
-    'bg_darker': (0.024, 0.055, 0.11, 1),     # #060E1C
-    'accent': (0.976, 0.451, 0.086, 1),       # #F97316
-    'success': (0.133, 0.773, 0.369, 1),      # #22C55E
-    'info': (0.231, 0.510, 0.965, 1),         # #3B82F6
-    'purple': (0.545, 0.361, 0.965, 1),        # #8B5CF6
-    'text_light': (0.910, 0.933, 0.969, 1),    # #E8EEF7
-    'text_muted': (0.482, 0.612, 0.769, 1),    # #7B9CC4
-    'border': (0.357, 0.553, 0.851, 0.15),     # rgba(91,141,217,0.15)
+    'background': (0.043, 0.114, 0.227, 1),      # #0B1D3A --background
+    'foreground': (0.910, 0.933, 0.969, 1),       # #E8EEF7 --foreground
+    'card': (0.075, 0.169, 0.353, 1),            # #132B5A --card
+    'card_foreground': (0.910, 0.933, 0.969, 1), # #E8EEF7 --card-foreground
+    'popover': (0.059, 0.137, 0.278, 1),         # #0F2347 --popover
+    'popover_foreground': (0.910, 0.933, 0.969, 1), # #E8EEF7 --popover-foreground
+    'primary': (0.976, 0.451, 0.086, 1),         # #F97316 --primary
+    'primary_foreground': (1.0, 1.0, 1.0, 1),     # #ffffff --primary-foreground
+    'secondary': (0.102, 0.219, 0.439, 1),        # #1A3870 --secondary
+    'secondary_foreground': (0.910, 0.933, 0.969, 1), # #E8EEF7 --secondary-foreground
+    'muted': (0.102, 0.188, 0.376, 1),           # #1A3060 --muted
+    'muted_foreground': (0.482, 0.612, 0.769, 1), # #7B9CC4 --muted-foreground
+    'accent': (0.133, 0.773, 0.369, 1),          # #22C55E --accent
+    'accent_foreground': (0.043, 0.114, 0.227, 1), # #0B1D3A --accent-foreground
+    'destructive': (0.937, 0.267, 0.267, 1),      # #EF4444 --destructive
+    'destructive_foreground': (1.0, 1.0, 1.0, 1),  # #ffffff --destructive-foreground
+    'border': (0.357, 0.553, 0.851, 0.18),       # rgba(91,141,217,0.18) --border
+    'input': (0.357, 0.553, 0.851, 0.12),         # rgba(91,141,217,0.12) --input
+    'input_background': (0.102, 0.188, 0.376, 1), # #1A3060 --input-background
+    'switch_background': (0.165, 0.29, 0.498, 1), # #2A4A7F --switch-background
+    'ring': (0.976, 0.451, 0.086, 1),             # #F97316 --ring
+    # Legacy colors for backward compatibility
+    'bg_dark': (0.043, 0.114, 0.227, 1),
+    'bg_darker': (0.024, 0.055, 0.11, 1),
+    'text_light': (0.910, 0.933, 0.969, 1),
+    'text_muted': (0.482, 0.612, 0.769, 1),
+    'success': (0.133, 0.773, 0.369, 1),
+    'info': (0.231, 0.510, 0.965, 1),
+    'purple': (0.545, 0.361, 0.965, 1),
 }
 
 
@@ -394,27 +415,34 @@ class MeshNetRootWidget(BoxLayout):
             self.connect_btn.disabled = not self.manual_url_input.text
     
     def _build_status_bar(self):
-        """Top status bar showing node count"""
+        """Top status bar showing node count matching React design"""
         status_bar = BoxLayout(
             size_hint_y=None,
             height=dp(24),
             padding=(dp(16), 0),
             spacing=dp(8)
         )
-        status_bar.canvas.before.add(Color(rgba=COLORS['border']))
-        status_bar.canvas.before.add(Rectangle(pos=status_bar.pos, size=status_bar.size))
+        # React: border-b border-[rgba(91,141,217,0.12)]
+        with status_bar.canvas.before:
+            Color(rgba=COLORS['border'])
+            status_bar.border = Line(
+                rectangle=(status_bar.x, status_bar.y, status_bar.width, 1),
+                width=1
+            )
+        status_bar.bind(pos=lambda instance, pos: None)
+        status_bar.bind(size=lambda instance, size: None)
         
         self.node_count_label = StatusLabel(
             text='Nodes: 0',
             font_size=dp(10),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_x=0.5
         )
         
         self.mesh_status_label = StatusLabel(
             text='Mesh: Offline',
             font_size=dp(10),
-            color=COLORS['accent'],
+            color=COLORS['primary'],
             size_hint_x=0.5,
             halign='right'
         )
@@ -424,7 +452,7 @@ class MeshNetRootWidget(BoxLayout):
         self.add_widget(status_bar)
     
     def _build_header(self):
-        """Header with logo and app name"""
+        """Header matching React app design"""
         header = BoxLayout(
             size_hint_y=None,
             height=dp(60),
@@ -434,33 +462,40 @@ class MeshNetRootWidget(BoxLayout):
         header.canvas.before.add(Color(rgba=COLORS['border']))
         header.canvas.before.add(Rectangle(pos=header.pos, size=header.size))
         
-        # Logo placeholder
+        # Logo with rounded corners (React: w-8 h-8 rounded-lg bg-[#F97316])
         logo_box = BoxLayout(
             size_hint_x=None,
             width=dp(32),
             size_hint_y=None,
             height=dp(32)
         )
-        logo_box.canvas.before.add(Color(rgba=COLORS['accent']))
-        logo_box.canvas.before.add(
-            Rectangle(pos=logo_box.pos, size=logo_box.size)
-        )
+        with logo_box.canvas.before:
+            Color(rgba=COLORS['primary'])
+            from kivy.graphics import RoundedRectangle
+            logo_box.rect = RoundedRectangle(
+                pos=logo_box.pos,
+                size=logo_box.size,
+                radius=[dp(8)]
+            )
+        logo_box.bind(pos=lambda instance, pos: None)
+        logo_box.bind(size=lambda instance, size: None)
         
-        # App name
+        # App name (React: text-base font-black uppercase tracking-wider)
         title_box = BoxLayout(orientation='vertical', spacing=dp(2))
         title_label = Label(
             text='MESHNET AI',
             font_size=dp(16),
             bold=True,
-            color=COLORS['text_light'],
+            color=COLORS['foreground'],
             size_hint_y=None,
             height=dp(20),
-            halign='left'
+            halign='left',
+            markup=False
         )
         subtitle_label = Label(
             text='EMERGENCY ROUTING v2.4',
             font_size=dp(9),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(12),
             halign='left'
@@ -468,7 +503,7 @@ class MeshNetRootWidget(BoxLayout):
         title_box.add_widget(title_label)
         title_box.add_widget(subtitle_label)
         
-        # Mesh status indicator
+        # Mesh status indicator (React: bg-[#22C55E]/10 border border-[#22C55E]/20)
         status_box = BoxLayout(
             size_hint_x=None,
             width=dp(80),
@@ -476,14 +511,21 @@ class MeshNetRootWidget(BoxLayout):
             height=dp(28),
             padding=(dp(10), 0)
         )
-        status_box.canvas.before.add(Color(rgba=COLORS['success'], alpha=0.1))
-        status_box.canvas.before.add(
-            Rectangle(pos=status_box.pos, size=status_box.size)
-        )
+        with status_box.canvas.before:
+            Color(rgba=COLORS['accent'], alpha=0.1)
+            status_box.bg = Rectangle(pos=status_box.pos, size=status_box.size)
+            Color(rgba=COLORS['accent'], alpha=0.2)
+            status_box.border = Line(
+                rectangle=status_box.pos + status_box.size,
+                width=1
+            )
+        status_box.bind(pos=lambda instance, pos: None)
+        status_box.bind(size=lambda instance, size: None)
+        
         self.header_mesh_label = Label(
             text='Mesh (0)',
             font_size=dp(10),
-            color=COLORS['success'],
+            color=COLORS['accent'],
             bold=True
         )
         status_box.add_widget(self.header_mesh_label)
@@ -520,7 +562,7 @@ class MeshNetRootWidget(BoxLayout):
         self.add_widget(self.content_area)
     
     def _add_emergency_quick_start(self):
-        """Emergency quick start section"""
+        """Emergency quick start section matching React design"""
         emergency_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -528,16 +570,23 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        emergency_box.canvas.before.add(Color(rgba=COLORS['accent'], alpha=0.1))
-        emergency_box.canvas.before.add(
-            Rectangle(pos=emergency_box.pos, size=emergency_box.size)
-        )
+        # React: bg-[#F97316]/10 border border-[#F97316]/30
+        with emergency_box.canvas.before:
+            Color(rgba=COLORS['primary'], alpha=0.1)
+            emergency_box.bg = Rectangle(pos=emergency_box.pos, size=emergency_box.size)
+            Color(rgba=COLORS['primary'], alpha=0.3)
+            emergency_box.border = Line(
+                rectangle=emergency_box.pos + emergency_box.size,
+                width=1
+            )
+        emergency_box.bind(pos=lambda instance, pos: None)
+        emergency_box.bind(size=lambda instance, size: None)
         
         title = Label(
             text='EMERGENCY MODE',
             font_size=dp(12),
             bold=True,
-            color=COLORS['accent'],
+            color=COLORS['primary'],
             size_hint_y=None,
             height=dp(20)
         )
@@ -545,15 +594,15 @@ class MeshNetRootWidget(BoxLayout):
         desc = Label(
             text='Activate emergency routing protocol',
             font_size=dp(11),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(20)
         )
         
         self.emergency_btn = Button(
             text='ACTIVATE',
-            background_color=COLORS['accent'],
-            color=(1, 1, 1, 1),
+            background_color=COLORS['primary'],
+            color=COLORS['primary_foreground'],
             size_hint_y=None,
             height=dp(36),
             font_size=dp(12),
@@ -571,14 +620,14 @@ class MeshNetRootWidget(BoxLayout):
         if self.emergency_manager.is_active():
             self.emergency_manager.deactivate()
             self.emergency_btn.text = 'ACTIVATE'
-            self.emergency_btn.background_color = COLORS['accent']
+            self.emergency_btn.background_color = COLORS['primary']
         else:
             self.emergency_manager.activate()
             self.emergency_btn.text = 'DEACTIVATE'
-            self.emergency_btn.background_color = COLORS['success']
+            self.emergency_btn.background_color = COLORS['accent']
     
     def _add_network_discovery(self):
-        """Network discovery status section"""
+        """Network discovery status section matching React design"""
         discovery_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -586,10 +635,17 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        discovery_box.canvas.before.add(Color(rgba=COLORS['info'], alpha=0.1))
-        discovery_box.canvas.before.add(
-            Rectangle(pos=discovery_box.pos, size=discovery_box.size)
-        )
+        # React: bg-[#3B82F6]/10 border border-[#3B82F6]/30
+        with discovery_box.canvas.before:
+            Color(rgba=COLORS['info'], alpha=0.1)
+            discovery_box.bg = Rectangle(pos=discovery_box.pos, size=discovery_box.size)
+            Color(rgba=COLORS['info'], alpha=0.3)
+            discovery_box.border = Line(
+                rectangle=discovery_box.pos + discovery_box.size,
+                width=1
+            )
+        discovery_box.bind(pos=lambda instance, pos: None)
+        discovery_box.bind(size=lambda instance, size: None)
         
         title = Label(
             text='NETWORK DISCOVERY',
@@ -621,15 +677,16 @@ class MeshNetRootWidget(BoxLayout):
             font_size=dp(10),
             multiline=False,
             size_hint_x=0.7,
-            background_color=COLORS['bg_darker'],
-            foreground_color=COLORS['text_light'],
-            cursor_color=COLORS['accent']
+            background_color=COLORS['input_background'],
+            foreground_color=COLORS['foreground'],
+            cursor_color=COLORS['info'],
+            hint_text_color=COLORS['muted_foreground']
         )
         
         self.connect_btn = Button(
             text='CONNECT',
-            background_color=COLORS['success'],
-            color=(1, 1, 1, 1),
+            background_color=COLORS['accent'],
+            color=COLORS['accent_foreground'],
             size_hint_x=0.3,
             font_size=dp(10),
             disabled=True
@@ -666,7 +723,7 @@ class MeshNetRootWidget(BoxLayout):
             self.network_discovery.set_manual_url(url)
     
     def _add_mesh_network_status(self):
-        """Mesh network status section"""
+        """Mesh network status section matching React design"""
         mesh_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -674,10 +731,17 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        mesh_box.canvas.before.add(Color(rgba=COLORS['purple'], alpha=0.1))
-        mesh_box.canvas.before.add(
-            Rectangle(pos=mesh_box.pos, size=mesh_box.size)
-        )
+        # React: bg-[#8B5CF6]/10 border border-[#8B5CF6]/30
+        with mesh_box.canvas.before:
+            Color(rgba=COLORS['purple'], alpha=0.1)
+            mesh_box.bg = Rectangle(pos=mesh_box.pos, size=mesh_box.size)
+            Color(rgba=COLORS['purple'], alpha=0.3)
+            mesh_box.border = Line(
+                rectangle=mesh_box.pos + mesh_box.size,
+                width=1
+            )
+        mesh_box.bind(pos=lambda instance, pos: None)
+        mesh_box.bind(size=lambda instance, size: None)
         
         title = Label(
             text='MESH NETWORK',
@@ -691,7 +755,7 @@ class MeshNetRootWidget(BoxLayout):
         self.mesh_status_detail = Label(
             text='0 nodes connected',
             font_size=dp(11),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(20)
         )
@@ -699,7 +763,7 @@ class MeshNetRootWidget(BoxLayout):
         ble_status = Label(
             text='BLE Discovery: Active',
             font_size=dp(10),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(16)
         )
@@ -728,7 +792,7 @@ class MeshNetRootWidget(BoxLayout):
             self._add_protocols_tab_content()
     
     def _add_home_tab_content(self):
-        """Home tab content"""
+        """Home tab content matching React design"""
         home_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -736,17 +800,24 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        home_box.canvas.before.add(Color(rgba=COLORS['purple'], alpha=0.1))
-        home_box.canvas.before.add(
-            Rectangle(pos=home_box.pos, size=home_box.size)
-        )
+        # React: bg-[#8B5CF6]/10 border border-[#8B5CF6]/30
+        with home_box.canvas.before:
+            Color(rgba=COLORS['purple'], alpha=0.1)
+            home_box.bg = Rectangle(pos=home_box.pos, size=home_box.size)
+            Color(rgba=COLORS['purple'], alpha=0.3)
+            home_box.border = Line(
+                rectangle=home_box.pos + home_box.size,
+                width=1
+            )
+        home_box.bind(pos=lambda instance, pos: None)
+        home_box.bind(size=lambda instance, size: None)
         home_box.tab_content = True
         
         title = Label(
             text='DASHBOARD',
             font_size=dp(14),
             bold=True,
-            color=COLORS['text_light'],
+            color=COLORS['foreground'],
             size_hint_y=None,
             height=dp(30)
         )
@@ -754,7 +825,7 @@ class MeshNetRootWidget(BoxLayout):
         desc = Label(
             text='Network overview and status',
             font_size=dp(11),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(20)
         )
@@ -769,14 +840,14 @@ class MeshNetRootWidget(BoxLayout):
         stat1 = Label(
             text=f'Nodes: {self.mesh_network.get_node_count()}',
             font_size=dp(10),
-            color=COLORS['text_light'],
+            color=COLORS['foreground'],
             size_hint_x=0.5
         )
         
         stat2 = Label(
             text=f'Emergency: {"ON" if self.emergency_manager.is_active() else "OFF"}',
             font_size=dp(10),
-            color=COLORS['accent'] if self.emergency_manager.is_active() else COLORS['text_light'],
+            color=COLORS['primary'] if self.emergency_manager.is_active() else COLORS['foreground'],
             size_hint_x=0.5
         )
         
@@ -789,7 +860,7 @@ class MeshNetRootWidget(BoxLayout):
         self.content_layout.add_widget(home_box)
     
     def _add_alert_tab_content(self):
-        """Alert tab content"""
+        """Alert tab content matching React design"""
         alert_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -797,17 +868,24 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        alert_box.canvas.before.add(Color(rgba=COLORS['accent'], alpha=0.1))
-        alert_box.canvas.before.add(
-            Rectangle(pos=alert_box.pos, size=alert_box.size)
-        )
+        # React: bg-[#F97316]/10 border border-[#F97316]/30
+        with alert_box.canvas.before:
+            Color(rgba=COLORS['primary'], alpha=0.1)
+            alert_box.bg = Rectangle(pos=alert_box.pos, size=alert_box.size)
+            Color(rgba=COLORS['primary'], alpha=0.3)
+            alert_box.border = Line(
+                rectangle=alert_box.pos + alert_box.size,
+                width=1
+            )
+        alert_box.bind(pos=lambda instance, pos: None)
+        alert_box.bind(size=lambda instance, size: None)
         alert_box.tab_content = True
         
         title = Label(
             text='ALERTS',
             font_size=dp(14),
             bold=True,
-            color=COLORS['accent'],
+            color=COLORS['primary'],
             size_hint_y=None,
             height=dp(30)
         )
@@ -815,7 +893,7 @@ class MeshNetRootWidget(BoxLayout):
         desc = Label(
             text='Emergency alerts and notifications',
             font_size=dp(11),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(20)
         )
@@ -825,7 +903,7 @@ class MeshNetRootWidget(BoxLayout):
         self.content_layout.add_widget(alert_box)
     
     def _add_map_tab_content(self):
-        """Map tab content"""
+        """Map tab content matching React design"""
         map_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -833,10 +911,17 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        map_box.canvas.before.add(Color(rgba=COLORS['info'], alpha=0.1))
-        map_box.canvas.before.add(
-            Rectangle(pos=map_box.pos, size=map_box.size)
-        )
+        # React: bg-[#3B82F6]/10 border border-[#3B82F6]/30
+        with map_box.canvas.before:
+            Color(rgba=COLORS['info'], alpha=0.1)
+            map_box.bg = Rectangle(pos=map_box.pos, size=map_box.size)
+            Color(rgba=COLORS['info'], alpha=0.3)
+            map_box.border = Line(
+                rectangle=map_box.pos + map_box.size,
+                width=1
+            )
+        map_box.bind(pos=lambda instance, pos: None)
+        map_box.bind(size=lambda instance, size: None)
         map_box.tab_content = True
         
         title = Label(
@@ -851,7 +936,7 @@ class MeshNetRootWidget(BoxLayout):
         desc = Label(
             text='Node topology visualization',
             font_size=dp(11),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(20)
         )
@@ -868,7 +953,7 @@ class MeshNetRootWidget(BoxLayout):
         map_label = Label(
             text='Map View\n(Topology Visualization)',
             font_size=dp(12),
-            color=COLORS['text_muted']
+            color=COLORS['muted_foreground']
         )
         
         map_placeholder.add_widget(map_label)
@@ -879,7 +964,7 @@ class MeshNetRootWidget(BoxLayout):
         self.content_layout.add_widget(map_box)
     
     def _add_comms_tab_content(self):
-        """Communications tab content"""
+        """Communications tab content matching React design"""
         comms_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -887,17 +972,24 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        comms_box.canvas.before.add(Color(rgba=COLORS['success'], alpha=0.1))
-        comms_box.canvas.before.add(
-            Rectangle(pos=comms_box.pos, size=comms_box.size)
-        )
+        # React: bg-[#22C55E]/10 border border-[#22C55E]/30
+        with comms_box.canvas.before:
+            Color(rgba=COLORS['accent'], alpha=0.1)
+            comms_box.bg = Rectangle(pos=comms_box.pos, size=comms_box.size)
+            Color(rgba=COLORS['accent'], alpha=0.3)
+            comms_box.border = Line(
+                rectangle=comms_box.pos + comms_box.size,
+                width=1
+            )
+        comms_box.bind(pos=lambda instance, pos: None)
+        comms_box.bind(size=lambda instance, size: None)
         comms_box.tab_content = True
         
         title = Label(
             text='COMMUNICATIONS',
             font_size=dp(14),
             bold=True,
-            color=COLORS['success'],
+            color=COLORS['accent'],
             size_hint_y=None,
             height=dp(30)
         )
@@ -905,7 +997,7 @@ class MeshNetRootWidget(BoxLayout):
         desc = Label(
             text='Mesh messaging and data exchange',
             font_size=dp(11),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(20)
         )
@@ -915,7 +1007,7 @@ class MeshNetRootWidget(BoxLayout):
         self.content_layout.add_widget(comms_box)
     
     def _add_protocols_tab_content(self):
-        """Protocols tab content"""
+        """Protocols tab content matching React design"""
         protocols_box = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
@@ -923,10 +1015,17 @@ class MeshNetRootWidget(BoxLayout):
             padding=dp(12),
             spacing=dp(8)
         )
-        protocols_box.canvas.before.add(Color(rgba=COLORS['purple'], alpha=0.1))
-        protocols_box.canvas.before.add(
-            Rectangle(pos=protocols_box.pos, size=protocols_box.size)
-        )
+        # React: bg-[#8B5CF6]/10 border border-[#8B5CF6]/30
+        with protocols_box.canvas.before:
+            Color(rgba=COLORS['purple'], alpha=0.1)
+            protocols_box.bg = Rectangle(pos=protocols_box.pos, size=protocols_box.size)
+            Color(rgba=COLORS['purple'], alpha=0.3)
+            protocols_box.border = Line(
+                rectangle=protocols_box.pos + protocols_box.size,
+                width=1
+            )
+        protocols_box.bind(pos=lambda instance, pos: None)
+        protocols_box.bind(size=lambda instance, size: None)
         protocols_box.tab_content = True
         
         title = Label(
@@ -941,7 +1040,7 @@ class MeshNetRootWidget(BoxLayout):
         desc = Label(
             text='Routing protocols and configuration',
             font_size=dp(11),
-            color=COLORS['text_muted'],
+            color=COLORS['muted_foreground'],
             size_hint_y=None,
             height=dp(20)
         )
@@ -951,19 +1050,26 @@ class MeshNetRootWidget(BoxLayout):
         self.content_layout.add_widget(protocols_box)
     
     def _build_tab_navigation(self):
-        """Bottom tab navigation"""
+        """Bottom tab navigation matching React design"""
         tabs = ['home', 'alert', 'map', 'comms', 'protocols']
         tab_labels = ['HOME', 'ALERT', 'MAP', 'COMMS', 'PROTOCOLS']
         
+        # React: bg-[#0A1526] border-t border-[rgba(91,141,217,0.15)]
         nav_bar = BoxLayout(
             size_hint_y=None,
             height=dp(60),
             spacing=0
         )
-        nav_bar.canvas.before.add(Color(rgba=COLORS['border']))
-        nav_bar.canvas.before.add(Rectangle(pos=nav_bar.pos, size=nav_bar.size))
-        nav_bar.canvas.before.add(Color(rgba=COLORS['bg_darker']))
-        nav_bar.canvas.before.add(Rectangle(pos=nav_bar.pos, size=nav_bar.size))
+        with nav_bar.canvas.before:
+            Color(rgba=COLORS['bg_darker'])
+            nav_bar.bg = Rectangle(pos=nav_bar.pos, size=nav_bar.size)
+            Color(rgba=COLORS['border'])
+            nav_bar.border_top = Line(
+                rectangle=(nav_bar.x, nav_bar.top - 1, nav_bar.width, 1),
+                width=1
+            )
+        nav_bar.bind(pos=lambda instance, pos: None)
+        nav_bar.bind(size=lambda instance, size: None)
         
         for i, (tab, label) in enumerate(zip(tabs, tab_labels)):
             tab_btn = TabButton(
@@ -972,7 +1078,7 @@ class MeshNetRootWidget(BoxLayout):
                 font_size=dp(10),
                 bold=(tab == self.current_tab),
                 background_color=(0, 0, 0, 0),
-                color=COLORS['accent'] if tab == self.current_tab else COLORS['text_muted']
+                color=COLORS['primary'] if tab == self.current_tab else COLORS['muted_foreground']
             )
             tab_btn.bind(on_press=lambda x, t=tab: self._switch_tab(t))
             nav_bar.add_widget(tab_btn)
@@ -1049,6 +1155,20 @@ class MeshNetApp(App):
 
 
 if __name__ == "__main__":
-    # Setup logging before app starts
-    setup_logging(log_level=logging.INFO)
-    MeshNetApp().run()
+    try:
+        # Setup logging before app starts
+        setup_logging(log_level=logging.INFO)
+        logger = get_logger("main")
+        logger.info("Starting MeshNet app...")
+        MeshNetApp().run()
+    except Exception as e:
+        import traceback
+        print(f"CRITICAL ERROR: {e}")
+        print(traceback.format_exc())
+        # Try to write to file for debugging
+        try:
+            with open('/sdcard/meshnet_error.txt', 'w') as f:
+                f.write(f"CRITICAL ERROR: {e}\n")
+                f.write(traceback.format_exc())
+        except:
+            pass

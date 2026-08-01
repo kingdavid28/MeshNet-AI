@@ -27,6 +27,15 @@ def setup_logging(
         max_bytes: Maximum log file size before rotation
         backup_count: Number of backup log files to keep
     """
+    # On Android, skip custom logging setup to avoid Kivy logger recursion
+    # Kivy handles its own logging on Android
+    try:
+        from kivy.utils import platform
+        if platform == 'android':
+            return
+    except ImportError:
+        pass
+    
     # Create logs directory if needed
     if log_file:
         log_dir = os.path.dirname(log_file)
@@ -69,9 +78,6 @@ def setup_logging(
     # Set specific log levels for noisy libraries
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
-    logging.getLogger('kivy').setLevel(logging.WARNING)
-    
-    logging.info("Logging configured")
 
 
 class AppLogger:

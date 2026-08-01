@@ -26,7 +26,7 @@ version = 1.0.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,requests,plyer,pyjnius
+requirements = python3,kivy,requests,plyer
 
 # Garden packages loaded at build time by the kivy-garden tool
 # garden_requirements = mapview
@@ -81,7 +81,7 @@ android.enable_androidx = True
 android.wakelock = True
 
 # (list) The Android archs to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
-android.archs = arm64-v8a
+android.archs = armeabi-v7a
 
 # (bool) enables Android auto backup feature (Android API >=23)
 android.allow_backup = True
@@ -96,7 +96,7 @@ android.debug_artifact = apk
 p4a.bootstrap = sdl2
 
 # (str) python-for-android branch to use, defaults to master
-# p4a.branch = master
+p4a.branch = master
 
 [buildozer]
 

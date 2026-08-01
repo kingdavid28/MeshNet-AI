@@ -20,15 +20,10 @@
  *   });
  */
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { meshDiscoveryService } from "../services/meshDiscoveryService";
 import type { DeviceLocation } from "./useDeviceLocation";
 import type { DiscoveryStatus } from "../plugins/MeshDiscoveryPlugin";
-
-// Module-level initialization - runs once when module loads
-let moduleInitialized = false;
-let moduleUnsubscribe: (() => void) | null = null;
-let forceUpdateRef: { current: (() => void) | null } = { current: null };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -88,77 +83,58 @@ export function useMeshDiscovery({
   deviceLocation,
   enabled = true,
 }: UseMeshDiscoveryOptions): UseMeshDiscoveryResult {
+  // Track if this is the first mount to initialize the service
+  const isFirstMount = useRef(true);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  console.log('[useMeshDiscovery] Hook function called', JSON.stringify({ nodeId, label, enabled }));
-  console.log('[useMeshDiscovery] About to call useState');
+  // Local state mirrors service state - service is single source of truth
+  const [state, setState] = useState(() => meshDiscoveryService.getState());
 
-  // Force update trigger
-  const [, setTick] = useState(0);
-  const forceUpdate = () => setTick(t => t + 1);
+  useEffect(() => {
+    // Initialize service on first mount
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
 
-  // Read state directly from service
-  const serviceState = meshDiscoveryService.getState();
-  const [status, setStatus] = useState<DiscoveryStatus | null>(serviceState.status);
-  const [peers, setPeers] = useState<DiscoveredPeer[]>(serviceState.peers);
-  const [error, setError] = useState<string | null>(serviceState.error);
-  const [isNative, setIsNative] = useState(serviceState.isNative);
-
-  console.log('[useMeshDiscovery] useState called');
-
-  // Module-level initialization - runs once when module loads
-  if (!moduleInitialized) {
-    console.log('[useMeshDiscovery] Module-level initialization');
-    moduleInitialized = true;
-    
-    moduleUnsubscribe = meshDiscoveryService.subscribe((state) => {
-      console.log('[useMeshDiscovery] State update (module-level)', state);
-      // Trigger force update on current component
-      if (forceUpdateRef.current) {
-        forceUpdateRef.current();
+      if (enabled) {
+        meshDiscoveryService.start({
+          nodeId,
+          label,
+          battery,
+          signal,
+          apiBase,
+          heartbeatIntervalMs,
+          deviceLocation: deviceLocation?.lat && deviceLocation?.lng
+            ? { lat: deviceLocation.lat, lng: deviceLocation.lng }
+            : undefined,
+        }).catch((error) => {
+          console.error('[useMeshDiscovery] Failed to start discovery:', error);
+        });
       }
+    }
+
+    // Subscribe to service state changes
+    unsubscribeRef.current = meshDiscoveryService.subscribe((newState) => {
+      setState(newState);
     });
 
-    if (enabled) {
-      console.log('[useMeshDiscovery] Starting discovery service (module-level)');
-      meshDiscoveryService.start({
-        nodeId,
-        label,
-        battery,
-        signal,
-        apiBase,
-        heartbeatIntervalMs,
-        deviceLocation: deviceLocation?.lat && deviceLocation?.lng 
-          ? { lat: deviceLocation.lat, lng: deviceLocation.lng } 
-          : undefined,
-      }).catch(e => {
-        console.error('[useMeshDiscovery] Start failed:', e);
-      });
-    } else {
-      console.log('[useMeshDiscovery] Discovery disabled (module-level)');
-    }
-  }
-
-  // Update force update ref for this component
-  useEffect(() => {
-    forceUpdateRef.current = forceUpdate;
+    // Cleanup on unmount
     return () => {
-      forceUpdateRef.current = null;
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
     };
-  }, [forceUpdate]);
-
-  // Sync local state with service state on force update
-  useEffect(() => {
-    const newState = meshDiscoveryService.getState();
-    setStatus(newState.status);
-    setPeers(newState.peers);
-    setError(newState.error);
-    setIsNative(newState.isNative);
-  }, []); // Empty deps - runs on every render due to force update
+  }, [nodeId, label, battery, signal, apiBase, heartbeatIntervalMs, deviceLocation, enabled]);
 
   const reRegister = async () => {
     await meshDiscoveryService.reRegister();
   };
 
-  console.log('[useMeshDiscovery] Hook returning result', { status, peers, error, isNative });
-  return { status, peers, error, isNative, reRegister };
+  return {
+    status: state.status,
+    peers: state.peers,
+    error: state.error,
+    isNative: state.isNative,
+    reRegister,
+  };
 }
