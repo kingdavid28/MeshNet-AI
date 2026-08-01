@@ -77,7 +77,7 @@ class SQLiteService {
     }
 
     try {
-      // Create database connection with WAL mode for better concurrency
+      // Create database connection
       this.db = await this.sqlite.createConnection(
         'meshnet-local',
         false,
@@ -99,8 +99,8 @@ class SQLiteService {
       console.log('[SQLiteService] Database initialized successfully');
     } catch (error) {
       console.error('[SQLiteService] Failed to initialize database:', error);
-      // Don't throw - allow app to continue without SQLite
-      this.initialized = true;
+      // SQLite is required for standalone app - throw error to prevent app from running without it
+      throw new Error(`SQLite initialization failed: ${error instanceof Error ? error.message : String(error)}. SQLite is required for the app to function in standalone mode.`);
     }
   }
 

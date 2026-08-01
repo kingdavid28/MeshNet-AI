@@ -45,7 +45,8 @@ cd android
 
 **Important Notes:**
 - **Android 11+ Hotspot Limitation**: WiFi hotspot creation requires system app privileges on Android 11+. On modern devices, users must manually create the hotspot in Android Settings and the app will connect to it.
-- **Backend Required**: The Android app needs a running Node.js backend (port 4000) on the same network. Configure the backend IP in the app settings or via `VITE_API_BASE_URL`.
+- **Standalone Mode**: The Android app includes a bundled SQLite database for offline operation. SQLite is required for the app to function in standalone mode. If SQLite initialization fails, the app will display an error message and will not proceed.
+- **Backend Required**: The Android app can work in standalone mode with SQLite, but for full mesh network functionality, it needs a running Node.js backend (port 4000) on the same network. Configure the backend IP in the app settings or via `VITE_API_BASE_URL`.
 - **Permissions**: The app requests Bluetooth, Location, and WiFi permissions on first launch.
 
 The Android app includes:

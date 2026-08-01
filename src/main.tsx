@@ -31,9 +31,26 @@ sqliteService.initialize().then(() => {
   localStorage.setItem('meshnet_backend_mode', 'offline');
 }).catch((error) => {
   console.error('[Main] Failed to initialize SQLite:', error);
-  console.log('[Main] App will continue without SQLite persistence');
+  // SQLite is required - show error to user and prevent app from running
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    rootElement.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center; font-family: system-ui, sans-serif;">
+        <h1 style="color: #dc2626; margin-bottom: 16px;">Database Initialization Failed</h1>
+        <p style="color: #374151; margin-bottom: 24px; max-width: 500px;">
+          The app requires SQLite to function in standalone mode. Please ensure your device has sufficient storage and try again.
+        </p>
+        <p style="color: #6b7280; font-size: 14px; font-family: monospace;">Error: ${error instanceof Error ? error.message : String(error)}</p>
+        <button onclick="window.location.reload()" style="margin-top: 24px; padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+          Retry
+        </button>
+      </div>
+    `;
+  }
+  throw error; // Prevent app from mounting
 });
 
+// Only mount React app after SQLite is successfully initialized
 console.log('[Main] Mounting React app...');
 const rootElement = document.getElementById("root");
 console.log('[Main] Root element found:', rootElement);
