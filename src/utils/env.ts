@@ -6,7 +6,7 @@ export function getApiBase(): string {
   const env = import.meta.env.VITE_API_BASE_URL as string | undefined;
   const hostname = typeof window !== "undefined" ? window.location.hostname : "";
 
-  // On native mobile, use localhost backend for P2P coordination
+  // On native mobile, use stored backend URL or default to localhost for P2P coordination
   if (typeof window !== "undefined" && "capacitor" in window) {
     console.log('[env] Native platform detected, checking for backend config');
     // Return explicitly configured backend URL if available
@@ -19,9 +19,10 @@ export function getApiBase(): string {
       console.log('[env] Using stored backend URL:', stored);
       return stored;
     }
-    // Default to localhost for native P2P coordination
-    console.log('[env] Using localhost backend for P2P coordination');
-    return "http://10.0.2.2:4000"; // Android emulator default, or use device IP for physical devices
+    // Default to no backend for pure P2P mode on physical devices
+    // User must configure backend URL in Protocols tab for backend connectivity
+    console.log('[env] No backend URL configured, using empty string for pure P2P mode');
+    return "";
   }
 
   // If the configured backend URL is on a real hostname, or the page itself is

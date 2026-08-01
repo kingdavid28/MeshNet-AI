@@ -16,9 +16,14 @@ export function ProtocolsTab() {
   const [isElectron, setIsElectron] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; synced: number; errors: string[] } | null>(null);
+  const [backendUrl, setBackendUrl] = useState('');
+  const [savingUrl, setSavingUrl] = useState(false);
 
   useEffect(() => {
     setIsElectron(!!(window as any).electronAPI);
+    // Load current backend URL
+    const currentUrl = localStorage.getItem('meshnet_backend_url') || getApiBase();
+    setBackendUrl(currentUrl);
   }, []);
 
   const handleSync = async () => {
@@ -28,6 +33,10 @@ export function ProtocolsTab() {
     try {
       const sqliteService = getSQLiteService();
       const apiBase = getApiBase();
+      if (!apiBase) {
+        setSyncResult({ success: false, synced: 0, errors: ['No backend URL configured. Please set backend URL above.'] });
+        return;
+      }
       const result = await sqliteService.syncFromBackend(apiBase);
       setSyncResult(result);
       console.log('[ProtocolsTab] Sync result:', result);
@@ -35,6 +44,20 @@ export function ProtocolsTab() {
       setSyncResult({ success: false, synced: 0, errors: [error instanceof Error ? error.message : String(error)] });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSaveBackendUrl = async () => {
+    setSavingUrl(true);
+    try {
+      localStorage.setItem('meshnet_backend_url', backendUrl);
+      console.log('[ProtocolsTab] Backend URL saved:', backendUrl);
+      // Reload the page to apply the new backend URL
+      window.location.reload();
+    } catch (error) {
+      console.error('[ProtocolsTab] Failed to save backend URL:', error);
+    } finally {
+      setSavingUrl(false);
     }
   };
 
@@ -52,6 +75,35 @@ export function ProtocolsTab() {
 
       {/* MeshNet Discovery - Only on mobile devices (desktop/Electron is hotspot host) */}
       {!isElectron && <MeshNetDiscovery />}
+
+      {/* Backend URL Configuration */}
+      <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-[#7B9CC4] uppercase tracking-widest">Backend URL</span>
+          <span className="text-[10px] font-mono text-[#7B9CC4]">
+            {backendUrl || 'Not configured (Pure P2P)'}
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={backendUrl}
+            onChange={(e) => setBackendUrl(e.target.value)}
+            placeholder="http://192.168.1.100:4000"
+            className="flex-1 bg-[#0D1F3A] border border-[rgba(91,141,217,0.3)] rounded-lg px-3 py-2 text-xs text-[#E8EEF7] placeholder-[#7B9CC4] focus:outline-none focus:border-[#5B8DD9]"
+          />
+          <button
+            onClick={handleSaveBackendUrl}
+            disabled={savingUrl}
+            className="bg-[#5B8DD9] hover:bg-[#4A7BC8] disabled:bg-[#132B5A] disabled:text-[#7B9CC4] text-white text-xs font-medium py-2 px-3 rounded-lg transition-colors"
+          >
+            {savingUrl ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+        <p className="text-[10px] text-[#7B9CC4] mt-2">
+          Enter LAN IP of backend server (e.g., http://192.168.1.100:4000). Leave empty for pure P2P mode.
+        </p>
+      </div>
 
       {/* Backend Sync Button */}
       <div className="rounded-xl bg-[#132B5A] border border-[rgba(91,141,217,0.2)] p-3">
