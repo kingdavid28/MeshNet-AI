@@ -7,6 +7,10 @@ const config: CapacitorConfig = {
   // Vite build output — Capacitor copies dist/ into the Android webview
   webDir:  "dist",
   plugins: {
+    // SQLite plugin configuration
+    CapacitorSQLite: {
+      platform: 'CapacitorSQLite',
+    },
     // MeshDiscoveryPlugin config — consumed by MeshDiscoveryPlugin.kt
     MeshDiscovery: {
       // Backend URL for hybrid mode (try backend first, fallback to P2P)

@@ -91,6 +91,13 @@ class SQLiteService {
 
     try {
       console.log('[SQLiteService] Starting database initialization...');
+      console.log('[SQLiteService] CapacitorSQLite plugin:', CapacitorSQLite);
+      
+      // Check if plugin is available
+      if (!CapacitorSQLite) {
+        console.error('[SQLiteService] CapacitorSQLite plugin is not available');
+        throw new Error('CapacitorSQLite plugin is not available. Please ensure the plugin is properly installed and synced.');
+      }
       
       // Create database connection
       this.db = await this.sqlite.createConnection(
