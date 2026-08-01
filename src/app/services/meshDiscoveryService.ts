@@ -88,8 +88,10 @@ class MeshDiscoveryService {
         device: 'smartphone',
         role: 'peer'
       });
+      console.log('[MeshDiscoveryService] Registration successful');
     } catch (error) {
-      console.error('[MeshDiscoveryService] Registration failed:', error);
+      console.warn('[MeshDiscoveryService] Registration failed (backend unavailable, running in standalone mode):', error);
+      // Continue in standalone mode - BLE discovery will still work
     }
   }
 
