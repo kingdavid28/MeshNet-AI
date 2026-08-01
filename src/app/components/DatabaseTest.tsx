@@ -6,12 +6,14 @@
  */
 
 import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { getSQLiteService } from "../../services/sqliteService";
-import { Check, X, Play, Trash2 } from "lucide-react";
+import { Play, Trash2 } from "lucide-react";
 
 export function DatabaseTest() {
   const [results, setResults] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
+  const isNative = Capacitor.isNativePlatform();
 
   const addResult = (message: string, success: boolean = true) => {
     setResults(prev => [...prev, `${success ? '✓' : '✗'} ${message}`]);
@@ -20,6 +22,13 @@ export function DatabaseTest() {
   const runTests = async () => {
     setRunning(true);
     setResults([]);
+    
+    if (!isNative) {
+      addResult('SQLite is only available on native platforms (Android/iOS)', false);
+      addResult('This test is running on web/Electron - skipping', false);
+      setRunning(false);
+      return;
+    }
     
     const sqliteService = getSQLiteService();
     
