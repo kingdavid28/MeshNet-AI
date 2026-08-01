@@ -138,6 +138,7 @@ class MeshDiscoveryService {
     }
 
     try {
+      console.log('[MeshDiscoveryService] Calling native startDiscovery...');
       // Start native discovery
       const initialStatus = await MeshDiscovery.startDiscovery({
         nodeId: this.nodeId,
@@ -150,13 +151,13 @@ class MeshDiscoveryService {
         heartbeatIntervalMs: this.heartbeatIntervalMs
       });
       
-      console.log('[MeshDiscoveryService] Initial status:', initialStatus);
+      console.log('[MeshDiscoveryService] Initial status received:', initialStatus);
       this.state.status = initialStatus;
       this.notifyListeners();
 
       // Listen for events
       const peerSub = await MeshDiscovery.addListener('peerDiscovered', (event) => {
-        console.log('[MeshDiscoveryService] Peer discovered:', event);
+        console.log('[MeshDiscoveryService] Peer discovered event received:', event);
         this.state.peers = this.updatePeers(this.state.peers, event);
         this.notifyListeners();
       });
