@@ -77,6 +77,7 @@ class SQLiteService {
 
   async initialize(): Promise<void> {
     if (this.initialized) {
+      console.log('[SQLiteService] Already initialized, skipping');
       return;
     }
 
@@ -89,6 +90,8 @@ class SQLiteService {
     }
 
     try {
+      console.log('[SQLiteService] Starting database initialization...');
+      
       // Create database connection
       this.db = await this.sqlite.createConnection(
         'meshnet-local',
@@ -97,12 +100,15 @@ class SQLiteService {
         1,
         false
       );
+      console.log('[SQLiteService] Database connection created');
 
       // Open database
       await this.db.open();
+      console.log('[SQLiteService] Database opened');
 
       // Create tables
       await this.createTables();
+      console.log('[SQLiteService] Tables created');
 
       this.initialized = true;
       console.log('[SQLiteService] Database initialized successfully');
@@ -198,13 +204,16 @@ class SQLiteService {
 
   // Emergency Contact Operations
   async addEmergencyContact(contact: EmergencyContact): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db) {
+      console.error('[SQLiteService] addEmergencyContact: Database not initialized');
+      return false;
+    }
 
     try {
-      const medicalSpecialty = contact.medicalSpecialty ? `'${contact.medicalSpecialty}'` : 'NULL';
       await this.db.execute(
-        `INSERT INTO emergency_contacts (id, name, phone, email, category, location, medical_specialty) VALUES ('${contact.id}', '${contact.name}', '${contact.phone}', '${contact.email}', '${contact.category}', '${contact.location}', ${medicalSpecialty})`
+        `INSERT INTO emergency_contacts (id, name, phone, email, category, location, medical_specialty) VALUES ('${contact.id}', '${contact.name}', '${contact.phone}', '${contact.email}', '${contact.category}', '${contact.location}', '${contact.medicalSpecialty || ''}')`
       );
+      console.log('[SQLiteService] Emergency contact added successfully:', contact.id);
       return true;
     } catch (error) {
       console.error('[SQLiteService] Failed to add emergency contact:', error);
@@ -235,12 +244,16 @@ class SQLiteService {
 
   // Medical Facilities Operations
   async addMedicalFacility(facility: MedicalFacility): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db) {
+      console.error('[SQLiteService] addMedicalFacility: Database not initialized');
+      return false;
+    }
 
     try {
       await this.db.execute(
         `INSERT INTO medical_facilities (id, name, lat, lng, type, phone, address) VALUES ('${facility.id}', '${facility.name}', ${facility.lat}, ${facility.lng}, '${facility.type}', '${facility.phone}', '${facility.address}')`
       );
+      console.log('[SQLiteService] Medical facility added successfully:', facility.id);
       return true;
     } catch (error) {
       console.error('[SQLiteService] Failed to add medical facility:', error);
@@ -261,12 +274,16 @@ class SQLiteService {
 
   // Shelters Operations
   async addShelter(shelter: Shelter): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db) {
+      console.error('[SQLiteService] addShelter: Database not initialized');
+      return false;
+    }
 
     try {
       await this.db.execute(
         `INSERT INTO shelters (id, name, lat, lng, capacity, current_occupancy, phone, address) VALUES ('${shelter.id}', '${shelter.name}', ${shelter.lat}, ${shelter.lng}, ${shelter.capacity}, ${shelter.currentOccupancy}, '${shelter.phone}', '${shelter.address}')`
       );
+      console.log('[SQLiteService] Shelter added successfully:', shelter.id);
       return true;
     } catch (error) {
       console.error('[SQLiteService] Failed to add shelter:', error);
@@ -287,12 +304,16 @@ class SQLiteService {
 
   // Discovered Peers Operations
   async addDiscoveredPeer(peer: DiscoveredPeer): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db) {
+      console.error('[SQLiteService] addDiscoveredPeer: Database not initialized');
+      return false;
+    }
 
     try {
       await this.db.execute(
         `INSERT OR REPLACE INTO discovered_peers (node_id, label, lat, lng, battery, signal, protocol, first_seen, last_seen) VALUES ('${peer.nodeId}', '${peer.label}', ${peer.lat}, ${peer.lng}, ${peer.battery}, ${peer.signal}, '${peer.protocol}', ${peer.firstSeen}, ${peer.lastSeen})`
       );
+      console.log('[SQLiteService] Discovered peer added successfully:', peer.nodeId);
       return true;
     } catch (error) {
       console.error('[SQLiteService] Failed to add discovered peer:', error);

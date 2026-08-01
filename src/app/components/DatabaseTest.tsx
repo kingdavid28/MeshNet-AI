@@ -31,6 +31,9 @@ export function DatabaseTest() {
       await sqliteService.initialize();
       addResult('Database initialized successfully');
       
+      // Add a small delay to ensure database is fully ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Test 2: Add emergency contact
       addResult('Testing emergency contact...');
       const contactAdded = await sqliteService.addEmergencyContact({
