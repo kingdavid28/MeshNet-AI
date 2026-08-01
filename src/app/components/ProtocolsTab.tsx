@@ -5,9 +5,10 @@ import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
 import { MeshNetDiscovery } from "../../components/MeshNetDiscovery";
+import { DataEntryForm } from "./DataEntryForm";
 
 export function ProtocolsTab() {
-  const [activeProtocol, setActiveProtocol] = useState<'ble' | 'webrtc' | 'hotspot' | null>(null);
+  const [activeProtocol, setActiveProtocol] = useState<'ble' | 'webrtc' | 'hotspot' | 'data' | null>(null);
   const [isElectron, setIsElectron] = useState(false);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function ProtocolsTab() {
       {/* MeshNet Discovery - Only on mobile devices (desktop/Electron is hotspot host) */}
       {!isElectron && <MeshNetDiscovery />}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {/* BLE - Only on mobile devices */}
         {!isElectron && (
           <button
@@ -66,6 +67,17 @@ export function ProtocolsTab() {
           <div className="text-2xl mb-1">📶</div>
           <div className="text-xs font-bold text-[#E8EEF7]">Hotspot</div>
         </button>
+        <button
+          onClick={() => setActiveProtocol('data')}
+          className={`p-3 rounded-lg border-2 transition-all ${
+            activeProtocol === 'data'
+              ? 'bg-[#F97316] border-[#F97316]'
+              : 'bg-[#132B5A] border-[rgba(91,141,217,0.2)]'
+          }`}
+        >
+          <div className="text-2xl mb-1">📊</div>
+          <div className="text-xs font-bold text-[#E8EEF7]">Data</div>
+        </button>
       </div>
 
       {activeProtocol === 'ble' && !isElectron && (
@@ -81,6 +93,11 @@ export function ProtocolsTab() {
       {activeProtocol === 'hotspot' && (
         <div className="animate-fadeIn">
           <HotspotManager />
+        </div>
+      )}
+      {activeProtocol === 'data' && (
+        <div className="animate-fadeIn">
+          <DataEntryForm />
         </div>
       )}
 
