@@ -54,10 +54,10 @@ interface Shelter {
 }
 
 class SQLiteService {
-  private sqlite: SQLiteConnection;
+  private readonly sqlite: SQLiteConnection;
   private db: SQLiteDBConnection | null = null;
   private initialized: boolean = false;
-  private nodes: Map<string, MeshNode> = new Map();
+  private readonly nodes: Map<string, MeshNode> = new Map();
 
   constructor() {
     this.sqlite = new SQLiteConnection(CapacitorSQLite);
@@ -77,7 +77,7 @@ class SQLiteService {
     }
 
     try {
-      // Create database connection
+      // Create database connection with WAL mode for better concurrency
       this.db = await this.sqlite.createConnection(
         'meshnet-local',
         false,
