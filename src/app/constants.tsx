@@ -24,12 +24,7 @@ export function meshHeaders(extra?: Record<string, string>): HeadersInit {
   };
 }
 
-export const MESSAGES: AppMessage[] = [
-  { id: "m1", from: "MED-2", text: "Need insulin supplies at sector 4B. 2 patients.", time: "14:23", type: "medical", read: false },
-  { id: "m2", from: "Alpha", text: "Route to shelter via Main St blocked. Use Oak Ave.", time: "14:18", type: "info", read: false },
-  { id: "m3", from: "Unit 7", text: "GPS: 37.7749° N, 122.4194° W — Safe zone confirmed.", time: "14:09", type: "gps", read: true },
-  { id: "m4", from: "Cmd", text: "ALERT: Gas leak reported near District 5. Evacuate.", time: "13:55", type: "alert", read: true },
-];
+export const MESSAGES: AppMessage[] = []; // Production mode - no mock data
 
 export const msgTypeStyle: Record<string, string> = {
   alert: "border-l-[#EF4444] bg-[#EF4444]/10",

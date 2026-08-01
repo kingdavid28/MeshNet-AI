@@ -92,9 +92,6 @@ class SQLiteService {
       // Create tables
       await this.createTables();
 
-      // Seed sample data
-      await this.seedSampleData();
-
       this.initialized = true;
       console.log('[SQLiteService] Database initialized successfully');
     } catch (error) {
@@ -149,40 +146,6 @@ class SQLiteService {
     await this.db.execute(createShelters);
   }
 
-  private async seedSampleData(): Promise<void> {
-    if (!this.db) return;
-
-    // Check if data already exists
-    const contactsResult = await this.db.query('SELECT COUNT(*) as count FROM emergency_contacts');
-    if (contactsResult.values && contactsResult.values[0].count > 0) {
-      return; // Data already seeded
-    }
-
-    // Seed emergency contacts
-    await this.db.execute(`
-      INSERT INTO emergency_contacts (id, name, phone, email, category, location, medical_specialty) VALUES
-      ('1', 'Dr. John Smith', '+1234567890', 'john@hospital.com', 'medical', 'City Hospital', 'Emergency Medicine'),
-      ('2', 'Fire Department', '+1234567891', 'fire@city.gov', 'fire', 'Central Station', NULL),
-      ('3', 'Police Station', '+1234567892', 'police@city.gov', 'police', 'Downtown', NULL);
-    `);
-
-    // Seed medical facilities
-    await this.db.execute(`
-      INSERT INTO medical_facilities (id, name, lat, lng, type, phone, address) VALUES
-      ('1', 'City General Hospital', 40.7128, -74.0060, 'hospital', '+1234567890', '123 Main St'),
-      ('2', 'Urgent Care Center', 40.7138, -74.0070, 'clinic', '+1234567891', '456 Oak Ave');
-    `);
-
-    // Seed shelters
-    await this.db.execute(`
-      INSERT INTO shelters (id, name, lat, lng, capacity, current_occupancy, phone, address) VALUES
-      ('1', 'Emergency Shelter A', 40.7148, -74.0080, 100, 45, '+1234567892', '789 Pine Rd'),
-      ('2', 'Community Center', 40.7158, -74.0090, 50, 20, '+1234567893', '321 Elm St');
-    `);
-
-    console.log('[SQLiteService] Sample data seeded');
-  }
-
   // Mesh Node Operations (in-memory)
   registerNode(node: MeshNode): MeshNode {
     this.nodes.set(node.id, node);
@@ -207,6 +170,21 @@ class SQLiteService {
   }
 
   // Emergency Contact Operations
+  async addEmergencyContact(contact: EmergencyContact): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      const medicalSpecialty = contact.medicalSpecialty ? `'${contact.medicalSpecialty}'` : 'NULL';
+      await this.db.execute(
+        `INSERT INTO emergency_contacts (id, name, phone, email, category, location, medical_specialty) VALUES ('${contact.id}', '${contact.name}', '${contact.phone}', '${contact.email}', '${contact.category}', '${contact.location}', ${medicalSpecialty})`
+      );
+      return true;
+    } catch (error) {
+      console.error('[SQLiteService] Failed to add emergency contact:', error);
+      return false;
+    }
+  }
+
   async searchEmergencyContacts(query: string = '', category: string = ''): Promise<EmergencyContact[]> {
     if (!this.db) return [];
 
@@ -229,6 +207,20 @@ class SQLiteService {
   }
 
   // Medical Facilities Operations
+  async addMedicalFacility(facility: MedicalFacility): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      await this.db.execute(
+        `INSERT INTO medical_facilities (id, name, lat, lng, type, phone, address) VALUES ('${facility.id}', '${facility.name}', ${facility.lat}, ${facility.lng}, '${facility.type}', '${facility.phone}', '${facility.address}')`
+      );
+      return true;
+    } catch (error) {
+      console.error('[SQLiteService] Failed to add medical facility:', error);
+      return false;
+    }
+  }
+
   async getMedicalFacilities(lat: number = 0, lng: number = 0, radius: number = 10): Promise<(MedicalFacility & { distance: number })[]> {
     if (!this.db) return [];
 
@@ -241,6 +233,20 @@ class SQLiteService {
   }
 
   // Shelters Operations
+  async addShelter(shelter: Shelter): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      await this.db.execute(
+        `INSERT INTO shelters (id, name, lat, lng, capacity, current_occupancy, phone, address) VALUES ('${shelter.id}', '${shelter.name}', ${shelter.lat}, ${shelter.lng}, ${shelter.capacity}, ${shelter.currentOccupancy}, '${shelter.phone}', '${shelter.address}')`
+      );
+      return true;
+    } catch (error) {
+      console.error('[SQLiteService] Failed to add shelter:', error);
+      return false;
+    }
+  }
+
   async getShelters(lat: number = 0, lng: number = 0, radius: number = 10): Promise<(Shelter & { distance: number })[]> {
     if (!this.db) return [];
 

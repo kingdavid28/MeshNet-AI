@@ -1,30 +1,22 @@
 import { useDeviceLocation } from "../hooks/useDeviceLocation";
 import { useCloudantNodes } from "../hooks/useCloudantNodes";
-import { useMeshDiscovery } from "../hooks/useMeshDiscovery";
-import { useMockNodeSimulation } from "../hooks/useMockNodeSimulation";
 import { useMeshRouting } from "../hooks/useMeshRouting";
 import NodeMapCanvas from "./NodeMapCanvas";
-import SimPerfOverlay from "./SimPerfOverlay";
-import { SIM_MODE, TICK_MS } from "../constants";
 import { MeshNode } from "../../utils/routing";
+import type { DiscoveredPeer } from "../hooks/useMeshDiscovery";
+import type { DiscoveryStatus } from "../plugins/MeshDiscoveryPlugin";
 
-export function MapTab() {
+interface MapTabProps {
+  discoveryStatus: DiscoveryStatus | null;
+  discoveredPeers: DiscoveredPeer[];
+  isNative: boolean;
+}
+
+export function MapTab({ discoveryStatus, discoveredPeers, isNative }: MapTabProps) {
   const deviceLocation = useDeviceLocation();
 
   // ── Mesh routing and SOS messaging ──
   const meshRouting = useMeshRouting();
-
-  // ── Real device mesh discovery (BLE + Wi-Fi Direct via Capacitor plugin) ──
-  console.log('[MapTab] Initializing mesh discovery...');
-  const { status: discoveryStatus, peers: discoveredPeers, isNative } = useMeshDiscovery({
-    nodeId:  localStorage.getItem("meshnet_node_id") ?? "mobile-user",
-    label:   "You",
-    battery: 80,
-    signal:  75,
-    deviceLocation,
-    enabled: true,
-  });
-  console.log('[MapTab] Discovery hook returned:', { discoveryStatus, discoveredPeers, isNative });
 
   // ── Convert discovered peers to MeshNode format for routing ──
   const meshNodes: MeshNode[] = discoveredPeers.map(p => ({
@@ -42,20 +34,13 @@ export function MapTab() {
     meshRouting.computeRoute(meshNodes);
   }
 
-  // ── Live data source — either mock simulation or real backend ───────────
+  // ── Live data source — real backend or discovered peers ───────────
   const live = useCloudantNodes(10_000);
-  const sim  = useMockNodeSimulation(TICK_MS);
 
-  // Hybrid mode: Try backend first, fallback to discovered peers on mobile
+  // Production mode: Try backend first, fallback to discovered peers on mobile
   let nodes, loading, error, source, refresh;
   
-  if (SIM_MODE) {
-    nodes = sim.nodes;
-    loading = false;
-    error = null;
-    source = "seed" as const;
-    refresh = () => {};
-  } else if (isNative) {
+  if (isNative) {
     // Mobile: Try backend first, merge with discovered peers
     if (live.nodes.length > 0 && !live.error) {
       // Backend available - use backend nodes
@@ -196,21 +181,7 @@ export function MapTab() {
         </div>
       )}
 
-      {/* Simulation mode banner */}
-      {SIM_MODE && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          padding: "4px 10px", marginBottom: 6, borderRadius: 6, flexShrink: 0,
-          background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.22)",
-          fontSize: 9, fontFamily: "monospace", color: "#F97316",
-          textTransform: "uppercase", letterSpacing: "0.08em",
-        }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#F97316" }} />
-          Simulation mode · {TICK_MS / 1000}s tick · {sim.nodes.length} mock nodes
-        </div>
-      )}
-
-      {/* Map canvas (wraps relative so SimPerfOverlay can be positioned) */}
+      {/* Map canvas */}
       <div style={{ flex: 1, minHeight: 0, position: "relative", display: "flex", flexDirection: "column" }}>
         <NodeMapCanvas
           nodes={nodes}
@@ -220,17 +191,6 @@ export function MapTab() {
           onRefresh={refresh}
           deviceLocation={deviceLocation}
         />
-
-        {SIM_MODE && (
-          <SimPerfOverlay
-            stats={sim.stats}
-            tickMs={TICK_MS}
-            nodeCount={sim.nodes.length}
-            isPaused={sim.isPaused}
-            onPause={sim.pause}
-            onResume={sim.resume}
-          />
-        )}
       </div>
     </div>
   );
