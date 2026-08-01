@@ -29,6 +29,26 @@ const sqliteService = getSQLiteService();
 sqliteService.initialize().then(() => {
   console.log('[Main] SQLite service initialized');
   localStorage.setItem('meshnet_backend_mode', 'offline');
+  
+  // Only mount React app after SQLite is successfully initialized
+  console.log('[Main] Mounting React app...');
+  const rootElement = document.getElementById("root");
+  console.log('[Main] Root element found:', rootElement);
+
+  if (!rootElement) {
+    console.error('[Main] ERROR: Root element not found!');
+  } else {
+    try {
+      createRoot(rootElement).render(
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      );
+      console.log('[Main] React app mounted successfully');
+    } catch (error) {
+      console.error('[Main] ERROR: Failed to mount React app:', error);
+    }
+  }
 }).catch((error) => {
   console.error('[Main] Failed to initialize SQLite:', error);
   // SQLite is required - show error to user and prevent app from running
@@ -47,26 +67,5 @@ sqliteService.initialize().then(() => {
       </div>
     `;
   }
-  throw error; // Prevent app from mounting
+  // Don't throw error - we've shown the error screen
 });
-
-// Only mount React app after SQLite is successfully initialized
-console.log('[Main] Mounting React app...');
-const rootElement = document.getElementById("root");
-console.log('[Main] Root element found:', rootElement);
-
-if (!rootElement) {
-  console.error('[Main] ERROR: Root element not found!');
-} else {
-  try {
-    createRoot(rootElement).render(
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    );
-    console.log('[Main] React app mounted successfully');
-  } catch (error) {
-    console.error('[Main] ERROR: Failed to mount React app:', error);
-  }
-}
-  
