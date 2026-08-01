@@ -6,6 +6,7 @@ import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
 import { MeshNetDiscovery } from "../../components/MeshNetDiscovery";
 import { DataEntryForm } from "./DataEntryForm";
+import { DatabaseTest } from "./DatabaseTest";
 import { getSQLiteService } from "../../services/sqliteService";
 import { getApiBase } from "../../utils/env";
 import { RefreshCw, Check, X } from "lucide-react";
@@ -174,6 +175,8 @@ export function ProtocolsTab() {
         </h3>
         <EmergencyMode />
       </div>
+
+      <DatabaseTest />
 
       <style>{`
         @keyframes fadeIn {
