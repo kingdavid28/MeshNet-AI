@@ -1,11 +1,19 @@
 
   # MeshNet-AI
 
-  An AI-powered offline emergency communication platform built with React, Node.js, and Electron. It turns everyday smartphones into an interconnected, self-healing mesh network using Bluetooth and Wi-Fi—requiring zero cellular signal and zero internet.
+  An offline, P2P emergency communication system using BLE and AI-optimized routing with IBM Bob to assist rescue operations in zero-infrastructure disaster zones. Built with React, Node.js, and Electron, it turns everyday smartphones into an interconnected, self-healing mesh network using Bluetooth and Wi-Fi—requiring zero cellular signal and zero internet.
 
   <p align="center">
     <img src="public/MeshnetLogo.png" alt="MeshNet AI" width="320" />
   </p>
+
+  ## Team
+
+  - **ROHIT SANE** — Team Lead & Author [@Rohit Sane](https://github.com/RohitSane)
+  - **REYCEL CENTINO** — Front-End [@kingdavid](https://github.com/kingdavid28)
+  - **PAUL OLANTUNDE ABIMBOLA** — Back-End [@paulgreat](https://github.com/paulgreat)
+  - **ARIANE SANDOY** — [@archii](https://github.com/archii)
+  - **MARCELO RODRIGUEZ** — SQL & Database [@Marcelo Rodriguez | Peru](https://github.com/MarceloRodriguezPeru)
 
   ## Running the code
 
