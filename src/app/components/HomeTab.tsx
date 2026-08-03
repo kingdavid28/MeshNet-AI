@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   AlertTriangle,
   Heart,
@@ -7,20 +7,110 @@ import {
   Zap,
 } from "lucide-react";
 import type { CloudantNode } from "../hooks/useCloudantNodes";
-import { MESSAGES, msgTypeStyle, msgTypeIcon } from "../constants";
+import { useDeviceLocation } from "../hooks/useDeviceLocation";
+import { encryptMessage } from "../hooks/useMeshCrypto";
+import { MESSAGES, msgTypeStyle, msgTypeIcon, API_BASE, meshHeaders, ALERT_MSG_CATEGORY } from "../constants";
+import type { LocalMessage } from "../types";
 
 export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
   const [sosActive, setSosActive] = useState(false);
   const [sosCountdown, setSosCountdown] = useState<number | null>(null);
+  const deviceLocation = useDeviceLocation();
+  const [recentActivity, setRecentActivity] = useState<LocalMessage[]>(() => {
+    try {
+      const stored = localStorage.getItem("meshnet_home_recent");
+      if (stored) return (JSON.parse(stored) as LocalMessage[]).slice(0, 5);
+    } catch { /* ignore */ }
+    return MESSAGES.slice(0, 2) as LocalMessage[];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("meshnet_home_recent", JSON.stringify(recentActivity.slice(0, 5)));
+    } catch { /* ignore */ }
+  }, [recentActivity]);
+
+  const broadcastSOS = useCallback(async () => {
+    const lat = deviceLocation.lat ?? undefined;
+    const lng = deviceLocation.lng ?? undefined;
+
+    const now = new Date();
+    const hh = now.getHours().toString().padStart(2, "0");
+    const mm = now.getMinutes().toString().padStart(2, "0");
+    const time = `${hh}:${mm}`;
+
+    const payload = { type: "sos", message: "SOS broadcast from home tab", lat, lng };
+    let delivered = false;
+    let errorMessage = "";
+
+    try {
+      const res = await fetch(`${API_BASE}/api/alerts`, {
+        method: "POST",
+        headers: meshHeaders(),
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10_000),
+      });
+      delivered = res.ok || res.status === 201;
+      if (!delivered) {
+        const text = await res.text().catch(() => "");
+        errorMessage = `Server returned ${res.status}${text ? `: ${text}` : ""}`;
+      }
+    } catch (error) {
+      console.error("[HomeTab] SOS backend error:", error);
+      errorMessage = error instanceof Error ? error.message : "Network error";
+    }
+
+    if (delivered) {
+      try {
+        const gpsLine = lat != null && lng != null
+          ? ` · GPS ${lat.toFixed(5)}°N ${lng.toFixed(5)}°E`
+          : "";
+        const plaintext = `SOS ALERT broadcast${gpsLine}`;
+        const ciphertext = await encryptMessage(plaintext);
+        await fetch(`${API_BASE}/api/messages`, {
+          method: "POST",
+          headers: meshHeaders(),
+          body: JSON.stringify({
+            fromNodeId: localStorage.getItem("meshnet_node_id") ?? "self",
+            fromLabel: "You",
+            toNodeId: "broadcast",
+            category: ALERT_MSG_CATEGORY["sos"] ?? "alert",
+            ciphertext,
+            hops: 0,
+          }),
+          signal: AbortSignal.timeout(10_000),
+        });
+      } catch (error) {
+        console.error("[HomeTab] SOS mesh broadcast failed:", error);
+      }
+    } else {
+      const queue = JSON.parse(localStorage.getItem("meshnet_alert_queue") ?? "[]") as unknown[];
+      queue.push({ ...payload, queuedAt: Date.now(), error: errorMessage });
+      localStorage.setItem("meshnet_alert_queue", JSON.stringify(queue));
+    }
+
+    const gpsLine = lat != null && lng != null
+      ? ` · GPS ${lat.toFixed(5)}°N ${lng.toFixed(5)}°E`
+      : "";
+    const text = delivered
+      ? `SOS ALERT broadcast${gpsLine}`
+      : `SOS ALERT queued (offline)${gpsLine ? gpsLine : ""}`;
+
+    setRecentActivity((prev) => [
+      { id: `sos-${Date.now()}`, from: "You", text, time, type: "alert", read: true },
+      ...prev,
+    ].slice(0, 5));
+  }, [deviceLocation]);
 
   const handleSOS = () => {
-    if (sosActive) return;
+    if (sosActive || sosCountdown !== null) return;
     setSosCountdown(3);
     const id = setInterval(() => {
       setSosCountdown((c) => {
         if (c === null || c <= 1) {
           clearInterval(id);
           setSosActive(true);
+          broadcastSOS();
           setTimeout(() => setSosActive(false), 5000);
           return null;
         }
@@ -192,7 +282,7 @@ export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
           </span>
         </div>
         <div className="flex flex-col gap-2">
-          {MESSAGES.slice(0, 2).map((msg) => (
+          {recentActivity.map((msg) => (
             <div
               key={msg.id}
               className={`rounded-lg border-l-2 px-3 py-2.5 flex items-start gap-2 ${msgTypeStyle[msg.type]}`}
