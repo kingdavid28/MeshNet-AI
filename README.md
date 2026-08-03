@@ -52,6 +52,7 @@ cd android
 ```
 
 **Important Notes:**
+- **Demo Mode (Backend Disabled)**: For this demo, the backend server is intentionally disabled. In the full production version, the backend would be enabled and pressing the alert button would immediately broadcast emergency messages to rescue teams via the mesh network. This ensures safe testing without triggering real emergency alerts.
 - **Android 11+ Hotspot Limitation**: WiFi hotspot creation requires system app privileges on Android 11+. On modern devices, users must manually create the hotspot in Android Settings and the app will connect to it.
 - **Standalone Mode**: The Android app includes in-memory storage for offline operation. Data persists during app session but is lost on restart. For full mesh network functionality, it needs a running Node.js backend (port 4000) on the same network.
 - **Backend Required**: The Android app can work in standalone mode with in-memory storage, but for full mesh network functionality, it needs a running Node.js backend (port 4000) on the same network. Configure the backend IP in the app settings or via `VITE_API_BASE_URL`.
