@@ -31,6 +31,10 @@ const HOTSPOT_ORIGINS = [
   'http://192.168.1.1:*',    // Common router gateway
   'http://192.168.0.1:*',    // Common router gateway
   'http://10.0.0.1:*',       // Common router gateway
+  'http://192.168.43.1:*',   // Android hotspot gateway (alternative)
+  'http://192.168.1.100:*',  // Common backend server
+  'http://192.168.0.100:*',  // Common backend server
+  'http://10.0.0.100:*',     // Common backend server
   'http://192.168.1.1:4000', // Common router gateway with explicit port
   'http://192.168.0.1:4000', // Common router gateway with explicit port
   'http://10.0.0.1:4000',   // Common router gateway with explicit port

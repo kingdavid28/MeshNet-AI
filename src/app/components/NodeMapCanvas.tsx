@@ -17,6 +17,19 @@ import type { DeviceLocation } from "../hooks/useDeviceLocation";
 import { Bluetooth, Battery, Signal, RefreshCw, Database, Wifi, LocateFixed, Layers, WifiOff } from "lucide-react";
 import LeafletMap, { type LeafletMapHandle } from "./LeafletMap";
 
+// Calculate distance between two coordinates in kilometers using Haversine formula
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
 const COLOR_BOTH  = "#14B8A6";   // teal  — BLE + Wi-Fi
@@ -333,7 +346,12 @@ export default function NodeMapCanvas({
               <div className="flex items-center gap-1.5">
                 <Signal size={11} className="text-[#7B9CC4] shrink-0" />
                 <div>
-                  <div className="text-[10px] font-mono text-[#E8EEF7]">{selected.signal}%</div>
+                  <div
+                    className="text-[10px] font-mono"
+                    style={{ color: selected.signal > 70 ? "#22C55E" : selected.signal > 40 ? "#F97316" : "#EF4444" }}
+                  >
+                    {selected.signal}%
+                  </div>
                   <div className="text-[8px] text-[#7B9CC4]">signal</div>
                 </div>
               </div>
@@ -364,6 +382,16 @@ export default function NodeMapCanvas({
                 : "No GPS coords · "}
               bat {selected.battery_percentage}%
             </div>
+
+            <div className="mt-1 text-[9px] font-mono text-[#7B9CC4]/70">
+              Last seen: {selected.last_seen ? new Date(selected.last_seen).toLocaleTimeString() : 'Unknown'}
+            </div>
+
+            {deviceLocation && deviceLocation.status === "ok" && deviceLocation.lat != null && deviceLocation.lng != null && selected.latitude != null && selected.longitude != null && (
+              <div className="mt-1 text-[9px] font-mono text-[#7B9CC4]/70">
+                Distance: {calculateDistance(deviceLocation.lat, deviceLocation.lng, selected.latitude, selected.longitude).toFixed(1)} km
+              </div>
+            )}
           </div>
         </div>
       )}

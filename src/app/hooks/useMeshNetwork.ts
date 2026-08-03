@@ -73,6 +73,33 @@ export function useMeshNetwork(nodeId: string = 'node-1') {
     return () => clearInterval(interval);
   }, []);
 
+  // Listen for BLE-discovered peers and add to routing table
+  useEffect(() => {
+    const handlePeerDiscovered = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const peer = customEvent.detail;
+      
+      if (routingProtocolRef.current && peer) {
+        // Add discovered peer as direct neighbor in routing table
+        const meshNode: MeshNode = {
+          id: peer.nodeId,
+          address: peer.nodeId, // Use nodeId as address for BLE
+          position: { lat: peer.lat, lng: peer.lng },
+          battery: peer.battery,
+          signal: peer.signal,
+          lastSeen: peer.lastSeen,
+          neighbors: [nodeId] // Assume bidirectional connection
+        };
+        
+        routingProtocolRef.current.updateNode(meshNode);
+        console.log('[useMeshNetwork] Added BLE-discovered peer to routing table:', peer.nodeId);
+      }
+    };
+
+    window.addEventListener('meshPeerDiscovered', handlePeerDiscovered);
+    return () => window.removeEventListener('meshPeerDiscovered', handlePeerDiscovered);
+  }, [nodeId]);
+
   // Send message through mesh network
   const sendMessage = useCallback(async (
     destination: string,

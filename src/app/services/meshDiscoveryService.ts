@@ -242,7 +242,17 @@ class MeshDiscoveryService {
     // Add new peer to memory and SQLite
     const newPeerWithTimestamp = { ...newPeer, lastSeen: now, firstSeen: now };
     this.savePeerToSQLite(newPeerWithTimestamp);
+    
+    // Notify mesh routing protocol about new neighbor
+    this.notifyMeshRouting(newPeerWithTimestamp);
+    
     return [...currentPeers, newPeerWithTimestamp];
+  }
+
+  private notifyMeshRouting(peer: DiscoveredPeer) {
+    // Emit custom event for mesh routing integration
+    const event = new CustomEvent('meshPeerDiscovered', { detail: peer });
+    window.dispatchEvent(event);
   }
 
   private async savePeerToSQLite(peer: DiscoveredPeer) {

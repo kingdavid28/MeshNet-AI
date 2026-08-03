@@ -45,8 +45,7 @@ class MainActivity : BridgeActivity() {
     // Manual plugin registration for custom plugins
     init {
         registerPlugin(MeshDiscoveryPlugin::class.java)
-        // SQLite plugin should be auto-discovered by Capacitor
-        // If it's not loading, the issue is likely with the plugin sync, not registration
+        // SQLite plugin is auto-discovered by Capacitor via capacitor.settings.gradle
     }
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {

@@ -9,7 +9,8 @@ import { DataEntryForm } from "./DataEntryForm";
 import { DatabaseTest } from "./DatabaseTest";
 import { getSQLiteService } from "../../services/sqliteService";
 import { getApiBase } from "../../utils/env";
-import { RefreshCw, Check, X } from "lucide-react";
+import { autoDiscoverBackend } from "../../utils/backendDiscovery";
+import { RefreshCw, Check, X, Search } from "lucide-react";
 
 export function ProtocolsTab() {
   const [activeProtocol, setActiveProtocol] = useState<'ble' | 'webrtc' | 'hotspot' | 'data' | null>(null);
@@ -18,6 +19,8 @@ export function ProtocolsTab() {
   const [syncResult, setSyncResult] = useState<{ success: boolean; synced: number; errors: string[] } | null>(null);
   const [backendUrl, setBackendUrl] = useState('');
   const [savingUrl, setSavingUrl] = useState(false);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoveryResult, setDiscoveryResult] = useState<{ found: boolean; url: string; method: string } | null>(null);
 
   useEffect(() => {
     setIsElectron(!!(window as any).electronAPI);
@@ -25,6 +28,31 @@ export function ProtocolsTab() {
     const currentUrl = localStorage.getItem('meshnet_backend_url') || getApiBase();
     setBackendUrl(currentUrl);
   }, []);
+
+  const handleAutoDiscover = async () => {
+    setDiscovering(true);
+    setDiscoveryResult(null);
+    
+    try {
+      const result = await autoDiscoverBackend();
+      setDiscoveryResult({
+        found: result.found,
+        url: result.url,
+        method: result.method
+      });
+      
+      if (result.found) {
+        setBackendUrl(result.url);
+        localStorage.setItem('meshnet_backend_url', result.url);
+        console.log('[ProtocolsTab] Auto-discovered backend:', result.url, `via ${result.method}`);
+      }
+    } catch (error) {
+      console.error('[ProtocolsTab] Auto-discovery failed:', error);
+      setDiscoveryResult({ found: false, url: '', method: 'error' });
+    } finally {
+      setDiscovering(false);
+    }
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -93,6 +121,15 @@ export function ProtocolsTab() {
             className="flex-1 bg-[#0D1F3A] border border-[rgba(91,141,217,0.3)] rounded-lg px-3 py-2 text-xs text-[#E8EEF7] placeholder-[#7B9CC4] focus:outline-none focus:border-[#5B8DD9]"
           />
           <button
+            onClick={handleAutoDiscover}
+            disabled={discovering}
+            className="bg-[#F97316] hover:bg-[#EA580C] disabled:bg-[#132B5A] disabled:text-[#7B9CC4] text-white text-xs font-medium py-2 px-3 rounded-lg transition-colors flex items-center gap-1"
+            title="Auto-discover backend on local network"
+          >
+            <Search size={14} className={discovering ? "animate-spin" : ""} />
+            {discovering ? 'Scanning...' : 'Auto'}
+          </button>
+          <button
             onClick={handleSaveBackendUrl}
             disabled={savingUrl}
             className="bg-[#5B8DD9] hover:bg-[#4A7BC8] disabled:bg-[#132B5A] disabled:text-[#7B9CC4] text-white text-xs font-medium py-2 px-3 rounded-lg transition-colors"
@@ -100,8 +137,16 @@ export function ProtocolsTab() {
             {savingUrl ? 'Saving...' : 'Save'}
           </button>
         </div>
+        {discoveryResult && (
+          <div className={`mt-2 text-[10px] ${discoveryResult.found ? 'text-[#22C55E]' : 'text-[#EF4444]'}`}>
+            {discoveryResult.found 
+              ? `✓ Found backend at ${discoveryResult.url} via ${discoveryResult.method}`
+              : '✗ No backend found on local network'
+            }
+          </div>
+        )}
         <p className="text-[10px] text-[#7B9CC4] mt-2">
-          Enter LAN IP of backend server (e.g., http://192.168.1.100:4000). Leave empty for pure P2P mode.
+          Enter LAN IP of backend server (e.g., http://192.168.1.100:4000) or use Auto to discover. Leave empty for pure P2P mode.
         </p>
       </div>
 

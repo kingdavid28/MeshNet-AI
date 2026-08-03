@@ -91,21 +91,22 @@ export default function App() {
 
   const { nodes: liveNodes } = useCloudantNodes(10_000);
 
-  // Desktop: full dashboard layout; Mobile: mobile tabbed shell.
-  // BLE is only available in the mobile shell when not running in Electron.
-  if (isDesktop) {
-    return <DashboardLayout />;
-  }
-
   // Initialize BLE mesh discovery for native platforms (only on mobile)
+  // Must be called before conditional return to avoid hooks order violation
   const meshDiscovery = useMeshDiscovery({
     nodeId: 'node-1',
     label: 'MeshNet Device',
     battery: 100,
     signal: 80,
     deviceLocation,
-    enabled: true,
+    enabled: !isDesktop, // Only enable on mobile
   });
+
+  // Desktop: full dashboard layout; Mobile: mobile tabbed shell.
+  // BLE is only available in the mobile shell when not running in Electron.
+  if (isDesktop) {
+    return <DashboardLayout />;
+  }
   
   // On mobile, use BLE-discovered peers; on web, use backend nodes
   const displayNodes = meshDiscovery.isNative && meshDiscovery.peers.length > 0
@@ -254,43 +255,95 @@ export default function App() {
           className="flex-1 overflow-y-auto"
           style={{ scrollbarWidth: "none", display: tab === "map" ? "none" : undefined }}
         >
-          {/* Emergency Quick Start - Always accessible */}
-          <div className="mx-4 mt-3">
-            <EmergencyQuickStart />
-          </div>
-
-          {/* Mesh Network Status */}
-          {meshNetwork.isInitialized && (
-            <div className="mx-4 mt-3 p-3 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30">
-              <div className="flex items-center gap-2 mb-2">
-                <Network size={16} className="text-[#8B5CF6]" />
-                <span className="text-xs font-semibold text-[#E8EEF7]">Mesh Network</span>
-                <span className={`ml-auto text-[10px] font-mono ${meshNetwork.isConnected ? 'text-[#22C55E]' : 'text-[#F97316]'}`}>
-                  {meshNetwork.isConnected ? 'Active' : 'Standby'}
-                </span>
+          {tab === "home" && (
+            <>
+              {/* Emergency Quick Start - Only in Home tab */}
+              <div className="mx-4 mt-3">
+                <EmergencyQuickStart />
               </div>
-              {meshNetwork.isConnected && (
-                <div className="text-[10px] text-[#7B9CC4]">
-                  {meshNetwork.nodes.length} nodes connected
+
+              {/* Network Discovery Status - Only in Home tab */}
+              {!backend && !isElectron && (
+                <div className="mx-4 mt-3 p-3 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/30 flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    {discovering ? (
+                      <RefreshCw size={18} className="text-[#3B82F6] shrink-0 animate-spin" />
+                    ) : (
+                      <Wifi size={18} className="text-[#3B82F6] shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-[#E8EEF7]">
+                        {discovering ? 'Discovering MeshNet...' : 'No MeshNet Found'}
+                      </div>
+                      <div className="text-[10px] text-[#7B9CC4]">
+                        {discovering ? 'Scanning local network...' : error || 'Connect to Wi-Fi hotspot'}
+                      </div>
+                    </div>
+                    {!discovering && (
+                      <button
+                        onClick={rediscover}
+                        className="px-3 py-1.5 rounded bg-[#3B82F6] text-white text-xs font-semibold"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                  {/* Manual URL Configuration */}
+                  {!discovering && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="text"
+                        placeholder="http://192.168.x.x:4000"
+                        value={manualUrl}
+                        onChange={(e) => setManualBackendUrl(e.target.value)}
+                        className="flex-1 px-2 py-1 rounded bg-[#0F172A] border border-[#3B82F6]/30 text-[10px] text-white placeholder-[#7B9CC4] focus:outline-none focus:border-[#3B82F6]"
+                      />
+                      <button
+                        onClick={rediscover}
+                        disabled={!manualUrl}
+                        className="px-2 py-1 rounded bg-[#22C55E] disabled:bg-gray-700 disabled:text-gray-500 text-white text-[10px] font-semibold"
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
-              {meshDiscovery.isNative && (
-                <div className="text-[10px] text-[#7B9CC4] mt-1">
-                  BLE Discovery: {meshDiscovery.status?.scanning ? 'Active' : 'Inactive'}
-                  {meshDiscovery.peers.length > 0 && ` (${meshDiscovery.peers.length} peers)`}
+
+              {/* Mesh Network Status - Only in Home tab */}
+              {meshNetwork.isInitialized && (
+                <div className="mx-4 mt-3 p-3 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Network size={16} className="text-[#8B5CF6]" />
+                    <span className="text-xs font-semibold text-[#E8EEF7]">Mesh Network</span>
+                    <span className={`ml-auto text-[10px] font-mono ${meshNetwork.isConnected ? 'text-[#22C55E]' : 'text-[#F97316]'}`}>
+                      {meshNetwork.isConnected ? 'Active' : 'Standby'}
+                    </span>
+                  </div>
+                  {meshNetwork.isConnected && (
+                    <div className="text-[10px] text-[#7B9CC4]">
+                      {meshNetwork.nodes.length} nodes connected
+                    </div>
+                  )}
+                  {meshDiscovery.isNative && (
+                    <div className="text-[10px] text-[#7B9CC4] mt-1">
+                      BLE Discovery: {meshDiscovery.status?.scanning ? 'Active' : 'Inactive'}
+                      {meshDiscovery.peers.length > 0 && ` (${meshDiscovery.peers.length} peers)`}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* BLE Scanner for credential exchange - Mobile only (not in Electron) */}
-          {!backend && !isElectron && (
-            <div className="mx-4 mt-3">
-              <BLEScanner />
-            </div>
-          )}
+              {/* BLE Scanner for credential exchange - Only in Home tab */}
+              {!backend && !isElectron && (
+                <div className="mx-4 mt-3">
+                  <BLEScanner />
+                </div>
+              )}
 
-          {tab === "home" && <HomeTab liveNodes={displayNodes} />}
+              <HomeTab liveNodes={displayNodes} />
+            </>
+          )}
           {tab === "alert" && <AlertTab nodeCount={peerCount} />}
           {tab === "comms" && <CommsTab />}
           {tab === "protocols" && <ProtocolsTab />}

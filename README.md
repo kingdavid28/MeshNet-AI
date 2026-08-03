@@ -45,8 +45,8 @@ cd android
 
 **Important Notes:**
 - **Android 11+ Hotspot Limitation**: WiFi hotspot creation requires system app privileges on Android 11+. On modern devices, users must manually create the hotspot in Android Settings and the app will connect to it.
-- **Standalone Mode**: The Android app includes a bundled SQLite database for offline operation. SQLite is required for the app to function in standalone mode. If SQLite initialization fails, the app will display an error message and will not proceed.
-- **Backend Required**: The Android app can work in standalone mode with SQLite, but for full mesh network functionality, it needs a running Node.js backend (port 4000) on the same network. Configure the backend IP in the app settings or via `VITE_API_BASE_URL`.
+- **Standalone Mode**: The Android app includes in-memory storage for offline operation. Data persists during app session but is lost on restart. For full mesh network functionality, it needs a running Node.js backend (port 4000) on the same network.
+- **Backend Required**: The Android app can work in standalone mode with in-memory storage, but for full mesh network functionality, it needs a running Node.js backend (port 4000) on the same network. Configure the backend IP in the app settings or via `VITE_API_BASE_URL`.
 - **Permissions**: The app requests Bluetooth, Location, and WiFi permissions on first launch.
 
 The Android app includes:
@@ -56,6 +56,383 @@ The Android app includes:
 - Captive portal redirect server
 - mDNS service broadcasting
 - SOS and emergency communication
+
+---
+
+## User Manual
+
+### Table of Contents
+1. [Getting Started](#getting-started)
+2. [First-Time Setup](#first-time-setup)
+3. [Core Features](#core-features)
+4. [Emergency Procedures](#emergency-procedures)
+5. [Troubleshooting](#troubleshooting)
+6. [Best Practices](#best-practices)
+
+### Getting Started
+
+**What is MeshNet AI?**
+MeshNet AI is an emergency communication platform that creates a decentralized mesh network using Bluetooth and WiFi. It works without cellular service or internet, making it ideal for disaster response scenarios.
+
+**System Requirements**
+- Android 8.0 or higher
+- Bluetooth Low Energy (BLE) support
+- WiFi capability
+- Location services enabled
+- Minimum 50MB free storage
+
+### First-Time Setup
+
+#### Installation
+1. Download the APK from GitHub Releases
+2. Enable "Install from Unknown Sources" in Android Settings > Security
+3. Install the APK
+4. Launch the app
+
+#### Granting Permissions
+The app requires the following permissions:
+- **Bluetooth**: For peer discovery and mesh networking
+- **Location**: Required for BLE scanning on Android
+- **WiFi**: For network connections and hotspot creation
+
+**To grant permissions:**
+1. When prompted, tap "Allow" for each permission
+2. If permissions were denied, go to Settings > Apps > MeshNet AI > Permissions
+3. Enable all required permissions manually
+
+#### Initial Configuration
+1. **Backend URL Configuration** (Optional)
+   - If you have a MeshNet backend server, configure its IP address
+   - Go to Settings > Protocols Tab
+   - **Auto-Discovery (Recommended)**: Tap the "Auto" button to automatically find the backend on your local network
+   - **Manual Configuration**: Enter the backend URL manually (e.g., `http://192.168.1.100:4000`)
+   - Tap "Save Configuration"
+
+**How Auto-Discovery Works:**
+- The app automatically scans common gateway IPs (192.168.137.1, 192.168.43.1, etc.)
+- Checks your local network subnet for backend servers
+- Caches successful connections for faster future connections
+- Shows discovery method and latency when backend is found
+
+**When to Use Auto-Discovery:**
+- When you're connected to a MeshNet hotspot
+- When the backend is on the same local network
+- When you don't know the backend IP address
+- For fastest setup in emergency situations
+
+2. **Network Mode Selection**
+   - Choose your preferred network mode:
+     - **Auto Mode**: Desktop on phone network (recommended)
+     - **Bluetooth Mode**: Bluetooth tethering
+     - **Manual Mode**: Same network with manual IP
+
+### Core Features
+
+#### 1. Mesh Discovery
+**Purpose**: Automatically discover nearby devices in the mesh network
+
+**How to Use:**
+1. Ensure Bluetooth and Location are enabled
+2. The app automatically scans for nearby MeshNet devices
+3. Discovered peers appear on the map with their:
+   - Device label/name
+   - Battery level
+   - Signal strength
+   - Last seen timestamp
+   - GPS location
+
+**What You'll See:**
+- Real-time map of all connected devices
+- Color-coded indicators for signal strength
+- Battery status for each device
+- Distance estimation from your location
+
+#### 2. Emergency Contacts
+**Purpose**: Store and search emergency contact information
+
+**How to Use:**
+1. Navigate to the Emergency Contacts tab
+2. Tap "Add Emergency Contact"
+3. Fill in the required fields:
+   - Name
+   - Phone number
+   - Email
+   - Category (Doctor, Hospital, Rescue Team, etc.)
+   - Location
+   - Medical specialty (if applicable)
+4. Tap "Save"
+
+**Searching Contacts:**
+- Use the search bar to find contacts by name or location
+- Filter by category using the dropdown
+- Results update in real-time as you type
+
+#### 3. Medical Facilities
+**Purpose**: Locate nearby medical facilities
+
+**How to Use:**
+1. Navigate to the Medical Facilities tab
+2. Tap "Add Medical Facility" to add new facilities
+3. Enter facility details:
+   - Name
+   - GPS coordinates (auto-detected or manual)
+   - Type (Hospital, Clinic, First Aid, etc.)
+   - Phone number
+   - Address
+4. Tap "Save"
+
+**Finding Facilities:**
+- The map shows all medical facilities within range
+- Facilities are color-coded by type
+- Tap a facility marker for details
+- Distance is calculated from your current location
+
+#### 4. Shelters
+**Purpose**: Track emergency shelter locations and capacity
+
+**How to Use:**
+1. Navigate to the Shelters tab
+2. Tap "Add Shelter" to register a new shelter
+3. Enter shelter information:
+   - Name
+   - GPS coordinates
+   - Total capacity
+   - Current occupancy
+   - Phone number
+   - Address
+4. Tap "Save"
+
+**Monitoring Shelters:**
+- View real-time occupancy levels
+- Color indicators show capacity status:
+  - Green: Available space
+  - Yellow: Near capacity
+  - Red: Full capacity
+- Tap for detailed information
+
+#### 5. SOS Broadcasting
+**Purpose**: Send emergency distress signals through the mesh network
+
+**How to Use:**
+1. Tap the SOS button (red emergency icon)
+2. Confirm the SOS alert
+3. Your device will:
+   - Broadcast your GPS location
+   - Send emergency status to all nearby devices
+   - Update your role to "emergency" on the mesh map
+4. Keep the app open for continued broadcasting
+
+**What Happens:**
+- All nearby mesh nodes receive your SOS
+- Your location appears on their maps with emergency marker
+- Rescue teams can track your position in real-time
+- The signal continues until you cancel it
+
+#### Backend Sync
+**Purpose**: Synchronize data with a central backend server when available
+
+**How to Use:**
+1. Ensure backend URL is configured (use Auto-Discovery for easiest setup)
+2. Navigate to Settings > Protocols Tab
+3. Tap "Sync from Backend"
+4. The app will sync:
+   - Emergency contacts
+   - Medical facilities
+   - Shelters
+   - Discovered peers
+
+**Sync Status:**
+- Success message shows number of items synced
+- Errors are displayed if sync fails
+- Data is stored locally if backend is unavailable
+
+**Tip:** Use Auto-Discovery before syncing to ensure you're connected to the correct backend
+
+### Emergency Procedures
+   - Look for "MeshNet-Emergency" network
+   - Connect to the network
+
+2. **Open Emergency App**
+   - A "Sign in to network" popup should appear
+   - Tap the notification
+   - The MeshNet emergency page opens automatically
+
+3. **Send SOS**
+   - Enter your name (optional)
+   - Describe your situation briefly
+   - Tap "SEND SOS"
+   - Your GPS location is sent automatically
+
+4. **Stay Connected**
+   - Keep the emergency page open
+   - Your device acts as a relay for others
+   - Rescue teams can see your location
+
+#### For Rescue Teams
+1. **Set Up Rescue Hub**
+   - Launch MeshNet AI on desktop/laptop
+   - Click "Activate Hotspot"
+   - Create "MeshNet" WiFi network
+
+2. **Monitor Mesh Map**
+   - Watch for new devices appearing
+   - Check SOS alerts (red markers)
+   - Review victim messages and locations
+
+3. **Coordinate Response**
+   - Assign rescue teams to locations
+   - Track team positions on map
+   - Communicate via mesh messaging
+
+4. **Manage Resources**
+   - Update shelter occupancy
+   - Track medical facility status
+   - Coordinate with other rescue hubs
+
+### Troubleshooting
+
+#### App Won't Discover Peers
+**Possible Causes:**
+- Bluetooth disabled
+- Location services disabled
+- Permissions not granted
+
+**Solutions:**
+1. Enable Bluetooth in Settings
+2. Enable Location Services (High Accuracy mode)
+3. Check app permissions in Settings > Apps > MeshNet AI
+4. Restart the app
+5. Restart Bluetooth (toggle off/on)
+
+#### SOS Not Sending
+**Possible Causes:**
+- GPS not enabled
+- No mesh peers in range
+- Network configuration issue
+
+**Solutions:**
+1. Enable GPS/Location services
+2. Check if other devices are visible on mesh map
+3. Verify backend URL configuration
+4. Try switching network modes
+5. Restart the app
+
+#### Data Not Persisting
+**Expected Behavior:**
+- The app uses in-memory storage for offline operation
+- Data persists during app session but is lost on restart
+- This is intentional for the current version
+
+**For Persistent Storage:**
+- Use backend sync when available
+- Data will persist on the backend server
+- Sync regularly to maintain data
+
+#### Hotspot Issues
+**Android 11+ Limitation:**
+- System apps can create hotspots automatically
+- Regular apps require manual hotspot creation
+
+**Workaround:**
+1. Go to Android Settings > Network & Internet > Hotspot & Tethering
+2. Manually create a hotspot named "MeshNet-Emergency"
+3. The app will connect to this hotspot
+
+#### Battery Drain
+**Expected Behavior:**
+- BLE scanning and WiFi use more battery
+- Emergency mode maximizes discovery
+
+**Solutions:**
+1. Reduce mesh discovery frequency in settings
+2. Use power saving mode when not in emergency
+3. Keep device plugged in during extended operations
+4. Close other background apps
+
+### Best Practices
+
+#### For Emergency Use
+1. **Pre-Configure Before Disaster**
+   - Install and test the app beforehand
+   - Grant all permissions
+   - Configure backend URL if available
+   - Add emergency contacts
+
+2. **Keep App Updated**
+   - Regularly check for updates
+   - New versions may have critical fixes
+   - Update before deployment in field
+
+3. **Battery Management**
+   - Carry portable chargers
+   - Use power saving mode when possible
+   - Close unnecessary apps
+   - Keep screen brightness low
+
+4. **Network Testing**
+   - Test mesh discovery with nearby devices
+   - Verify SOS functionality
+   - Practice emergency procedures
+
+#### For Rescue Operations
+1. **Hub Placement**
+   - Place rescue hub in central location
+   - Ensure good WiFi coverage
+   - Use multiple hubs for large areas
+   - Consider terrain and obstacles
+
+2. **Team Coordination**
+   - Assign clear roles to team members
+   - Establish communication protocols
+   - Regular sync intervals
+   - Backup communication methods
+
+3. **Data Management**
+   - Sync data regularly when backend available
+   - Keep records of operations
+   - Document discovered victims
+   - Track resource usage
+
+4. **Safety First**
+   - Never put rescuers at risk
+   - Use mesh for coordination only
+   - Maintain traditional communication backup
+   - Follow standard emergency protocols
+
+#### For Network Configuration
+1. **Choose Right Mode**
+   - Use Auto mode for most scenarios
+   - Bluetooth mode for desktop connection
+   - Manual mode for same-network setups
+
+2. **IP Configuration**
+   - Use local network IPs (192.168.x.x)
+   - Avoid public IPs
+   - Test connectivity before operations
+   - Document network topology
+
+3. **Backend Setup**
+   - Ensure backend is accessible
+   - Test API endpoints
+   - Monitor backend logs
+   - Have backup backend ready
+
+### Technical Support
+
+**For Issues or Questions:**
+- GitHub Issues: https://github.com/kingdavid28/MeshNet-AI/issues
+- Check existing issues for solutions
+- Provide detailed error logs
+- Include device model and Android version
+
+**Emergency Contact:**
+- For critical deployment issues, contact the development team
+- Include "URGENT" in issue title
+- Provide phone number for immediate response
+
+---
+
+
 
 ### Secondary: Desktop (Rescue Hub)
 For desktop-based rescue operations, run the Electron app:

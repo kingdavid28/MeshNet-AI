@@ -70,6 +70,13 @@ class SQLiteService {
   private db: SQLiteDBConnection | null = null;
   private initialized: boolean = false;
   private readonly nodes: Map<string, MeshNode> = new Map();
+  private useInMemory: boolean = false;
+  
+  // In-memory storage fallback
+  private emergencyContacts: Map<string, EmergencyContact> = new Map();
+  private medicalFacilities: Map<string, MedicalFacility> = new Map();
+  private shelters: Map<string, Shelter> = new Map();
+  private discoveredPeers: Map<string, DiscoveredPeer> = new Map();
 
   constructor() {
     this.sqlite = new SQLiteConnection(CapacitorSQLite);
@@ -85,6 +92,7 @@ class SQLiteService {
     // On web, use in-memory fallback
     if (!Capacitor.isNativePlatform()) {
       console.log('[SQLiteService] Web platform detected, using in-memory fallback');
+      this.useInMemory = true;
       this.initialized = true;
       return;
     }
@@ -97,6 +105,7 @@ class SQLiteService {
       if (!CapacitorSQLite) {
         console.error('[SQLiteService] CapacitorSQLite plugin is not available, using in-memory fallback');
         console.warn('[SQLiteService] SQLite features will be limited. Data will not persist across app restarts.');
+        this.useInMemory = true;
         this.initialized = true;
         return;
       }
@@ -125,12 +134,14 @@ class SQLiteService {
       } catch (dbError) {
         console.error('[SQLiteService] Database operation failed:', dbError);
         console.warn('[SQLiteService] Falling back to in-memory mode. Data will not persist across app restarts.');
+        this.useInMemory = true;
         this.initialized = true;
       }
     } catch (error) {
       console.error('[SQLiteService] Failed to initialize database:', error);
       console.warn('[SQLiteService] Falling back to in-memory mode. Data will not persist across app restarts.');
       // Don't throw error - allow app to run in degraded mode
+      this.useInMemory = true;
       this.initialized = true;
     }
   }
@@ -220,9 +231,10 @@ class SQLiteService {
 
   // Emergency Contact Operations
   async addEmergencyContact(contact: EmergencyContact): Promise<boolean> {
-    if (!this.db) {
-      console.error('[SQLiteService] addEmergencyContact: Database not initialized');
-      return false;
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] addEmergencyContact: Using in-memory storage');
+      this.emergencyContacts.set(contact.id, contact);
+      return true;
     }
 
     try {
@@ -238,7 +250,24 @@ class SQLiteService {
   }
 
   async searchEmergencyContacts(query: string = '', category: string = ''): Promise<EmergencyContact[]> {
-    if (!this.db) return [];
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] searchEmergencyContacts: Using in-memory storage');
+      let results = Array.from(this.emergencyContacts.values());
+      
+      if (query) {
+        const lowerQuery = query.toLowerCase();
+        results = results.filter(c => 
+          c.name.toLowerCase().includes(lowerQuery) || 
+          c.location.toLowerCase().includes(lowerQuery)
+        );
+      }
+      
+      if (category) {
+        results = results.filter(c => c.category === category);
+      }
+      
+      return results;
+    }
 
     let sql = 'SELECT * FROM emergency_contacts';
     const params: any[] = [];
@@ -260,9 +289,10 @@ class SQLiteService {
 
   // Medical Facilities Operations
   async addMedicalFacility(facility: MedicalFacility): Promise<boolean> {
-    if (!this.db) {
-      console.error('[SQLiteService] addMedicalFacility: Database not initialized');
-      return false;
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] addMedicalFacility: Using in-memory storage');
+      this.medicalFacilities.set(facility.id, facility);
+      return true;
     }
 
     try {
@@ -278,7 +308,13 @@ class SQLiteService {
   }
 
   async getMedicalFacilities(lat: number = 0, lng: number = 0, radius: number = 10): Promise<(MedicalFacility & { distance: number })[]> {
-    if (!this.db) return [];
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] getMedicalFacilities: Using in-memory storage');
+      return Array.from(this.medicalFacilities.values()).map(fac => {
+        const distance = Math.sqrt(Math.pow(fac.lat - lat, 2) + Math.pow(fac.lng - lng, 2));
+        return { ...fac, distance };
+      }).filter(fac => fac.distance <= radius);
+    }
 
     const facilities = await this.db.query('SELECT * FROM medical_facilities');
     
@@ -290,9 +326,10 @@ class SQLiteService {
 
   // Shelters Operations
   async addShelter(shelter: Shelter): Promise<boolean> {
-    if (!this.db) {
-      console.error('[SQLiteService] addShelter: Database not initialized');
-      return false;
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] addShelter: Using in-memory storage');
+      this.shelters.set(shelter.id, shelter);
+      return true;
     }
 
     try {
@@ -308,7 +345,13 @@ class SQLiteService {
   }
 
   async getShelters(lat: number = 0, lng: number = 0, radius: number = 10): Promise<(Shelter & { distance: number })[]> {
-    if (!this.db) return [];
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] getShelters: Using in-memory storage');
+      return Array.from(this.shelters.values()).map(shelter => {
+        const distance = Math.sqrt(Math.pow(shelter.lat - lat, 2) + Math.pow(shelter.lng - lng, 2));
+        return { ...shelter, distance };
+      }).filter(shelter => shelter.distance <= radius);
+    }
 
     const shelters = await this.db.query('SELECT * FROM shelters');
     
@@ -320,9 +363,10 @@ class SQLiteService {
 
   // Discovered Peers Operations
   async addDiscoveredPeer(peer: DiscoveredPeer): Promise<boolean> {
-    if (!this.db) {
-      console.error('[SQLiteService] addDiscoveredPeer: Database not initialized');
-      return false;
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] addDiscoveredPeer: Using in-memory storage');
+      this.discoveredPeers.set(peer.nodeId, peer);
+      return true;
     }
 
     try {
@@ -338,7 +382,10 @@ class SQLiteService {
   }
 
   async getDiscoveredPeers(): Promise<DiscoveredPeer[]> {
-    if (!this.db) return [];
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] getDiscoveredPeers: Using in-memory storage');
+      return Array.from(this.discoveredPeers.values());
+    }
 
     const result = await this.db.query('SELECT * FROM discovered_peers');
     return (result.values || []).map((row: any) => ({
@@ -355,7 +402,16 @@ class SQLiteService {
   }
 
   async updateDiscoveredPeer(nodeId: string, updates: Partial<DiscoveredPeer>): Promise<boolean> {
-    if (!this.db) return false;
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] updateDiscoveredPeer: Using in-memory storage');
+      const existing = this.discoveredPeers.get(nodeId);
+      if (existing) {
+        const updated = { ...existing, ...updates, lastSeen: Date.now() };
+        this.discoveredPeers.set(nodeId, updated);
+        return true;
+      }
+      return false;
+    }
 
     try {
       const setClause = Object.entries(updates)
@@ -379,7 +435,18 @@ class SQLiteService {
   }
 
   async cleanupOldPeers(maxAgeMs: number = 3600000): Promise<number> {
-    if (!this.db) return 0;
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] cleanupOldPeers: Using in-memory storage');
+      const cutoff = Date.now() - maxAgeMs;
+      let count = 0;
+      for (const [nodeId, peer] of this.discoveredPeers.entries()) {
+        if (peer.lastSeen < cutoff) {
+          this.discoveredPeers.delete(nodeId);
+          count++;
+        }
+      }
+      return count;
+    }
 
     try {
       const cutoff = Date.now() - maxAgeMs;
@@ -395,8 +462,8 @@ class SQLiteService {
 
   // Backend Sync Operations
   async syncFromBackend(apiBase: string): Promise<{ success: boolean; synced: number; errors: string[] }> {
-    if (!this.db) {
-      return { success: false, synced: 0, errors: ['Database not initialized'] };
+    if (this.useInMemory || !this.db) {
+      console.log('[SQLiteService] syncFromBackend: Using in-memory storage');
     }
 
     const errors: string[] = [];

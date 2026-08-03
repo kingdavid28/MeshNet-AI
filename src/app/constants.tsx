@@ -24,7 +24,32 @@ export function meshHeaders(extra?: Record<string, string>): HeadersInit {
   };
 }
 
-export const MESSAGES: AppMessage[] = []; // Production mode - no mock data
+export const MESSAGES: AppMessage[] = [
+  {
+    id: "1",
+    from: "Command Center",
+    text: "Emergency response team deployed to Sector 4",
+    time: "08:30",
+    type: "info",
+    read: false,
+  },
+  {
+    id: "2", 
+    from: "Medical Unit",
+    text: "🏥 MEDICAL EMERGENCY · 3 patients need transport · GPS 14.5602°N 121.0234°E",
+    time: "08:15",
+    type: "medical",
+    read: false,
+  },
+  {
+    id: "3",
+    from: "Node-Alpha",
+    text: "✅ I AM SAFE · All personnel accounted for",
+    time: "08:00",
+    type: "info",
+    read: true,
+  },
+]; // Demo messages for testing
 
 export const msgTypeStyle: Record<string, string> = {
   alert: "border-l-[#EF4444] bg-[#EF4444]/10",

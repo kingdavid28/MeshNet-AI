@@ -878,6 +878,15 @@ class MeshDiscoveryPlugin : Plugin() {
             knownPeers[nodeId] = System.currentTimeMillis()
             bleVerifiedAddresses[nodeId] = deviceAddr
 
+            // Report edge to backend if available
+            if (apiBase.isNotBlank()) {
+                val quality = rssiToPercent(rssi)
+                scope.launch {
+                    postEdge(selfNodeId, nodeId, "BLE", quality)
+                    Log.i(TAG, "Reported BLE edge: $selfNodeId <-> $nodeId (quality: $quality%)")
+                }
+            }
+
             // Emit peer discovered event to JavaScript
             val peerData = JSObject().apply {
                 put("nodeId", nodeId)

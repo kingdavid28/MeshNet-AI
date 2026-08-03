@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Clock } from "lucide-react";
 import { encryptMessage, decryptMessage } from "../hooks/useMeshCrypto";
-import { API_BASE, meshHeaders, ALERT_LABEL, ALERT_MSG_CATEGORY, msgTypeStyle, msgTypeIcon } from "../constants";
+import { API_BASE, meshHeaders, ALERT_LABEL, ALERT_MSG_CATEGORY, msgTypeStyle, msgTypeIcon, MESSAGES } from "../constants";
 import type { LocalMessage } from "../types";
 
 export function CommsTab() {
   const [input, setInput] = useState("");
-  const [msgs, setMsgs] = useState<LocalMessage[]>([]);
+  const [msgs, setMsgs] = useState<LocalMessage[]>(MESSAGES as LocalMessage[]);
   const [sending, setSending] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const seenIds = useRef<Set<string>>(new Set());
 
   // Poll backend for incoming messages every 5 s and decrypt them
@@ -16,6 +17,7 @@ export function CommsTab() {
 
     async function fetchIncoming() {
       const incoming: LocalMessage[] = [];
+      let backendAvailable = false;
 
       // 1. Poll encrypted mesh messages
       try {
@@ -27,6 +29,7 @@ export function CommsTab() {
           signal: AbortSignal.timeout(6_000),
         });
         if (res.ok) {
+          backendAvailable = true;
           const data = (await res.json()) as Array<{
             id: string; fromLabel: string; ciphertext: string;
             category: string; createdAt: string; fromNodeId: string;
@@ -55,6 +58,7 @@ export function CommsTab() {
           signal: AbortSignal.timeout(6_000),
         });
         if (aRes.ok) {
+          backendAvailable = true;
           const alerts = (await aRes.json()) as Array<{
             id: string; type: string; fromLabel: string; fromNodeId: string;
             message?: string; lat?: number; lng?: number;
@@ -81,6 +85,8 @@ export function CommsTab() {
           }
         }
       } catch { /* offline */ }
+
+      setIsOffline(!backendAvailable);
 
       if (incoming.length > 0) {
         incoming.sort((x, y) => x.time.localeCompare(y.time));
@@ -140,13 +146,24 @@ export function CommsTab() {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 pb-2">
-        <h2
-          className="text-lg font-bold text-[#E8EEF7] uppercase tracking-widest"
-          style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-        >
-          Mesh Comms
-        </h2>
-        <p className="text-xs text-[#7B9CC4]">Encrypted · offline · peer-to-peer</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2
+              className="text-lg font-bold text-[#E8EEF7] uppercase tracking-widest"
+              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
+            >
+              Mesh Comms
+            </h2>
+            <p className="text-xs text-[#7B9CC4]">
+              Encrypted · {isOffline ? "offline (demo mode)" : "live"} · peer-to-peer
+            </p>
+          </div>
+          {isOffline && (
+            <div className="px-2 py-1 rounded bg-[#F97316]/20 border border-[#F97316]/30">
+              <span className="text-[10px] font-mono text-[#F97316] uppercase">Demo Mode</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-3">

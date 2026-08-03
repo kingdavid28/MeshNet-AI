@@ -2,103 +2,255 @@
 
 <MeshNetRootWidget>:
     orientation: 'vertical'
-    padding: dp(10)
-    spacing: dp(10)
+    padding: dp(16)
+    spacing: dp(16)
     
-    # Header
+    # Modern gradient background
+    canvas.before:
+        Color:
+            rgba: 0.05, 0.05, 0.1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    # Header with modern card styling
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: dp(60)
-        spacing: dp(10)
+        height: dp(70)
+        spacing: dp(12)
+        padding: dp(16)
+        canvas.before:
+            Color:
+                rgba: 0.15, 0.15, 0.25, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(16), dp(16), dp(16), dp(16)]
+            Color:
+                rgba: 0.1, 0.5, 0.5, 0.3
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(16), dp(16), dp(16), dp(16)]
         
         Label:
             text: 'MeshNet-AI'
-            font_size: dp(24)
+            font_size: dp(28)
             bold: True
-            color: 0, 0.8, 0.8, 1
+            color: 0, 0.9, 0.9, 1
             size_hint_x: 0.7
+            markup: True
         
         Label:
-            text: 'Offline Emergency Mesh'
-            font_size: dp(14)
-            color: 0.7, 0.7, 0.7, 1
+            text: '[color=#88ccff]●[/color] Offline Emergency Mesh'
+            font_size: dp(13)
+            color: 0.6, 0.7, 0.8, 1
             size_hint_x: 0.3
             halign: 'right'
+            markup: True
     
-    # Status bar
+    # Modern status bar with cards
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: dp(40)
-        spacing: dp(10)
-        canvas.before:
-            Color:
-                rgba: 0.1, 0.1, 0.15, 1
-            Rectangle:
-                pos: self.pos
-                size: self.size
+        height: dp(50)
+        spacing: dp(8)
         
-        Label:
-            text: 'BLE: Active'
-            font_size: dp(12)
-            color: 0.2, 0.8, 0.2, 1
+        # BLE Status Card
+        BoxLayout:
+            orientation: 'horizontal'
             size_hint_x: 0.33
+            padding: dp(8)
+            spacing: dp(8)
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.35, 0.25, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
+            
+            Label:
+                text: '●'
+                font_size: dp(20)
+                color: 0.4, 1, 0.6, 1
+                size_hint_x: 0.2
+                halign: 'center'
+            
+            Label:
+                text: 'BLE'
+                font_size: dp(13)
+                bold: True
+                color: 0.9, 0.9, 0.9, 1
+                size_hint_x: 0.8
+                valign: 'middle'
         
-        Label:
-            text: 'Nodes: 0'
-            font_size: dp(12)
-            color: 0.7, 0.7, 0.7, 1
+        # Nodes Card
+        BoxLayout:
+            orientation: 'horizontal'
             size_hint_x: 0.33
+            padding: dp(8)
+            spacing: dp(8)
+            canvas.before:
+                Color:
+                    rgba: 0.15, 0.15, 0.25, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
+            
+            Label:
+                text: '○'
+                font_size: dp(20)
+                color: 0.6, 0.7, 0.8, 1
+                size_hint_x: 0.2
+                halign: 'center'
+            
+            Label:
+                text: '0 Nodes'
+                font_size: dp(13)
+                bold: True
+                color: 0.7, 0.8, 0.9, 1
+                size_hint_x: 0.8
+                valign: 'middle'
         
-        Label:
-            text: 'WiFi: Ready'
-            font_size: dp(12)
-            color: 0.7, 0.7, 0.7, 1
+        # WiFi Card
+        BoxLayout:
+            orientation: 'horizontal'
             size_hint_x: 0.33
+            padding: dp(8)
+            spacing: dp(8)
+            canvas.before:
+                Color:
+                    rgba: 0.15, 0.15, 0.25, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
+            
+            Label:
+                text: '●'
+                font_size: dp(20)
+                color: 0.4, 0.8, 1, 1
+                size_hint_x: 0.2
+                halign: 'center'
+            
+            Label:
+                text: 'WiFi'
+                font_size: dp(13)
+                bold: True
+                color: 0.7, 0.8, 0.9, 1
+                size_hint_x: 0.8
+                valign: 'middle'
     
-    # Main content area
+    # Main content area with modern card
     BoxLayout:
         orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(12)
+        canvas.before:
+            Color:
+                rgba: 0.1, 0.1, 0.18, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(20), dp(20), dp(20), dp(20)]
         
         Label:
             text: 'Mesh Network Map'
-            font_size: dp(18)
+            font_size: dp(20)
             bold: True
+            color: 0.8, 0.9, 1, 1
             size_hint_y: None
-            height: dp(40)
+            height: dp(35)
         
-        # Map placeholder
+        # Modern map placeholder with gradient
         BoxLayout:
             canvas.before:
                 Color:
-                    rgba: 0.05, 0.05, 0.1, 1
-                Rectangle:
+                    rgba: 0.08, 0.08, 0.15, 1
+                RoundedRectangle:
                     pos: self.pos
                     size: self.size
+                    radius: [dp(16), dp(16), dp(16), dp(16)]
+                Color:
+                    rgba: 0.1, 0.3, 0.4, 0.2
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(16), dp(16), dp(16), dp(16)]
             
             Label:
-                text: 'Map View\\n(Topology Visualization)'
+                text: '[color=#6688aa]🌐[/color]\\n[color=#88aacc]Topology Visualization[/color]\\n[color=#556677]No active nodes[/color]'
                 font_size: dp(16)
-                color: 0.5, 0.5, 0.5, 1
+                color: 0.5, 0.6, 0.7, 1
                 halign: 'center'
+                markup: True
     
-    # Quick actions
+    # Modern action buttons with elevation
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: dp(60)
-        spacing: dp(10)
+        height: dp(70)
+        spacing: dp(12)
         
+        # SOS Button with gradient
         Button:
-            text: 'SOS'
-            font_size: dp(16)
+            text: '[color=#ffffff]🆘 SOS[/color]'
+            font_size: dp(18)
             bold: True
-            background_color: 1, 0.3, 0.3, 1
+            markup: True
             size_hint_x: 0.5
+            background_normal: ''
+            background_down: ''
+            canvas.before:
+                Color:
+                    rgba: 0.9, 0.2, 0.2, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(16), dp(16), dp(16), dp(16)]
+                Color:
+                    rgba: 1, 0.4, 0.4, 0.3
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(16), dp(16), dp(16), dp(16)]
+            canvas.after:
+                Color:
+                    rgba: 0, 0, 0, 0.2
+                RoundedRectangle:
+                    pos: [self.x + dp(4), self.y + dp(4)]
+                    size: [self.width - dp(8), self.height - dp(8)]
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
         
+        # Scan Button with gradient
         Button:
-            text: 'Scan'
-            font_size: dp(16)
-            background_color: 0.2, 0.6, 0.8, 1
+            text: '[color=#ffffff]🔍 Scan[/color]'
+            font_size: dp(18)
+            bold: True
+            markup: True
             size_hint_x: 0.5
+            background_normal: ''
+            background_down: ''
+            canvas.before:
+                Color:
+                    rgba: 0.2, 0.6, 0.9, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(16), dp(16), dp(16), dp(16)]
+                Color:
+                    rgba: 0.4, 0.8, 1, 0.3
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(16), dp(16), dp(16), dp(16)]
+            canvas.after:
+                Color:
+                    rgba: 0, 0, 0, 0.2
+                RoundedRectangle:
+                    pos: [self.x + dp(4), self.y + dp(4)]
+                    size: [self.width - dp(8), self.height - dp(8)]
+                    radius: [dp(12), dp(12), dp(12), dp(12)]

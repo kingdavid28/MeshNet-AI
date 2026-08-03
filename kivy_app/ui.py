@@ -26,40 +26,43 @@ Builder.load_string('''
     orientation: 'vertical'
     size_hint_y: None
     height: self.minimum_height
-    padding: dp(10)
-    spacing: dp(8)
+    padding: dp(16)
+    spacing: dp(12)
     
     canvas.before:
         Color:
-            rgba: 0.95, 0.95, 0.97, 1
-        Rectangle:
+            rgba: 0.12, 0.12, 0.2, 1
+        RoundedRectangle:
             pos: self.pos
             size: self.size
+            radius: [dp(16), dp(16), dp(16), dp(16)]
         Color:
-            rgba: 0.8, 0.8, 0.9, 1
-        Line:
-            rectangle: self.x, self.y, self.width, self.height
-            width: 1
+            rgba: 0.2, 0.4, 0.6, 0.15
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(16), dp(16), dp(16), dp(16)]
     
     Label:
         text: 'Backend Connection'
-        font_size: dp(16)
+        font_size: dp(18)
         bold: True
         size_hint_y: None
-        height: dp(30)
-        color: 0.2, 0.2, 0.3, 1
+        height: dp(35)
+        color: 0.8, 0.9, 1, 1
     
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: dp(40)
-        spacing: dp(8)
+        height: dp(45)
+        spacing: dp(10)
         
         Label:
-            text: 'URL:'
+            text: 'URL'
             size_hint_x: 0.2
             font_size: dp(14)
-            color: 0.4, 0.4, 0.5, 1
+            color: 0.6, 0.7, 0.8, 1
+            bold: True
         
         BackendUrlInput:
             id: url_input
@@ -73,52 +76,93 @@ Builder.load_string('''
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: dp(40)
-        spacing: dp(8)
+        height: dp(50)
+        spacing: dp(10)
         
         Button:
             text: 'Connect'
             size_hint_x: 0.5
-            font_size: dp(14)
-            background_color: 0.2, 0.6, 0.8, 1
+            font_size: dp(15)
+            bold: True
+            background_normal: ''
+            background_down: ''
             on_press: root.on_connect_pressed()
             disabled: root.is_connecting
+            canvas.before:
+                Color:
+                    rgba: 0.2, 0.6, 0.9, 1 if not root.is_connecting else 0.3, 0.3, 0.4, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
+                Color:
+                    rgba: 0.4, 0.8, 1, 0.3 if not root.is_connecting else 0, 0, 0, 0
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
         
         Button:
             text: 'Retry'
             size_hint_x: 0.5
-            font_size: dp(14)
-            background_color: 0.8, 0.6, 0.2, 1
+            font_size: dp(15)
+            bold: True
+            background_normal: ''
+            background_down: ''
             on_press: root.on_retry_pressed()
             disabled: root.is_connecting
+            canvas.before:
+                Color:
+                    rgba: 0.8, 0.6, 0.2, 1 if not root.is_connecting else 0.3, 0.3, 0.4, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
+                Color:
+                    rgba: 1, 0.8, 0.4, 0.3 if not root.is_connecting else 0, 0, 0, 0
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12), dp(12), dp(12), dp(12)]
     
     StatusLabel:
         id: status_label
         text: root.status_text
         size_hint_y: None
-        height: dp(25)
-        font_size: dp(12)
-        color: 0.3, 0.3, 0.4, 1
+        height: dp(30)
+        font_size: dp(13)
+        color: 0.7, 0.8, 0.9, 1
 
 <BackendUrlInput>:
     multiline: False
     background_normal: ''
     background_active: ''
+    foreground_color: 0.9, 0.9, 1, 1
+    hint_text_color: 0.5, 0.5, 0.6, 1
     canvas.before:
         Color:
-            rgba: 1, 1, 1, 1
-        Rectangle:
+            rgba: 0.08, 0.08, 0.15, 1
+        RoundedRectangle:
             pos: self.pos
             size: self.size
+            radius: [dp(8), dp(8), dp(8), dp(8)]
         Color:
-            rgba: 0.7, 0.7, 0.8, 1
+            rgba: 0.3, 0.5, 0.7, 0.5
         Line:
             rectangle: self.x, self.y, self.width, self.height
-            width: 1
+            width: 1.5
+            rounded_rectangle: [self.x, self.y, self.width, self.height, dp(8), dp(8), dp(8), dp(8)]
 
 <StatusLabel>:
     halign: 'left'
     valign: 'middle'
+    canvas.before:
+        Color:
+            rgba: 0.05, 0.05, 0.1, 1
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(8), dp(8), dp(8), dp(8)]
 ''')
 
 
