@@ -262,54 +262,6 @@ export default function App() {
                 <EmergencyQuickStart />
               </div>
 
-              {/* Network Discovery Status - Only in Home tab */}
-              {!backend && !isElectron && (
-                <div className="mx-4 mt-3 p-3 rounded-lg bg-[#3B82F6]/10 border border-[#3B82F6]/30 flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    {discovering ? (
-                      <RefreshCw size={18} className="text-[#3B82F6] shrink-0 animate-spin" />
-                    ) : (
-                      <Wifi size={18} className="text-[#3B82F6] shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-[#E8EEF7]">
-                        {discovering ? 'Discovering MeshNet...' : 'No MeshNet Found'}
-                      </div>
-                      <div className="text-[10px] text-[#7B9CC4]">
-                        {discovering ? 'Scanning local network...' : error || 'Connect to Wi-Fi hotspot'}
-                      </div>
-                    </div>
-                    {!discovering && (
-                      <button
-                        onClick={rediscover}
-                        className="px-3 py-1.5 rounded bg-[#3B82F6] text-white text-xs font-semibold"
-                      >
-                        Retry
-                      </button>
-                    )}
-                  </div>
-                  {/* Manual URL Configuration */}
-                  {!discovering && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <input
-                        type="text"
-                        placeholder="http://192.168.x.x:4000"
-                        value={manualUrl}
-                        onChange={(e) => setManualBackendUrl(e.target.value)}
-                        className="flex-1 px-2 py-1 rounded bg-[#0F172A] border border-[#3B82F6]/30 text-[10px] text-white placeholder-[#7B9CC4] focus:outline-none focus:border-[#3B82F6]"
-                      />
-                      <button
-                        onClick={rediscover}
-                        disabled={!manualUrl}
-                        className="px-2 py-1 rounded bg-[#22C55E] disabled:bg-gray-700 disabled:text-gray-500 text-white text-[10px] font-semibold"
-                      >
-                        Connect
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Mesh Network Status - Only in Home tab */}
               {meshNetwork.isInitialized && (
                 <div className="mx-4 mt-3 p-3 rounded-lg bg-[#8B5CF6]/10 border border-[#8B5CF6]/30">
