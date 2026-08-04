@@ -1115,7 +1115,7 @@ class MeshDiscoveryPlugin : Plugin() {
             }.toString()
             httpPatch(url, body)
         } catch (e: Exception) {
-            Log.d(TAG, "Heartbeat failed: ${e.message}")
+            Log.e(TAG, "Heartbeat failed: ${e.message}", e)
         }
     }
 
@@ -1169,7 +1169,7 @@ class MeshDiscoveryPlugin : Plugin() {
             }.toString()
             httpPost(url, body)
         } catch (e: Exception) {
-            Log.d(TAG, "postEdge failed: ${e.message}")
+            Log.e(TAG, "postEdge failed: ${e.message}", e)
         }
     }
 

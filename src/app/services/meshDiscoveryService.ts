@@ -44,7 +44,7 @@ class MeshDiscoveryService {
     this.label = 'You';
     this.battery = 80;
     this.signal = 75;
-    this.apiBase = 'http://localhost:4000';
+    this.apiBase = '';
     this.heartbeatIntervalMs = 5000;
   }
 

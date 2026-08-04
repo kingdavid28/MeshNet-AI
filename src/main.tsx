@@ -1,4 +1,12 @@
-console.log('[Main] Script loading - main.tsx executing');
+import { Capacitor } from '@capacitor/core';
+
+// On native, suppress debug/info/log console output to keep logcat clean.
+// Only console.warn and console.error will be forwarded from the WebView.
+if (Capacitor.isNativePlatform()) {
+  console.debug = () => {};
+  console.log = () => {};
+  console.info = () => {};
+}
 
 import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
