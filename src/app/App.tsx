@@ -7,7 +7,6 @@ import { AlertTab } from "./components/AlertTab";
 import { MapTab } from "./components/MapTab";
 import { CommsTab } from "./components/CommsTab";
 import { ProtocolsTab } from "./components/ProtocolsTab";
-import { BLEScanner } from "../components/BLEScanner";
 import EmergencyQuickStart from "./components/EmergencyQuickStart";
 import { useCloudantNodes } from "./hooks/useCloudantNodes";
 import { useNetworkDiscovery } from "./hooks/useNetworkDiscovery";
@@ -283,13 +282,6 @@ export default function App() {
                       {meshDiscovery.peers.length > 0 && ` (${meshDiscovery.peers.length} peers)`}
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* BLE Scanner for credential exchange - Only in Home tab */}
-              {!backend && !isElectron && (
-                <div className="mx-4 mt-3">
-                  <BLEScanner />
                 </div>
               )}
 

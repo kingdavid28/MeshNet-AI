@@ -137,12 +137,6 @@ export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isMeshActive ? 'bg-[#22C55E] animate-pulse' : 'bg-[#4B5563]'}`} />
-            <span
-              className={`text-xs font-medium uppercase tracking-widest ${isMeshActive ? 'text-[#22C55E]' : 'text-[#4B5563]'}`}
-              style={{ fontFamily: "Barlow Condensed, sans-serif" }}
-            >
-              {isMeshActive ? 'Mesh Active' : 'Mesh Standby'}
-            </span>
           </div>
           <span className="text-xs font-mono text-[#7B9CC4]">{onlineNodes.length} nodes online</span>
         </div>
