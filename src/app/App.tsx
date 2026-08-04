@@ -17,6 +17,27 @@ import { useDeviceLocation } from "./hooks/useDeviceLocation";
 import { NAV, MESSAGES } from "./constants";
 import type { Tab } from "./types";
 
+const NODE_ID_KEY = 'meshNodeId';
+
+const getOrCreateNodeId = (): string => {
+  try {
+    const stored = localStorage.getItem(NODE_ID_KEY);
+    if (stored) return stored;
+  } catch {
+    // localStorage may be unavailable in some contexts
+  }
+
+  const id = `node-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+  try {
+    localStorage.setItem(NODE_ID_KEY, id);
+  } catch {
+    // ignore
+  }
+
+  return id;
+};
+
 export default function App() {
   const [tab, setTab] = useState<Tab>("home");
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
@@ -26,9 +47,12 @@ export default function App() {
   
   // Get device location for mesh discovery
   const deviceLocation = useDeviceLocation();
+
+  // Stable, unique node ID per install
+  const [nodeId] = useState(() => getOrCreateNodeId());
   
   // Initialize mesh network
-  const meshNetwork = useMeshNetwork('node-1');
+  const meshNetwork = useMeshNetwork(nodeId);
 
   // Handle URL parameters for PWA shortcuts
   useEffect(() => {
@@ -93,7 +117,7 @@ export default function App() {
   // Initialize BLE mesh discovery for native platforms (only on mobile)
   // Must be called before conditional return to avoid hooks order violation
   const meshDiscovery = useMeshDiscovery({
-    nodeId: 'node-1',
+    nodeId,
     label: 'MeshNet Device',
     battery: 100,
     signal: 80,
