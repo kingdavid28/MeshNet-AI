@@ -182,7 +182,12 @@ class MeshDiscoveryService {
         this.notifyListeners();
       });
 
-      this.eventListeners.push(peerSub, statusSub, errorSub);
+      const msgSub = await MeshDiscovery.addListener('peerMessage', (event) => {
+        console.warn('[MeshDiscoveryService] Message received from peer:', event);
+        window.dispatchEvent(new CustomEvent('meshPeerMessage', { detail: event }));
+      });
+
+      this.eventListeners.push(peerSub, statusSub, errorSub, msgSub);
       this.isInitialized = true;
 
     } catch (error) {
@@ -222,6 +227,20 @@ class MeshDiscoveryService {
 
   async reRegister() {
     await this.registerSelf();
+  }
+
+  async broadcastMessage(message: string): Promise<void> {
+    if (!this.state.isNative) {
+      console.warn('[MeshDiscoveryService] Cannot broadcast: not native');
+      return;
+    }
+    try {
+      await MeshDiscovery.broadcastMessage({ message });
+      console.log('[MeshDiscoveryService] Broadcast sent');
+    } catch (error) {
+      console.error('[MeshDiscoveryService] Broadcast failed:', error);
+      throw error;
+    }
   }
 
   private updatePeers(currentPeers: DiscoveredPeer[], newPeer: any): DiscoveredPeer[] {

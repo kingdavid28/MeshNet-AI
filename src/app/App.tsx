@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Radio, Wifi, Download, RefreshCw, Network } from "lucide-react";
 import DashboardLayout from "./components/DashboardLayout";
 import { StatusBar } from "./components/StatusBar";
@@ -13,6 +14,7 @@ import { useNetworkDiscovery } from "./hooks/useNetworkDiscovery";
 import { useEmergencyMode } from "./hooks/useEmergencyMode";
 import { useMeshNetwork } from "./hooks/useMeshNetwork";
 import { useMeshDiscovery } from "./hooks/useMeshDiscovery";
+import { meshDiscoveryService } from "./services/meshDiscoveryService";
 import { useDeviceLocation } from "./hooks/useDeviceLocation";
 import { NAV, MESSAGES } from "./constants";
 import type { Tab } from "./types";
@@ -53,6 +55,33 @@ export default function App() {
   
   // Initialize mesh network
   const meshNetwork = useMeshNetwork(nodeId);
+
+  // Wrapper that stores the message and, on native, broadcasts over BLE
+  const sendMeshBroadcast = useCallback(async (
+    destination: string,
+    message: any,
+    priority: 'emergency' | 'high' | 'normal' | 'low' = 'normal'
+  ): Promise<string | null> => {
+    const messageId = await meshNetwork.sendMessage(destination, message, priority);
+
+    if (messageId && Capacitor.isNativePlatform() && destination === 'broadcast') {
+      try {
+        const payload = JSON.stringify({
+          id: messageId,
+          source: nodeId,
+          destination,
+          priority,
+          timestamp: Date.now(),
+          payload: message
+        });
+        meshDiscoveryService.broadcastMessage(payload);
+      } catch (error) {
+        console.warn('[App] Native broadcast failed:', error);
+      }
+    }
+
+    return messageId;
+  }, [meshNetwork, nodeId]);
 
   // Handle URL parameters for PWA shortcuts
   useEffect(() => {
@@ -309,7 +338,7 @@ export default function App() {
                 </div>
               )}
 
-              <HomeTab liveNodes={displayNodes} sendMeshMessage={meshNetwork.sendMessage} />
+              <HomeTab liveNodes={displayNodes} sendMeshMessage={sendMeshBroadcast} />
             </>
           )}
           {tab === "alert" && <AlertTab nodeCount={peerCount} />}

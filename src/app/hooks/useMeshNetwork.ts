@@ -119,8 +119,10 @@ export function useMeshNetwork(nodeId: string = 'node-1') {
         priority
       );
 
-      // Attempt immediate delivery
-      await storeAndForwardRef.current.deliverQueuedMessages();
+      // Attempt immediate delivery for unicast; broadcast is handled by native BLE
+      if (destination !== 'broadcast') {
+        await storeAndForwardRef.current.deliverQueuedMessages();
+      }
 
       return messageId;
     } catch (err) {

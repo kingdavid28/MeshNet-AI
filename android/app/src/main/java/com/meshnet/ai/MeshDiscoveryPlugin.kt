@@ -149,6 +149,7 @@ class MeshDiscoveryPlugin : Plugin() {
     private val bleVerifiedAddresses = ConcurrentHashMap<String, String>() // nodeId → BT address
     // Per-device GATT read state (ANDROID-4: thread-safe, one map per remote device)
     private val gattReadState   = ConcurrentHashMap<String, ConcurrentHashMap<String, String>>()
+    private val gattConnections = ConcurrentHashMap<String, BluetoothGatt>()
     // Device address → RSSI (for reporting signal strength)
     private val deviceRssi      = ConcurrentHashMap<String, Int>()
     // Track devices currently being connected to prevent duplicate connections
@@ -772,6 +773,7 @@ class MeshDiscoveryPlugin : Plugin() {
         Log.d(TAG, "Connection state change for $deviceAddr: status=$status, newState=$newState")
         if (newState == BluetoothProfile.STATE_CONNECTED) {
             Log.i(TAG, "Connected to $deviceAddr, discovering services")
+            gattConnections[deviceAddr] = gatt
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 gatt.requestMtu(512)
             } else {
@@ -781,6 +783,7 @@ class MeshDiscoveryPlugin : Plugin() {
             Log.i(TAG, "Disconnected from $deviceAddr (status=$status)")
             gatt.close()
             gattReadState.remove(deviceAddr)
+            gattConnections.remove(deviceAddr)
             connectingDevices.remove(deviceAddr) // Remove from connecting devices
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 scheduleReconnect(deviceAddr)
@@ -931,17 +934,47 @@ class MeshDiscoveryPlugin : Plugin() {
 
     // ── Message Broadcasting ─────────────────────────────────────────────────
 
+    @PluginMethod
+    fun sendBroadcast(call: PluginCall) {
+        val message = call.getString("message") ?: ""
+        broadcastMessage(message)
+        call.resolve()
+    }
+
     @SuppressLint("MissingPermission")
-    fun broadcastMessage(message: String) {
+    private fun broadcastMessage(message: String) {
         Log.i(TAG, "Broadcasting message to all connected peers: $message")
         val messageBytes = message.toByteArray(Charsets.UTF_8)
 
+        if (gattConnections.isEmpty()) {
+            Log.w(TAG, "No active GATT connections to broadcast to")
+            return
+        }
+
         // Iterate through connected GATT clients and write to message characteristic
-        gattReadState.keys.forEach { deviceAddr ->
+        gattConnections.forEach { (deviceAddr, gatt) ->
             try {
-                // Need to maintain active GATT connections for this to work
-                // For now, log the intent
-                Log.d(TAG, "Would send message to $deviceAddr")
+                val service = gatt.getService(UUID.fromString(MESH_SERVICE_UUID))
+                if (service == null) {
+                    Log.w(TAG, "MeshNet service not found on $deviceAddr, skipping broadcast")
+                    return@forEach
+                }
+                val msgChar = service.getCharacteristic(UUID.fromString(CHAR_MSG_UUID))
+                if (msgChar == null) {
+                    Log.w(TAG, "Message characteristic not found on $deviceAddr, skipping broadcast")
+                    return@forEach
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    gatt.writeCharacteristic(msgChar, messageBytes, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+                } else {
+                    @Suppress("DEPRECATION")
+                    msgChar.value = messageBytes
+                    @Suppress("DEPRECATION")
+                    gatt.writeCharacteristic(msgChar)
+                }
+
+                Log.i(TAG, "Sent broadcast message to $deviceAddr")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send message to $deviceAddr", e)
             }

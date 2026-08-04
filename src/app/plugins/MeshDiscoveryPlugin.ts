@@ -86,6 +86,11 @@ export interface ErrorEvent {
   message: string;
 }
 
+export interface PeerMessageEvent {
+  address: string;
+  message: string;
+}
+
 // ── Plugin interface ──────────────────────────────────────────────────────────
 
 export interface MeshDiscoveryPlugin extends Plugin {
@@ -95,6 +100,8 @@ export interface MeshDiscoveryPlugin extends Plugin {
   stopDiscovery(): Promise<void>;
   /** Return current discovery status without changing state. */
   getStatus(): Promise<DiscoveryStatus>;
+  /** Broadcast a text message to all connected BLE peers. */
+  broadcastMessage(options: { message: string }): Promise<void>;
   /** POST this device's own record to the Express backend immediately. */
   registerSelf(options: RegisterSelfOptions): Promise<void>;
   /** Start WiFi hotspot with given SSID and password. */
@@ -127,6 +134,9 @@ const WebMeshDiscovery: MeshDiscoveryPlugin = {
   async stopDiscovery(): Promise<void> {},
   async getStatus(): Promise<DiscoveryStatus> {
     return { scanning: false, advertising: false, wifiDirect: false, peersFound: 0, selfNodeId: "" };
+  },
+  async broadcastMessage(): Promise<void> {
+    console.info("[MeshDiscovery] Web stub — broadcastMessage is a no-op in browser");
   },
   async registerSelf(): Promise<void> {
     console.info("[MeshDiscovery] Web stub — registerSelf is a no-op in browser");
