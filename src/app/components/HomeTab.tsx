@@ -12,7 +12,17 @@ import { encryptMessage } from "../hooks/useMeshCrypto";
 import { MESSAGES, msgTypeStyle, msgTypeIcon, API_BASE, meshHeaders, ALERT_MSG_CATEGORY } from "../constants";
 import type { LocalMessage } from "../types";
 
-export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
+export function HomeTab({
+  liveNodes,
+  sendMeshMessage,
+}: {
+  liveNodes: CloudantNode[];
+  sendMeshMessage?: (
+    destination: string,
+    message: any,
+    priority: "emergency" | "high" | "normal" | "low"
+  ) => Promise<string | null>;
+}) {
   const [sosActive, setSosActive] = useState(false);
   const [sosCountdown, setSosCountdown] = useState<number | null>(null);
   const deviceLocation = useDeviceLocation();
@@ -60,7 +70,10 @@ export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
       errorMessage = error instanceof Error ? error.message : "Network error";
     }
 
+    let sentVia: "backend" | "mesh" | "offline" = "offline";
+
     if (delivered) {
+      sentVia = "backend";
       try {
         const gpsLine = lat != null && lng != null
           ? ` · GPS ${lat.toFixed(5)}°N ${lng.toFixed(5)}°E`
@@ -81,9 +94,23 @@ export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
           signal: AbortSignal.timeout(10_000),
         });
       } catch (error) {
+        console.error("[HomeTab] SOS backend mesh broadcast failed:", error);
+      }
+    } else if (sendMeshMessage) {
+      try {
+        const meshId = await sendMeshMessage("broadcast", { ...payload, timestamp: Date.now() }, "emergency");
+        if (meshId) {
+          sentVia = "mesh";
+          console.log("[HomeTab] SOS broadcast via mesh:", meshId);
+        } else {
+          console.warn("[HomeTab] SOS mesh broadcast not delivered");
+        }
+      } catch (error) {
         console.error("[HomeTab] SOS mesh broadcast failed:", error);
       }
-    } else {
+    }
+
+    if (sentVia === "offline") {
       const queue = JSON.parse(localStorage.getItem("meshnet_alert_queue") ?? "[]") as unknown[];
       queue.push({ ...payload, queuedAt: Date.now(), error: errorMessage });
       localStorage.setItem("meshnet_alert_queue", JSON.stringify(queue));
@@ -92,15 +119,18 @@ export function HomeTab({ liveNodes }: { liveNodes: CloudantNode[] }) {
     const gpsLine = lat != null && lng != null
       ? ` · GPS ${lat.toFixed(5)}°N ${lng.toFixed(5)}°E`
       : "";
-    const text = delivered
-      ? `SOS ALERT broadcast${gpsLine}`
-      : `SOS ALERT queued (offline)${gpsLine ? gpsLine : ""}`;
+    const text =
+      sentVia === "backend"
+        ? `SOS ALERT broadcast${gpsLine}`
+        : sentVia === "mesh"
+        ? `SOS ALERT broadcast via mesh${gpsLine}`
+        : `SOS ALERT queued (offline)${gpsLine}`;
 
     setRecentActivity((prev) => [
       { id: `sos-${Date.now()}`, from: "You", text, time, type: "alert", read: true },
       ...prev,
     ].slice(0, 5));
-  }, [deviceLocation]);
+  }, [deviceLocation, sendMeshMessage]);
 
   const handleSOS = () => {
     if (sosActive || sosCountdown !== null) return;

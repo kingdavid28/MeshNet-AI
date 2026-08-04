@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 interface MeshNetBackend {
   meshnet: boolean;
@@ -130,9 +131,9 @@ export function useNetworkDiscovery() {
     for (const priority of (import.meta.env.DEV
       ? [CONNECTION_PRIORITY[0], CONNECTION_PRIORITY[3], CONNECTION_PRIORITY[1], CONNECTION_PRIORITY[2]]
       : CONNECTION_PRIORITY)) {
-      // Skip development IPs in emergency mode
-      if (emergencyMode && priority.type === 'dev') {
-        console.log('Emergency mode: skipping development IPs');
+      // Skip development IPs in emergency mode or on native (loopback is the device itself)
+      if ((emergencyMode || Capacitor.isNativePlatform()) && priority.type === 'dev') {
+        console.log(emergencyMode ? 'Emergency mode: skipping development IPs' : 'Native platform: skipping loopback development IPs');
         continue;
       }
 

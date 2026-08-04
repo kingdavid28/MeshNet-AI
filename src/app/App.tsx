@@ -285,7 +285,7 @@ export default function App() {
                 </div>
               )}
 
-              <HomeTab liveNodes={displayNodes} />
+              <HomeTab liveNodes={displayNodes} sendMeshMessage={meshNetwork.sendMessage} />
             </>
           )}
           {tab === "alert" && <AlertTab nodeCount={peerCount} />}
