@@ -9,11 +9,11 @@
 
   ## Team
 
-  - **ROHIT SANE** — Team Lead & Author [@Rohit Sane](https://github.com/RohitSane)
-  - **REYCEL CENTINO** — Front-End [@kingdavid](https://github.com/kingdavid28)
-  - **PAUL OLANTUNDE ABIMBOLA** — Back-End [@paulgreat](https://github.com/paulgreat)
-  - **ARIANE SANDOY** — [@archii](https://github.com/archii)
-  - **MARCELO RODRIGUEZ** — SQL & Database [@Marcelo Rodriguez | Peru](https://github.com/MarceloRodriguezPeru)
+  - **ROHIT SANE** — Team Lead & Author
+  - **REYCEL CENTINO** — Front-End
+  - **PAUL OLANTUNDE ABIMBOLA** — Back-End
+  - **ARIANE SANDOY** 
+  - **MARCELO RODRIGUEZ** — SQL & Database
 
   ## Running the code
 

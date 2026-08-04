@@ -226,6 +226,9 @@ class MeshDiscoveryPlugin : Plugin() {
         heartbeatInterval = call.getLong("heartbeatIntervalMs", 5_000L)!!
 
         if (!checkRequiredPermissions()) {
+            // Log which permissions are missing for debugging
+            val missing = getMissingPermissions()
+            Log.w(TAG, "Missing permissions: $missing")
             requestAllPermissions(call, "onPermissionsResult")
             return
         }
@@ -1272,13 +1275,19 @@ class MeshDiscoveryPlugin : Plugin() {
     @PermissionCallback
     fun onPermissionsResult(call: PluginCall) {
         if (checkRequiredPermissions()) {
+            Log.i(TAG, "All permissions granted, starting discovery")
             startBleAdvertise()
             startBleScan()
             startWifiDirect()
-            startHeartbeat()
+            // Only start heartbeat if backend is available
+            if (apiBase.isNotBlank()) {
+                startHeartbeat()
+            }
             call.resolve(buildStatusResult())
         } else {
-            call.reject("Required permissions not granted")
+            val missing = getMissingPermissions()
+            Log.w(TAG, "Permissions still missing after request: $missing")
+            call.reject("Required permissions not granted: $missing")
         }
     }
 
@@ -1299,6 +1308,27 @@ class MeshDiscoveryPlugin : Plugin() {
         }
         return required.all {
             ActivityCompat.checkSelfPermission(context, it) ==
+                PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun getMissingPermissions(): List<String> {
+        val required = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.CHANGE_WIFI_STATE,
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            required += listOf(
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_ADVERTISE,
+                Manifest.permission.BLUETOOTH_CONNECT,
+            )
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            required += Manifest.permission.NEARBY_WIFI_DEVICES
+        }
+        return required.filter {
+            ActivityCompat.checkSelfPermission(context, it) !=
                 PackageManager.PERMISSION_GRANTED
         }
     }
