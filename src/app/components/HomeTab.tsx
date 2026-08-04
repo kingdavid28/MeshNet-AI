@@ -101,7 +101,7 @@ export function HomeTab({
         const meshId = await sendMeshMessage("broadcast", { ...payload, timestamp: Date.now() }, "emergency");
         if (meshId) {
           sentVia = "mesh";
-          console.log("[HomeTab] SOS broadcast via mesh:", meshId);
+          console.warn("[HomeTab] SOS broadcast via mesh:", meshId);
         } else {
           console.warn("[HomeTab] SOS mesh broadcast not delivered");
         }
