@@ -14,6 +14,7 @@
 import { useState, useMemo, useRef } from "react";
 import type { CloudantNode } from "../hooks/useCloudantNodes";
 import type { DeviceLocation } from "../hooks/useDeviceLocation";
+import type { DiscoveredPeer } from "../hooks/useMeshDiscovery";
 import { Bluetooth, Battery, Signal, RefreshCw, Database, Wifi, LocateFixed, Layers, WifiOff } from "lucide-react";
 import LeafletMap, { type LeafletMapHandle } from "./LeafletMap";
 
@@ -51,6 +52,7 @@ interface Props {
   broadcastActive?: boolean;
   onNodeClick?:     (node: CloudantNode) => void;
   deviceLocation?:  DeviceLocation | null;
+  localPeers?:      DiscoveredPeer[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -65,6 +67,7 @@ export default function NodeMapCanvas({
   broadcastActive = false,
   onNodeClick,
   deviceLocation,
+  localPeers = [],
 }: Props) {
   const [selected, setSelected] = useState<CloudantNode | null>(null);
   const leafletRef = useRef<LeafletMapHandle>(null);
@@ -76,9 +79,36 @@ export default function NodeMapCanvas({
     [nodes, broadcastActive],
   );
 
-  const bleActiveCount  = effectiveNodes.filter((n) => n.bluetooth_status).length;
-  const wifiActiveCount = effectiveNodes.filter((n) => n.wifi_status).length;
-  const bothActiveCount = effectiveNodes.filter((n) => n.protocol_active === "both").length;
+  // Convert local peers to CloudantNode format for display on map
+  const localPeerNodes = useMemo(() => {
+    return localPeers.map((peer) => ({
+      node_id: peer.nodeId,
+      label: peer.label,
+      lat: peer.lat,
+      lng: peer.lng,
+      signal: peer.signal,
+      batteryPercentage: peer.battery,
+      bluetooth_status: true,
+      wifi_status: false,
+      protocol_active: "ble" as const,
+      role: "peer" as const,
+      device: "smartphone" as const,
+      last_seen: peer.lastSeen,
+    }));
+  }, [localPeers]);
+
+  // Combine backend nodes with local peers for map display
+  const allNodes = useMemo(() => {
+    // Merge by node_id to avoid duplicates
+    const nodeMap = new Map<string, CloudantNode>();
+    effectiveNodes.forEach((n) => nodeMap.set(n.node_id, n));
+    localPeerNodes.forEach((n) => nodeMap.set(n.node_id, n));
+    return Array.from(nodeMap.values());
+  }, [effectiveNodes, localPeerNodes]);
+
+  const bleActiveCount  = allNodes.filter((n) => n.bluetooth_status).length;
+  const wifiActiveCount = allNodes.filter((n) => n.wifi_status).length;
+  const bothActiveCount = allNodes.filter((n) => n.protocol_active === "both").length;
 
   const sourceBadge: { label: string; color: string } = {
     cloudant:        { label: "IBM Cloudant", color: "#5B8DD9" },
@@ -107,7 +137,7 @@ export default function NodeMapCanvas({
             Live Mesh Map
           </h2>
           <p className="text-[10px] text-[#7B9CC4] mt-0.5 font-mono">
-            {effectiveNodes.length} node{effectiveNodes.length !== 1 ? "s" : ""}
+            {allNodes.length} node{allNodes.length !== 1 ? "s" : ""}
               &nbsp;·&nbsp;{bleActiveCount} BLE
               &nbsp;·&nbsp;{wifiActiveCount} Wi-Fi
               {bothActiveCount > 0 && <>&nbsp;·&nbsp;<span style={{ color: COLOR_BOTH }}>{bothActiveCount} dual</span></>}
@@ -213,7 +243,7 @@ export default function NodeMapCanvas({
       >
         <LeafletMap
           ref={leafletRef}
-          nodes={effectiveNodes}
+          nodes={allNodes}
           activeRoutePath={activeRoutePath}
           onNodeClick={handleNodeClick}
           selectedNodeId={selected?.node_id ?? null}
@@ -229,7 +259,7 @@ export default function NodeMapCanvas({
         )}
 
         {/* Empty state */}
-        {!loading && effectiveNodes.length === 0 && (
+        {!loading && allNodes.length === 0 && (
           <div className="absolute inset-0 z-[1000] flex flex-col items-center justify-center gap-2 pointer-events-none">
             <div className="text-[#7B9CC4] text-xs font-mono">No nodes loaded</div>
             {onRefresh && (

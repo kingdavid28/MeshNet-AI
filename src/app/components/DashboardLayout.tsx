@@ -23,12 +23,13 @@ import { useCloudantNodes, type CloudantNode } from "../hooks/useCloudantNodes";
 import { useRouting } from "../hooks/useRouting";
 import { useSignalStream } from "../hooks/useSignalStream";
 import { useDeviceLocation } from "../hooks/useDeviceLocation";
+import { useMeshDiscovery, type DiscoveredPeer } from "../hooks/useMeshDiscovery";
 import { WebRTCManager } from "../../components/WebRTCManager";
 import { HotspotManager } from "../../components/HotspotManager";
 import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
 import { BackendConnectionCard } from "../../components/BackendConnectionCard";
-import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, MessageSquare, Network } from "lucide-react";
+import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, MessageSquare, Network, Bluetooth } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { getApiBase, getMeshSecret } from "../../utils/env";
 
@@ -62,6 +63,14 @@ export default function DashboardLayout() {
   const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000, deviceLocation.lat, deviceLocation.lng);
   const { result: routeResult, loading: routeLoading, error: routeError, query: queryRoute } = useRouting();
   const { latestFlicker, flickerHistory, connected: sseConnected, dismiss: dismissFlicker } = useSignalStream();
+  const { peers: localPeers, status: discoveryStatus, isNative: isNativePlatform } = useMeshDiscovery({
+    nodeId: localStorage.getItem('meshnet_node_id') || 'desktop',
+    label: 'Desktop',
+    battery: 100,
+    signal: 100,
+    apiBase: getApiBase(),
+    deviceLocation: deviceLocation.status === 'ok' ? { lat: deviceLocation.lat || 0, lng: deviceLocation.lng || 0 } : undefined,
+  });
 
   const [log, setLog] = useState<LogEntry[]>([
     makeEntry("system", "Dashboard initialized — IBM Cloudant sync active... acquiring GPS"),
@@ -205,6 +214,9 @@ export default function DashboardLayout() {
 
   // Active route path (array of node_ids from routeResult)
   const activeRoutePath = routeResult?.found ? routeResult.path : [];
+
+  // Combine backend nodes with local peers for total count
+  const totalNodes = nodes.length + localPeers.length;
 
   return (
     // Single root element — no Fragment. The outer div is position:fixed so it
@@ -377,9 +389,24 @@ export default function DashboardLayout() {
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/20">
               <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
               <span className="text-[10px] font-mono text-[#22C55E] uppercase tracking-wider">
-                {nodes.length} nodes
+                {totalNodes} nodes
               </span>
             </div>
+
+            {/* Local BLE peers status */}
+            {isNativePlatform && (
+              <div
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-mono uppercase border"
+                style={{
+                  background: localPeers.length > 0 ? "rgba(34,197,94,0.1)" : "rgba(75,85,99,0.1)",
+                  borderColor: localPeers.length > 0 ? "rgba(34,197,94,0.25)" : "rgba(75,85,99,0.25)",
+                  color: localPeers.length > 0 ? "#22C55E" : "#6B7280",
+                }}
+              >
+                <Bluetooth size={9} />
+                {localPeers.length} local peer{localPeers.length !== 1 ? "s" : ""}
+              </div>
+            )}
 
             {/* Backend connectivity status */}
             <div
@@ -553,6 +580,7 @@ export default function DashboardLayout() {
                 broadcastActive={broadcastActive}
                 onNodeClick={handleNodeClick}
                 deviceLocation={deviceLocation}
+                localPeers={localPeers}
               />
             </div>
 
