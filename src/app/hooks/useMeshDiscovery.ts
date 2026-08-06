@@ -124,7 +124,7 @@ export function useMeshDiscovery({
         unsubscribeRef.current = null;
       }
     };
-  }, [nodeId, label, battery, signal, apiBase, heartbeatIntervalMs, deviceLocation, enabled]);
+  }, [nodeId, label, battery, signal, apiBase, heartbeatIntervalMs, enabled]);
 
   const reRegister = async () => {
     await meshDiscoveryService.reRegister();

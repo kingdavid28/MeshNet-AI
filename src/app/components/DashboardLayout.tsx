@@ -30,7 +30,7 @@ import { NetworkStatus } from "../../components/NetworkStatus";
 import { EmergencyMode } from "../../components/EmergencyMode";
 import { BackendConnectionCard } from "../../components/BackendConnectionCard";
 import { Wifi, WifiOff, Database, AlertTriangle, Route, Signal, Zap, Settings, X, MessageSquare, Network, Bluetooth } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { getApiBase, getMeshSecret } from "../../utils/env";
 
 // ─── Activity log ─────────────────────────────────────────────────────────────
@@ -63,13 +63,22 @@ export default function DashboardLayout() {
   const { nodes, loading, error, source, refresh } = useCloudantNodes(10_000, deviceLocation.lat, deviceLocation.lng);
   const { result: routeResult, loading: routeLoading, error: routeError, query: queryRoute } = useRouting();
   const { latestFlicker, flickerHistory, connected: sseConnected, dismiss: dismissFlicker } = useSignalStream();
+  
+  // Memoize stable values for useMeshDiscovery to prevent infinite re-renders
+  const nodeId = useMemo(() => localStorage.getItem('meshnet_node_id') || 'desktop', []);
+  const apiBase = useMemo(() => getApiBase(), []);
+  const discoveryLocation = useMemo(() => 
+    deviceLocation.status === 'ok' ? { lat: deviceLocation.lat || 0, lng: deviceLocation.lng || 0 } : undefined,
+    [deviceLocation.status, deviceLocation.lat, deviceLocation.lng]
+  );
+  
   const { peers: localPeers, status: discoveryStatus, isNative: isNativePlatform } = useMeshDiscovery({
-    nodeId: localStorage.getItem('meshnet_node_id') || 'desktop',
+    nodeId,
     label: 'Desktop',
     battery: 100,
     signal: 100,
-    apiBase: getApiBase(),
-    deviceLocation: deviceLocation.status === 'ok' ? { lat: deviceLocation.lat || 0, lng: deviceLocation.lng || 0 } : undefined,
+    apiBase,
+    deviceLocation: discoveryLocation,
   });
 
   const [log, setLog] = useState<LogEntry[]>([
