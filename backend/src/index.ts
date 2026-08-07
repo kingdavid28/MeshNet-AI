@@ -17,6 +17,7 @@ import { healthRouter }  from "./routes/health";
 import { routeRouter }   from "./routes/route";
 import { signalRouter }  from "./routes/signal";
 import emergencyRouter from "./routes/emergency";
+import syncRouter       from "./routes/sync";
 import { requestLogger } from "./middleware/logger";
 import { rateLimiter }   from "./middleware/rateLimit";
 import { requireMeshAuth } from "./middleware/auth";
@@ -71,6 +72,9 @@ app.use("/api/health", healthRouter);
 
 // Emergency contact search — no auth required for offline access
 app.use("/api/emergency", emergencyRouter);
+
+// Sync endpoints — no auth required for offline data sync
+app.use("/api", syncRouter);
 
 // Public mesh endpoints — no auth required (captive portal + victim self-registration)
 app.use("/api/mesh", publicMeshRouter);
